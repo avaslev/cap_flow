@@ -2,7 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'package:bookstore/src/bloc/action/action_bloc.dart';
+import 'package:bookstore/src/screens/actions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'auth.dart';
@@ -58,7 +61,8 @@ class _BookstoreState extends State<Bookstore> {
                 selectedIndex: switch (state.uri.path) {
                   var p when p.startsWith('/books') => 0,
                   var p when p.startsWith('/authors') => 1,
-                  var p when p.startsWith('/settings') => 2,
+                  var p when p.startsWith('/actions') => 2,
+                  var p when p.startsWith('/settings') => 3,
                   _ => 0,
                 },
                 child: child,
@@ -246,6 +250,18 @@ class _BookstoreState extends State<Bookstore> {
                     },
                   ),
                 ],
+              ),
+              GoRoute(
+                path: '/actions',
+                pageBuilder: (context, state) {
+                  return FadeTransitionPage<dynamic>(
+                    key: state.pageKey,
+                    child: BlocProvider(
+                      create: (context) => ActionBloc(),
+                      child: ActionsScreen(),
+                    ),
+                  );
+                },
               ),
               GoRoute(
                 path: '/settings',
