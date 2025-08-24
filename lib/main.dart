@@ -4,19 +4,22 @@
 
 import 'dart:io' show Platform;
 
+import 'package:bookstore/core/db.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';
+import 'core/app.dart';
 
-import 'src/app.dart';
-
-void main() {
+void main() async {
   setupWindow();
-  runApp(const Bookstore());
+  await DatabaseHelper.instance.initDb();
+  runApp(const InvestApp());
 }
 
-const double windowWidth = 480;
-const double windowHeight = 854;
+const double windowWidth = 1400;
+const double windowHeight = 1200;
+
+// project structure https://codexrush.com/blog/the-ideal-flutter-folder-structure-codexrush/
 
 void setupWindow() {
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {

@@ -2,35 +2,38 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:bookstore/src/bloc/action/action_bloc.dart';
-import 'package:bookstore/src/screens/actions.dart';
+import 'package:bookstore/feature/account/logic/accountBloc.dart';
+import 'package:bookstore/feature/account/presentation/accountsScreen.dart';
+import 'package:bookstore/feature/activity/logic/bloc.dart';
+import 'package:bookstore/feature/activity/presentation/detailScreen.dart';
+import 'package:bookstore/feature/activity/presentation/listScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'auth.dart';
-import 'data.dart';
-import 'screens/author_details.dart';
-import 'screens/authors.dart';
-import 'screens/book_details.dart';
-import 'screens/books.dart';
-import 'screens/scaffold.dart';
-import 'screens/settings.dart';
-import 'screens/sign_in.dart';
-import 'widgets/book_list.dart';
-import 'widgets/fade_transition_page.dart';
+import '../src/auth.dart';
+import '../src/data.dart';
+import '../src/screens/author_details.dart';
+import '../src/screens/authors.dart';
+import '../src/screens/book_details.dart';
+import '../src/screens/books.dart';
+import '../src/screens/scaffold.dart';
+import '../src/screens/settings.dart';
+import '../src/screens/sign_in.dart';
+import '../src/widgets/book_list.dart';
+import '../src/widgets/fade_transition_page.dart';
 
 final appShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'app shell');
 final booksNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'books shell');
 
-class Bookstore extends StatefulWidget {
-  const Bookstore({super.key});
+class InvestApp extends StatefulWidget {
+  const InvestApp({super.key});
 
   @override
-  State<Bookstore> createState() => _BookstoreState();
+  State<InvestApp> createState() => _InvestAppState();
 }
 
-class _BookstoreState extends State<Bookstore> {
+class _InvestAppState extends State<InvestApp> {
   final BookstoreAuth auth = BookstoreAuth();
 
   @override
@@ -45,7 +48,7 @@ class _BookstoreState extends State<Bookstore> {
       routerConfig: GoRouter(
         refreshListenable: auth,
         debugLogDiagnostics: true,
-        initialLocation: '/books/popular',
+        initialLocation: '/accounts',
         redirect: (context, state) {
           final signedIn = BookstoreAuth.of(context).signedIn;
           if (state.uri.toString() != '/sign-in' && !signedIn) {
@@ -59,10 +62,11 @@ class _BookstoreState extends State<Bookstore> {
             builder: (context, state, child) {
               return BookstoreScaffold(
                 selectedIndex: switch (state.uri.path) {
-                  var p when p.startsWith('/books') => 0,
-                  var p when p.startsWith('/authors') => 1,
-                  var p when p.startsWith('/actions') => 2,
-                  var p when p.startsWith('/settings') => 3,
+                  var p when p.startsWith('/accounts') => 0,
+                  var p when p.startsWith('/books') => 1,
+                  var p when p.startsWith('/authors') => 2,
+                  var p when p.startsWith('/activities') => 3,
+                  var p when p.startsWith('/settings') => 4,
                   _ => 0,
                 },
                 child: child,
@@ -252,13 +256,38 @@ class _BookstoreState extends State<Bookstore> {
                 ],
               ),
               GoRoute(
-                path: '/actions',
+                path: '/accounts',
                 pageBuilder: (context, state) {
                   return FadeTransitionPage<dynamic>(
                     key: state.pageKey,
                     child: BlocProvider(
-                      create: (context) => ActionBloc(),
-                      child: ActionsScreen(),
+                      create: (context) => AccountsBloc(),
+                      child: AccountListScreen(),
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: '/activities',
+                pageBuilder: (context, state) {
+                  return FadeTransitionPage<dynamic>(
+                    key: state.pageKey,
+                    child: BlocProvider(
+                      create: (context) => ActivityBloc(),
+                      child: ActivityListScreen(),
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: '/activities/:id',
+                pageBuilder: (context, state) {
+                  final String activityId = state.pathParameters['id']!;
+                  return FadeTransitionPage<dynamic>(
+                    key: state.pageKey,
+                    child: BlocProvider(
+                      create: (context) => ActivityBloc(),
+                      child: ActivityDetailScreen(activityId: activityId),
                     ),
                   );
                 },
