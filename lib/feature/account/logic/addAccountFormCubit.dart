@@ -1,4 +1,4 @@
-import 'package:bookstore/feature/account/data/accountData.dart' show AccountType;
+import 'package:bookstore/feature/account/data/accountDataState.dart' show AccountType;
 import 'package:bookstore/feature/account/data/addAccountFormState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

@@ -1,6 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:bookstore/data/models/activity.dart';
-import 'package:bookstore/data/repository/activity/repository.dart';
+import 'package:bookstore/data/repository/activityRepository.dart';
 import 'package:meta/meta.dart';
 
 // Importing the parts for event and state definitions

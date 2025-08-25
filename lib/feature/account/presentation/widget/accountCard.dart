@@ -1,5 +1,5 @@
 import 'package:bookstore/core/utils/getAccountIcon.dart';
-import 'package:bookstore/feature/account/data/accountData.dart';
+import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/logic/accountBloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,8 +35,10 @@ class AccountCard extends StatelessWidget {
         accountBloc.add(DisableEditModeAccountCardEvent(account.id));
       },
       onLongPress: () {
-            canEdit ? accountBloc.add(EnableEditModeAccountCardEvent(account.id)) : null;
-        },
+        canEdit
+            ? accountBloc.add(EnableEditModeAccountCardEvent(account.id))
+            : null;
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         height: 110, // Fixed height for each card
@@ -243,20 +245,29 @@ class AccountCard extends StatelessWidget {
                         );
                       },
                     );
-                    // if (confirm == true) {
-                    //   // accountData.deleteAccount(account.id);
-                    //   ScaffoldMessenger.of(context).showSnackBar(
-                    //     SnackBar(
-                    //       content: Text(
-                    //         '${account.name} deleted successfully.',
-                    //       ),
-                    //       duration: const Duration(seconds: 1),
-                    //     ),
-                    //   );
-                    // } else {
-                    //   accountData
-                    //       .clearDeletableAccount(); // Exit delete mode if cancelled
-                    // }
+                    if (confirm == true) {
+                      accountBloc.add(
+                        ChangeAccountEvent(
+                          accountId: account.id,
+                          hideEvents: account.hideEvents,
+                          excludeFromTotal: account.excludeFromTotal,
+                          remove: true,
+                        ),
+                      );
+                      // accountData.deleteAccount(account.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${account.name} deleted successfully.',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    } else {
+                      accountBloc.add(
+                        DisableEditModeAccountCardEvent(account.id),
+                      );
+                    }
                   },
                 ),
               ),
@@ -272,7 +283,14 @@ class AccountCard extends StatelessWidget {
                     size: 28,
                   ),
                   onPressed: () {
-                    // accountData.toggleHideEvents(account.id);
+                    accountBloc.add(
+                      ChangeAccountEvent(
+                        accountId: account.id,
+                        hideEvents: !account.hideEvents,
+                        excludeFromTotal: account.excludeFromTotal,
+                        remove: false,
+                      ),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -296,7 +314,14 @@ class AccountCard extends StatelessWidget {
                     size: 28,
                   ),
                   onPressed: () {
-                    // accountData.toggleExcludeFromTotal(account.id);
+                    accountBloc.add(
+                      ChangeAccountEvent(
+                        accountId: account.id,
+                        hideEvents: account.hideEvents,
+                        excludeFromTotal: !account.excludeFromTotal,
+                        remove: false,
+                      ),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(

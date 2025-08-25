@@ -8,14 +8,21 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 Map<int, String> migrationScripts = {
   1: '''CREATE TABLE activities (
-    id       TEXT (36) PRIMARY KEY
-                       NOT NULL,
+    id       TEXT (36) PRIMARY KEY NOT NULL,
     type     TEXT      NOT NULL,
     createAt INTEGER   NOT NULL,
     sum      NUMERIC   NOT NULL,
     currency TEXT      NOT NULL,
     name     TEXT      NOT NULL,
     comment  TEXT
+)''',
+  2: '''CREATE TABLE accounts (
+    id               TEXT (36) PRIMARY KEY NOT NULL,
+    name             TEXT      NOT NULL,
+    colorValue       INTEGER   NOT NULL,
+    type             NUMERIC   NOT NULL,
+    hideEvents       TEXT      NOT NULL,
+    excludeFromTotal TEXT      NOT NULL
 )''',
 };
 

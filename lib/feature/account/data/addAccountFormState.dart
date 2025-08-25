@@ -1,5 +1,5 @@
 // DATA_MODEL for AddAccountForm's internal state
-import 'package:bookstore/feature/account/data/accountData.dart';
+import 'package:bookstore/feature/account/data/accountDataState.dart';
 
 class AddAccountFormState {
   final String name;

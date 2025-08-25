@@ -1,4 +1,4 @@
-import 'package:bookstore/feature/account/data/accountData.dart';
+import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/logic/accountBloc.dart';
 import 'package:bookstore/feature/account/logic/addAccountFormCubit.dart';
 import 'package:bookstore/feature/account/presentation/widget/accountCard.dart';
@@ -221,9 +221,8 @@ class AccountListScreen extends StatelessWidget {
                             accountData: state.accountData,
                             accountId: state.accountData.activeAccountId),
                       ],
-
                       // Recent Events Section (Displayed *only* for 'total' account)
-                      if (state.accountData.activeAccountId =='total') ...<Widget>[
+                      if (state.accountData.activeAccountId == 'total') ...<Widget>[
                         Padding(
                           padding: const EdgeInsets.only(
                             top: 24,
