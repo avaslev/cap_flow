@@ -37,7 +37,7 @@ class ToolList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Tool> tools = accountData.getToolsForAccount(accountId);
+    final List<ToolSummary> tools = accountData.getToolsForAccount(accountId);
 
     if (tools.isEmpty) {
       return Padding(
@@ -52,9 +52,9 @@ class ToolList extends StatelessWidget {
     }
 
     // Group tools by type
-    final Map<ToolType, List<Tool>> groupedTools = {};
-    for (final Tool tool in tools) {
-      groupedTools.putIfAbsent(tool.type, () => <Tool>[]).add(tool);
+    final Map<ToolType, List<ToolSummary>> groupedTools = {};
+    for (final ToolSummary tool in tools) {
+      groupedTools.putIfAbsent(tool.type, () => <ToolSummary>[]).add(tool);
     }
 
     // Sort group keys for consistent display order
@@ -64,7 +64,7 @@ class ToolList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: sortedTypes.map<Widget>((ToolType type) {
-        final List<Tool> toolsInGroup = groupedTools[type]!;
+        final List<ToolSummary> toolsInGroup = groupedTools[type]!;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -80,7 +80,7 @@ class ToolList extends StatelessWidget {
               ),
             ),
             ...toolsInGroup
-                .map<Widget>((Tool tool) => ToolTile(tool: tool))
+                .map<Widget>((ToolSummary tool) => ToolTile(tool: tool))
                 .toList(),
           ],
         );
@@ -91,7 +91,7 @@ class ToolList extends StatelessWidget {
 
 /// A widget to display a single financial tool/asset.
 class ToolTile extends StatelessWidget {
-  final Tool tool;
+  final ToolSummary tool;
 
   const ToolTile({
     Key? key,

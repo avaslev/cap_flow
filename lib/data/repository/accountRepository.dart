@@ -20,7 +20,7 @@ class AccountRepository {
 
   Future<List<Account>> geList() async {
     Database db = await DatabaseHelper.instance.db;
-    final actions = await db.query('accounts');
+    final actions = await db.query('accounts', orderBy: 'id');
     return actions.map((actionMap) => Account.fromMap(actionMap)).toList();
   }
 

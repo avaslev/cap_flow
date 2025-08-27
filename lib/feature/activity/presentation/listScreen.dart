@@ -104,17 +104,19 @@ class _ActivityListItem extends StatelessWidget {
     Color sumColor  = Colors.blueGrey.shade700;
 
     switch (action.type) {
-      case Type.add:
+      case ActivityType.add:
         icon = Icons.add_circle_outline;
         iconColor = Colors.green;
         sign = '+';
         sumColor = Colors.green.shade700;
         break;
-      case Type.substract:
+      case ActivityType.substract:
         icon = Icons.remove_circle_outline;
         iconColor = Colors.red;
         sign = '-';
         sumColor = Colors.red.shade700;
+        break;
+      default:
         break;
     }
 
@@ -133,7 +135,7 @@ class _ActivityListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    action.name,
+                    action.name!,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   if (action.comment != null && action.comment!.isNotEmpty)
@@ -145,7 +147,7 @@ class _ActivityListItem extends StatelessWidget {
               ),
             ),
             Text(
-              '$sign${action.sum.toStringAsFixed(2)} ${action.currency.name}',
+              '$sign${action.count.toStringAsFixed(2)} ${action.currency.name}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: sumColor,
                     fontWeight: FontWeight.bold,

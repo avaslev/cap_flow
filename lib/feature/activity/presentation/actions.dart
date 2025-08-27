@@ -25,7 +25,7 @@ class ActivitysScreen extends StatelessWidget {
                 return Card(
                   child: ListTile(
                     title: Text(state.data[index].id.toString()),
-                    subtitle: Text(state.data[index].sum.toString()),
+                    subtitle: Text(state.data[index].count.toString()),
                     trailing: Text(state.data[index].comment ?? ''),
                   ),
                 );

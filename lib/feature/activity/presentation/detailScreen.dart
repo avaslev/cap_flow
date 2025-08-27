@@ -37,9 +37,9 @@ class ActivityDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  _buildDetailRow(context, 'Name:', state.data.name),
+                  _buildDetailRow(context, 'Name:', state.data.name!),
                   _buildDetailRow(context, 'Type:', state.data.type.name),
-                  _buildDetailRow(context, 'Amount:', '${state.data.sum.toStringAsFixed(2)} ${state.data.currency.name}'),
+                  _buildDetailRow(context, 'Amount:', '${state.data.count.toStringAsFixed(2)} ${state.data.currency.name}'),
                   _buildDetailRow(context, 'Date:', DateFormat.yMMMd().add_jm().format(state.data.createAt)),
                   if (state.data.comment != null && state.data.comment!.isNotEmpty)
                     _buildDetailRow(context, 'Comment:', state.data.comment!),

@@ -41,7 +41,7 @@ class AccountCard extends StatelessWidget {
       },
       child: Container(
         padding: const EdgeInsets.all(16),
-        height: 110, // Fixed height for each card
+        height: 115, // Fixed height for each card
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16.0),

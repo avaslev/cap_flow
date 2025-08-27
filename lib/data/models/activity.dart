@@ -1,27 +1,41 @@
 
 import 'package:uuid/uuid.dart';
 
-enum Type {add, substract}
+enum ActivityType {add, substract, transmit}
 enum Currency {RUB, USD}
 
 class Activity {
-  String id = Uuid().v7();
-  late Type type;
-  late DateTime createAt;
-  late num sum;
-  late Currency currency;
-  late String name;
-  String? comment;
+  final String id;
+  final String toolId;
+  final ActivityType type;
+  final DateTime createAt;
+  final double count;
+  final double price;
+  final Currency currency;
+  final String? name;
+  final String? comment;
 
-  Activity({required this.id, required this.type, required this.createAt, required this.sum, required this.currency, required this.name, this.comment});
-  Activity.money(this.type, this.createAt, this.sum, this.currency, [this.comment = null, this.name = 'Money']);
+
+  Activity({
+    required this.id,
+    required this.toolId,
+    required this.type,
+    required this.createAt,
+    required this.count,
+    required this.price,
+    required this.currency,
+     this.name,
+     this.comment,
+  });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'toolId': toolId,
       'type': type.name,
       'createAt': createAt.millisecondsSinceEpoch,
-      'sum': sum,
+      'count': count,
+      'price': price,
       'currency': currency.name,
       'name': name,
       'comment': comment
@@ -31,13 +45,15 @@ class Activity {
   factory Activity.fromMap(Map<String, dynamic> map) {
     print(map);
     return Activity(
-      id: map['id'],
-      type: Type.values.byName(map['type']),
-      createAt: DateTime.fromMillisecondsSinceEpoch(map['createAt']),
-      sum: map['sum'],
-      currency: Currency.values.byName(map['currency']),
-      name: map['name'],
-      comment: map['comment']
+      id: map['id'].toString(),
+      toolId: map['toolId'].toString(),
+      type: ActivityType.values.byName(map['type'].toString()),
+      createAt: DateTime.fromMillisecondsSinceEpoch(int.parse(map['createAt'].toString())),
+      count: double.parse(map['count'].toString()),
+      price: double.parse(map['price'].toString()),
+      currency: Currency.values.byName(map['currency'].toString()),
+      name: map['name'].toString(),
+      comment: map['comment'].toString()
     );
   }
 }

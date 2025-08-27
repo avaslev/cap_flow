@@ -9,11 +9,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 Map<int, String> migrationScripts = {
   1: '''CREATE TABLE activities (
     id       TEXT (36) PRIMARY KEY NOT NULL,
+    toolId   TEXT      NOT NULL,
     type     TEXT      NOT NULL,
     createAt INTEGER   NOT NULL,
-    sum      NUMERIC   NOT NULL,
+    count    NUMERIC   NOT NULL,
+    price    NUMERIC   NOT NULL,
     currency TEXT      NOT NULL,
-    name     TEXT      NOT NULL,
+    name     TEXT,
     comment  TEXT
 )''',
   2: '''CREATE TABLE accounts (
@@ -23,6 +25,19 @@ Map<int, String> migrationScripts = {
     type             NUMERIC   NOT NULL,
     hideEvents       TEXT      NOT NULL,
     excludeFromTotal TEXT      NOT NULL
+)''',
+  3: '''CREATE TABLE tools (
+    id                 TEXT (36) PRIMARY KEY NOT NULL,
+    name               TEXT      NOT NULL,
+    accountId          TEXT      NOT NULL,
+    type               TEXT      NOT NULL,
+    ticker             TEXT,
+    startDate          INTEGER,
+    endDate            INTEGER,
+    payType            TEXT,
+    interestRate       NUMERIC,
+    paymentDayOfMonth  INTEGER,
+    faceValue          NUMERIC
 )''',
 };
 

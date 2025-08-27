@@ -82,7 +82,7 @@ enum CreditPaymentType {
 enum InvestmentOperationType { buy, sell }
 
 /// Manages the state of account summaries, events, and tools.
-class Tool {
+class ToolSummary {
   final String name;
   double quantity; // Made mutable for transfers/updates
   double percentageChange; // Daily change for most, annual yield for deposits
@@ -109,7 +109,7 @@ class Tool {
   // New Bond specific fields
   final double? faceValue; // Nominal value of the bond
 
-  Tool({
+  ToolSummary({
     required this.name,
     required this.quantity,
     required this.percentageChange,
@@ -134,9 +134,10 @@ class Tool {
 class AccountData {
   final List<AccountSummary> _accounts;
   final List<Event> _events;
-  final List<Tool> _tools;
+  final List<ToolSummary> _tools;
   String _activeAccountId;
   String? _deletableAccountId; // New state for delete mode
+  String? _targetDisplayAccount;
 
   /// Dummy data for stock/ETF suggestions and names
   static const Map<String, String> _allInvestmentOptions = <String, String>{
@@ -295,8 +296,8 @@ class AccountData {
           date: DateTime.now().add(const Duration(days: 3)), // Future
         ),
       ],
-      _tools = <Tool>[
-        Tool(
+      _tools = <ToolSummary>[
+        ToolSummary(
           name: 'Russian Ruble',
           quantity: 1200.00,
           percentageChange: 0.15,
@@ -305,7 +306,7 @@ class AccountData {
           currentValue: 1200.00,
           ticker: 'RUR', // Added ticker
         ),
-        Tool(
+        ToolSummary(
           name: 'S&P 500 ETF',
           quantity: 5.5,
           percentageChange: 1.23,
@@ -314,7 +315,7 @@ class AccountData {
           currentValue: 2750.00,
           ticker: 'SPY', // Added ticker
         ),
-        Tool(
+        ToolSummary(
           name: 'Bitcoin',
           quantity: 0.12,
           percentageChange: -3.45,
@@ -323,7 +324,7 @@ class AccountData {
           currentValue: 7200.00,
           ticker: 'BTC',
         ),
-        Tool(
+        ToolSummary(
           name: 'Ethereum',
           quantity: 1.5,
           percentageChange: 2.10,
@@ -332,7 +333,7 @@ class AccountData {
           currentValue: 4500.00,
           ticker: 'ETH',
         ),
-        Tool(
+        ToolSummary(
           name: 'Fixed Deposit (6M)',
           quantity: 2000.00,
           percentageChange: 0.05,
@@ -344,7 +345,7 @@ class AccountData {
           payoutType: PayoutType.atEndOfTerm,
           withdrawalToolId: 'checking_RUR', // Example ID
         ),
-        Tool(
+        ToolSummary(
           name: 'Apple Inc. Stock',
           quantity: 10.0,
           percentageChange: 0.88,
@@ -353,7 +354,7 @@ class AccountData {
           currentValue: 1800.00,
           ticker: 'AAPL', // Added ticker
         ),
-        Tool(
+        ToolSummary(
           name: 'Tesla Inc. Stock',
           quantity: 20.0,
           percentageChange: 0.88,
@@ -362,7 +363,7 @@ class AccountData {
           currentValue: 18000.00,
           ticker: 'TSLA', // Added ticker
         ),
-        Tool(
+        ToolSummary(
           name: 'Nvidia Inc. Stock',
           quantity: 30.0,
           percentageChange: 0.88,
@@ -371,7 +372,7 @@ class AccountData {
           currentValue: 38000.00,
           ticker: 'NVDA', // Added ticker
         ),
-        Tool(
+        ToolSummary(
           name: 'USD',
           quantity: 1200.00,
           percentageChange: 0,
@@ -379,7 +380,7 @@ class AccountData {
           type: ToolType.money,
           currentValue: 1200.00,
         ),
-        Tool(
+        ToolSummary(
           name: 'Russian Ruble',
           quantity: 5000.00,
           percentageChange: 0.0,
@@ -388,7 +389,7 @@ class AccountData {
           currentValue: 5000.00,
           ticker: 'RUR',
         ),
-        Tool(
+        ToolSummary(
           name: 'Mortgage Loan',
           quantity: 1.0, // Represents one loan agreement
           percentageChange: -0.10, // Annual interest rate as negative change
@@ -401,7 +402,7 @@ class AccountData {
           paymentDayOfMonth: 15,
           creditPaymentType: CreditPaymentType.annuity,
         ),
-        Tool(
+        ToolSummary(
           name: 'Treasury Bonds',
           quantity: 3.0,
           percentageChange: 0.25,
@@ -444,8 +445,8 @@ class AccountData {
       if (acc.id != 'total' && !acc.excludeFromTotal) {
         // Sum up current values of all tools for this account to get its balance
         final double accountToolsBalance = _tools
-            .where((Tool tool) => tool.accountId == acc.id)
-            .fold(0.0, (double sum, Tool tool) => sum + tool.currentValue);
+            .where((ToolSummary tool) => tool.accountId == acc.id)
+            .fold(0.0, (double sum, ToolSummary tool) => sum + tool.currentValue);
 
         // Update account's balance to reflect sum of its tools
         if (acc.balance != accountToolsBalance) {
@@ -529,9 +530,9 @@ class AccountData {
   }
 
   /// Returns tools associated with a specific account, sorted by type and then name.
-  List<Tool> getToolsForAccount(String accountId) {
-    return _tools.where((Tool tool) => tool.accountId == accountId).toList()
-      ..sort((Tool a, Tool b) {
+  List<ToolSummary> getToolsForAccount(String accountId) {
+    return _tools.where((ToolSummary tool) => tool.accountId == accountId).toList()
+      ..sort((ToolSummary a, ToolSummary b) {
         final int typeComparison = a.type.index.compareTo(b.type.index);
         if (typeComparison != 0) {
           return typeComparison;
@@ -541,25 +542,25 @@ class AccountData {
   }
 
   /// Returns only money tools associated with a specific account.
-  List<Tool> getMoneyToolsForAccount(String accountId) {
+  List<ToolSummary> getMoneyToolsForAccount(String accountId) {
     return _tools
         .where(
-          (Tool tool) =>
+          (ToolSummary tool) =>
               tool.accountId == accountId && tool.type == ToolType.money,
         )
         .toList();
   }
 
   /// Returns all money tools from all accounts.
-  List<Tool> get allMoneyTools {
-    return _tools.where((Tool tool) => tool.type == ToolType.money).toList();
+  List<ToolSummary> get allMoneyTools {
+    return _tools.where((ToolSummary tool) => tool.type == ToolType.money).toList();
   }
 
   /// Returns a [Tool] by its name and accountId, or null if not found.
-  Tool? getToolByNameAndAccountId(String toolName, String accountId) {
+  ToolSummary? getToolByNameAndAccountId(String toolName, String accountId) {
     try {
       return _tools.firstWhere(
-        (Tool tool) => tool.name == toolName && tool.accountId == accountId,
+        (ToolSummary tool) => tool.name == toolName && tool.accountId == accountId,
       );
     } catch (e) {
       return null;
@@ -567,10 +568,10 @@ class AccountData {
   }
 
   /// Returns a [Tool] by its ticker and accountId, or null if not found.
-  Tool? getToolByTickerAndAccountId(String ticker, String accountId) {
+  ToolSummary? getToolByTickerAndAccountId(String ticker, String accountId) {
     try {
       return _tools.firstWhere(
-        (Tool tool) => tool.ticker == ticker && tool.accountId == accountId,
+        (ToolSummary tool) => tool.ticker == ticker && tool.accountId == accountId,
       );
     } catch (e) {
       return null;
@@ -585,6 +586,11 @@ class AccountData {
       }
     }
     return null;
+  }
+
+  String? get targetDisplayAccount => _targetDisplayAccount;
+  void setTargetDisplayAccount(String? id) {
+    _targetDisplayAccount = id;
   }
 
   /// Returns the ID of the currently active account.
@@ -721,11 +727,11 @@ class AccountData {
     required DateTime date,
     double commission = 0.0, // Optional commission
   }) {
-    final Tool? fromTool = getToolByNameAndAccountId(
+    final ToolSummary? fromTool = getToolByNameAndAccountId(
       fromToolName,
       fromAccountId,
     );
-    final Tool? toTool = getToolByNameAndAccountId(toToolName, toAccountId);
+    final ToolSummary? toTool = getToolByNameAndAccountId(toToolName, toAccountId);
 
     if (fromTool == null) {
       debugPrint(
@@ -843,12 +849,13 @@ class AccountData {
       return;
     }
 
+    final int accountPage = _accounts.indexWhere((AccountSummary acc) => acc.id == accountId);
     _accounts.removeWhere((AccountSummary acc) => acc.id == accountId);
     _events.removeWhere((Event event) => event.accountId == accountId);
-    _tools.removeWhere((Tool tool) => tool.accountId == accountId);
+    _tools.removeWhere((ToolSummary tool) => tool.accountId == accountId);
 
     if (_activeAccountId == accountId) {
-      _activeAccountId = 'total'; // Reset active account if deleted
+      _activeAccountId = _accounts[accountPage-1].id; // Reset active account if deleted
     }
     _deletableAccountId = null; // Exit delete mode
     _updateTotalBalance(); // Recalculate total balance
@@ -860,7 +867,7 @@ class AccountData {
 
     // Initial money tool if needed (simplified from previous logic)
     _tools.add(
-      Tool(
+      ToolSummary(
         name: 'Russian Ruble', // Descriptive name for cash
         quantity: newAccount.balance.abs(), // Quantity should be positive
         percentageChange: 0.0, // Initial cash has no change
@@ -875,6 +882,13 @@ class AccountData {
     // Notify for accounts list change
   }
 
+  /// Adds a new account.
+  void addAccounts(List<AccountSummary> newAccounts) {
+    _accounts.addAll(newAccounts);
+
+    _updateTotalBalance(); // Recalculates total and notifies listeners
+  }
+
   /// Adds a new money tool to a specified account.
   void addMoneyTool(
     String accountId,
@@ -887,7 +901,7 @@ class AccountData {
     if (account != null && account.id != 'total') {
       final double currentValue = quantity * unitPrice;
       _tools.add(
-        Tool(
+        ToolSummary(
           name: name,
           quantity: quantity,
           percentageChange: 0.0, // New money tools start with 0% change
@@ -927,8 +941,8 @@ class AccountData {
       return;
     }
 
-    final Tool? withdrawalTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? withdrawalTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.accountId == accountId &&
           tool.type == ToolType.money &&
@@ -959,7 +973,7 @@ class AccountData {
 
     // Add the new deposit tool
     _tools.add(
-      Tool(
+      ToolSummary(
         name: name,
         quantity: quantity, // Principal amount of deposit
         percentageChange: annualYield, // Annual yield for the deposit
@@ -1010,8 +1024,8 @@ class AccountData {
     }
 
     // Find the money tool to transfer funds to
-    final Tool? transferToTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? transferToTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.accountId == accountId &&
           tool.type == ToolType.money &&
@@ -1040,7 +1054,7 @@ class AccountData {
 
     // Add the new credit tool (as a liability, hence negative current value)
     _tools.add(
-      Tool(
+      ToolSummary(
         name: name,
         quantity: 1.0, // Represents one credit agreement
         percentageChange:
@@ -1088,8 +1102,8 @@ class AccountData {
       return;
     }
 
-    final Tool? withdrawalTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? withdrawalTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.accountId == accountId &&
           tool.type == ToolType.money &&
@@ -1126,7 +1140,7 @@ class AccountData {
 
     // Add the new 'other' tool
     _tools.add(
-      Tool(
+      ToolSummary(
         name: name,
         quantity:
             amount /
@@ -1200,8 +1214,8 @@ class AccountData {
       return;
     }
 
-    final Tool? targetTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? targetTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.accountId == accountId &&
           tool.type == ToolType.money &&
@@ -1277,8 +1291,8 @@ class AccountData {
       return;
     }
 
-    final Tool? targetTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? targetTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.accountId == accountId &&
           tool.type == ToolType.money &&
@@ -1342,11 +1356,11 @@ class AccountData {
   }
 
   /// Helper to get the default money tool for an account (preferably RUR, else any).
-  Tool? _getDefaultMoneyToolForAccount(String accountId) {
-    final List<Tool> moneyTools = getMoneyToolsForAccount(accountId);
+  ToolSummary? _getDefaultMoneyToolForAccount(String accountId) {
+    final List<ToolSummary> moneyTools = getMoneyToolsForAccount(accountId);
     // Prefer Russian Ruble tool
-    final Tool? rurTool = moneyTools.cast<Tool?>().firstWhere(
-      (Tool? tool) => tool != null && tool.ticker == 'RUR',
+    final ToolSummary? rurTool = moneyTools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) => tool != null && tool.ticker == 'RUR',
       orElse: () => null,
     );
     if (rurTool != null) {
@@ -1377,7 +1391,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to deduct funds from.',
@@ -1407,8 +1421,8 @@ class AccountData {
       );
     }
 
-    Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -1423,7 +1437,7 @@ class AccountData {
     } else {
       // Add new stock tool
       _tools.add(
-        Tool(
+        ToolSummary(
           name: stockName,
           quantity: quantity,
           percentageChange:
@@ -1484,7 +1498,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to receive funds.',
@@ -1492,8 +1506,8 @@ class AccountData {
       return;
     }
 
-    final Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -1556,7 +1570,7 @@ class AccountData {
     // Remove tool if quantity drops to zero or below
     if (existingTool.quantity <= 0) {
       _tools.removeWhere(
-        (Tool tool) =>
+        (ToolSummary tool) =>
             tool.ticker == ticker &&
             tool.accountId == accountId &&
             tool.type == ToolType.stocks,
@@ -1587,7 +1601,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to deduct funds from.',
@@ -1617,8 +1631,8 @@ class AccountData {
       );
     }
 
-    Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -1633,7 +1647,7 @@ class AccountData {
     } else {
       // Add new ETF tool
       _tools.add(
-        Tool(
+        ToolSummary(
           name: etfName,
           quantity: quantity,
           percentageChange:
@@ -1694,7 +1708,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to receive funds.',
@@ -1702,8 +1716,8 @@ class AccountData {
       return;
     }
 
-    final Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -1766,7 +1780,7 @@ class AccountData {
     // Remove tool if quantity drops to zero or below
     if (existingTool.quantity <= 0) {
       _tools.removeWhere(
-        (Tool tool) =>
+        (ToolSummary tool) =>
             tool.ticker == ticker &&
             tool.accountId == accountId &&
             tool.type == ToolType.etf,
@@ -1799,7 +1813,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to deduct funds from.',
@@ -1830,8 +1844,8 @@ class AccountData {
       );
     }
 
-    Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -1848,7 +1862,7 @@ class AccountData {
     } else {
       // Add new bond tool
       _tools.add(
-        Tool(
+        ToolSummary(
           name: bondName,
           quantity: quantity,
           percentageChange:
@@ -1911,7 +1925,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to receive funds.',
@@ -1919,8 +1933,8 @@ class AccountData {
       return;
     }
 
-    final Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -1983,7 +1997,7 @@ class AccountData {
     // Remove tool if quantity drops to zero or below
     if (existingTool.quantity <= 0) {
       _tools.removeWhere(
-        (Tool tool) =>
+        (ToolSummary tool) =>
             tool.ticker == ticker &&
             tool.accountId == accountId &&
             tool.type == ToolType.bonds,
@@ -2014,7 +2028,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to deduct funds from.',
@@ -2044,8 +2058,8 @@ class AccountData {
       );
     }
 
-    Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -2060,7 +2074,7 @@ class AccountData {
     } else {
       // Add new crypto tool
       _tools.add(
-        Tool(
+        ToolSummary(
           name: cryptoName,
           quantity: quantity,
           percentageChange:
@@ -2121,7 +2135,7 @@ class AccountData {
       return;
     }
 
-    final Tool? moneyTool = _getDefaultMoneyToolForAccount(accountId);
+    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
     if (moneyTool == null) {
       debugPrint(
         'No money tool found in account "$accountId" to receive funds.',
@@ -2129,8 +2143,8 @@ class AccountData {
       return;
     }
 
-    final Tool? existingTool = _tools.cast<Tool?>().firstWhere(
-      (Tool? tool) =>
+    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? tool) =>
           tool != null &&
           tool.ticker == ticker &&
           tool.accountId == accountId &&
@@ -2193,7 +2207,7 @@ class AccountData {
     // Remove tool if quantity drops to zero or below
     if (existingTool.quantity <= 0) {
       _tools.removeWhere(
-        (Tool tool) =>
+        (ToolSummary tool) =>
             tool.ticker == ticker &&
             tool.accountId == accountId &&
             tool.type == ToolType.cryptocurrency,

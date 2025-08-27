@@ -122,7 +122,7 @@ class AccountListScreen extends StatelessWidget {
                       vertical: 8.0,
                     ), // Horizontal padding handled by PageView's itemBuilder
                     width: MediaQuery.of(context).size.width,
-                    height: 140,
+                    height: 150,
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(0),
@@ -141,7 +141,16 @@ class AccountListScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8.0,
                           ), // Spacing between cards
-                          child: AccountCard(account: account, isDeletable: state.accountData.isAccountDeletable(account.id),),
+                          child: ConstrainedBox(
+                            // Limit the maximum width
+                            constraints: const BoxConstraints(maxWidth: 400.0),
+                            child: AccountCard(
+                              account: account,
+                              isDeletable: state.accountData.isAccountDeletable(
+                                account.id,
+                              ),
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -150,8 +159,10 @@ class AccountListScreen extends StatelessWidget {
                       state.accountData.deletableAccountId ==
                           null) // Show buttons if not 'total' account AND not in delete mode
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
                       child: Row(
                         children: <Widget>[
                           Expanded(
@@ -159,7 +170,10 @@ class AccountListScreen extends StatelessWidget {
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('View Events (Not Implemented)')),
+                                    content: Text(
+                                      'View Events (Not Implemented)',
+                                    ),
+                                  ),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -168,17 +182,24 @@ class AccountListScreen extends StatelessWidget {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12.0),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 minimumSize: const Size(double.infinity, 48),
                               ),
-                              icon: Icon(Icons.history, // Icon for events/history
-                                  size: 20, color: colorScheme.onPrimary),
+                              icon: Icon(
+                                Icons.history, // Icon for events/history
+                                size: 20,
+                                color: colorScheme.onPrimary,
+                              ),
                               label: Text(
                                 "События", // "Events" in Russian
-                                style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                                      color: colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge!.copyWith(
+                                  color: colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -194,17 +215,24 @@ class AccountListScreen extends StatelessWidget {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12.0),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 minimumSize: const Size(double.infinity, 48),
                               ),
-                              icon: Icon(Icons.add_circle, // Icon for add action
-                                  size: 20, color: colorScheme.onSecondary),
+                              icon: Icon(
+                                Icons.add_circle, // Icon for add action
+                                size: 20,
+                                color: colorScheme.onSecondary,
+                              ),
                               label: Text(
                                 "Добавить", // "Add" in Russian
-                                style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                                      color: colorScheme.onSecondary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge!.copyWith(
+                                  color: colorScheme.onSecondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -216,13 +244,16 @@ class AccountListScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       // Financial Tools Section (Displayed for all accounts *except* 'total')
-                      if (state.accountData.activeAccountId != 'total') ...<Widget>[
+                      if (state.accountData.activeAccountId !=
+                          'total') ...<Widget>[
                         ToolList(
-                            accountData: state.accountData,
-                            accountId: state.accountData.activeAccountId),
+                          accountData: state.accountData,
+                          accountId: state.accountData.activeAccountId,
+                        ),
                       ],
                       // Recent Events Section (Displayed *only* for 'total' account)
-                      if (state.accountData.activeAccountId == 'total') ...<Widget>[
+                      if (state.accountData.activeAccountId ==
+                          'total') ...<Widget>[
                         Padding(
                           padding: const EdgeInsets.only(
                             top: 24,

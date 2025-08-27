@@ -18,7 +18,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     });
 
     on<ActivityListTransitionEvent>((event, emit) async {
-      await ActivityRepository().insert(Activity.money(Type.add, DateTime.now(), 105, Currency.RUB));
+      // await ActivityRepository().insert(Activity.money(Type.add, DateTime.now(), 105, Currency.RUB));
       // Emits a new CounterState with the incremented counter value
       final list = await ActivityRepository().getActivityList();
 
@@ -45,7 +45,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     });
 
     on<ActivityTransitionEvent>((event, emit) async {
-      emit(ActivityLoaded(data: Activity.money(Type.add, DateTime.now(), 105, Currency.RUB)));
+      // emit(ActivityLoaded(data: Activity.money(Type.add, DateTime.now(), 105, Currency.RUB)));
     });
   }
 }
