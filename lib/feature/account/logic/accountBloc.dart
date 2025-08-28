@@ -56,39 +56,31 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         name: 'Money',
         accountId: account.id,
         type: ToolType.money.name,
+        quantity: event.account.balance,
+        price: 1,
+        ticker: Currency.RUB.name,
       );
-      await Toolrepository().insert(tool);
+      await ToolRepository().insert(tool);
 
       if (event.account.balance > 0) {
         await ActivityRepository().insert(
           Activity(
             id: Uuid().v7(),
             toolId: tool.id,
-            type: ActivityType.transmit,
+            type: ActivityType.add,
             createAt: DateTime.now(),
-            count: event.account.balance,
+            quantity: event.account.balance,
             price: 1,
             currency: Currency.RUB,
+            isTransmit: true,
           ),
         );
       }
 
       debugPrint("AddAccountEvent ${event.account.name}");
-      accountData.addAccount(
-        AccountSummary(
-          id: account.id,
-          name: account.name,
-          balance: event.account.balance,
-          dailyChangeAmount: 0.0,
-          dailyChangePercentage: 0.0,
-          colorValue: account.colorValue,
-          type: AccountType.values.byName(account.type),
-          hideEvents: bool.parse(account.hideEvents),
-          excludeFromTotal: bool.parse(account.excludeFromTotal),
-        ),
-      );
       accountData.setTargetDisplayAccount(account.id);
       accountData.setActiveAccount(account.id);
+      await _refreshAccountData();
       emit(AccountsDataState(accountData));
     });
 
@@ -97,6 +89,12 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       if (event.remove) {
         accountData.deleteAccount(event.accountId);
         await AccountRepository().delete(event.accountId);
+        accountData.getToolsForAccount(event.accountId).forEach((ToolSummary toolSummary) async {
+          if (null != toolSummary.id) {
+            await ActivityRepository().deleteByTool(toolSummary.id ?? '');
+            await ToolRepository().delete(toolSummary.id ?? '');
+          }
+        });
         emit(AccountsDataState(accountData));
       } else {
         await AccountRepository().changeHideEvents(
@@ -137,6 +135,32 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       );
       accountSummary.hideEvents = bool.parse(account.hideEvents);
       accountSummary.excludeFromTotal = bool.parse(account.excludeFromTotal);
+      await _refreshToolsByAccount(accountSummary.id);
+    }
+
+    return accountData;
+  }
+
+  Future<AccountData> _refreshToolsByAccount(String accountId) async {
+    for (final Tool tool in (await ToolRepository().geListByAccount(accountId))) {
+      ToolSummary toolSummary = accountData.getToolsForAccount(accountId).firstWhere(
+        (t) => t.id == tool.id,
+        orElse: () {
+          ToolSummary toolSummary = ToolSummary(
+            id: tool.id,
+            name: tool.name,
+            quantity: tool.quantity, 
+            percentageChange: 0, 
+            accountId: accountId, 
+            type: ToolType.values.byName(tool.type), 
+            currentValue: tool.quantity*tool.price,
+          );
+          accountData.addTool(toolSummary);
+          return toolSummary;
+        },
+      );
+      toolSummary.quantity = tool.quantity;
+      toolSummary.currentValue = tool.quantity*tool.price;
     }
 
     return accountData;

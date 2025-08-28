@@ -2,7 +2,7 @@ import 'package:bookstore/core/db.dart';
 import 'package:bookstore/data/models/tool.dart';
 import 'package:sqflite/sqflite.dart';
 
-class Toolrepository {
+class ToolRepository {
 
   Future<int> insert(Tool tool) async {
     Database db = await DatabaseHelper.instance.db;
@@ -23,10 +23,10 @@ class Toolrepository {
     )).first);
   }
 
-  Future<List<Tool>> geList() async {
+  Future<List<Tool>> geListByAccount(String accountId) async {
     Database db = await DatabaseHelper.instance.db;
-    final tools = await db.query('tools');
-    return tools.map((actionMap) => Tool.fromMap(actionMap)).toList();
+    final tools = await db.query('tools', where: 'accountId = ?', whereArgs: [accountId]);
+    return tools.map((toolMap) => Tool.fromMap(toolMap)).toList();
   }
 
   Future<void> delete(String id) async {

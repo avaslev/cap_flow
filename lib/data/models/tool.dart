@@ -5,6 +5,8 @@ class Tool {
   final String name;
   final String accountId;
   final String type;
+  final double quantity;
+  final double price;
   final String? ticker; // Ticker symbol for some tools
 
   // Deposit specific fields, nullable for other tool types
@@ -25,6 +27,8 @@ class Tool {
     required this.name,
     required this.accountId,
     required this.type,
+    required this.quantity,
+    required this.price,
     this.ticker,
     this.startDate,
     this.endDate,
@@ -40,6 +44,8 @@ class Tool {
       'name': name,
       'accountId': accountId,
       'type': type,
+      'quantity': quantity,
+      'price': price,
       'ticker': ticker,
       'startDate': startDate?.millisecondsSinceEpoch,
       'endDate': endDate?.microsecondsSinceEpoch,
@@ -57,6 +63,10 @@ class Tool {
     final String name = map['name'] as String;
     final String accountId = map['accountId'] as String;
     final String type = map['type'] as String;
+    final double quantity =
+        (map['quantity'] is num) ? (map['quantity'] as num).toDouble() : 0;
+    final double price =
+        (map['price'] is num) ? (map['price'] as num).toDouble() : 0;
 
     // Nullable string fields can be directly cast with `as String?`.
     final String? ticker = map['ticker'] as String?;
@@ -64,34 +74,39 @@ class Tool {
 
     // DateTimes are stored as int (milliseconds or microseconds since epoch).
     // Check if the value is an int before converting.
-    final DateTime? startDate = (map['startDate'] is int)
-        ? DateTime.fromMillisecondsSinceEpoch(map['startDate'] as int)
-        : null;
+    final DateTime? startDate =
+        (map['startDate'] is int)
+            ? DateTime.fromMillisecondsSinceEpoch(map['startDate'] as int)
+            : null;
 
-    final DateTime? endDate = (map['endDate'] is int)
-        ? DateTime.fromMicrosecondsSinceEpoch(map['endDate'] as int)
-        : null;
+    final DateTime? endDate =
+        (map['endDate'] is int)
+            ? DateTime.fromMicrosecondsSinceEpoch(map['endDate'] as int)
+            : null;
 
     // Double fields can be stored as int or double (num).
     // Convert to double if it's a number, otherwise null.
-    final double? interestRate = (map['interestRate'] is num)
-        ? (map['interestRate'] as num).toDouble()
-        : null;
+    final double? interestRate =
+        (map['interestRate'] is num)
+            ? (map['interestRate'] as num).toDouble()
+            : null;
 
     // Integer fields can be directly cast if present and an int.
-    final int? paymentDayOfMonth = (map['paymentDayOfMonth'] is int)
-        ? (map['paymentDayOfMonth'] as int)
-        : null;
+    final int? paymentDayOfMonth =
+        (map['paymentDayOfMonth'] is int)
+            ? (map['paymentDayOfMonth'] as int)
+            : null;
 
-    final double? faceValue = (map['faceValue'] is num)
-        ? (map['faceValue'] as num).toDouble()
-        : null;
+    final double? faceValue =
+        (map['faceValue'] is num) ? (map['faceValue'] as num).toDouble() : null;
 
     return Tool(
       id: id,
       name: name,
       accountId: accountId,
       type: type,
+      quantity: quantity,
+      price: price,
       ticker: ticker,
       startDate: startDate,
       endDate: endDate,

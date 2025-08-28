@@ -147,7 +147,7 @@ class _ActivityListItem extends StatelessWidget {
               ),
             ),
             Text(
-              '$sign${action.count.toStringAsFixed(2)} ${action.currency.name}',
+              '$sign${action.quantity.toStringAsFixed(2)} ${action.currency.name}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: sumColor,
                     fontWeight: FontWeight.bold,

@@ -83,6 +83,7 @@ enum InvestmentOperationType { buy, sell }
 
 /// Manages the state of account summaries, events, and tools.
 class ToolSummary {
+  String? id;
   final String name;
   double quantity; // Made mutable for transfers/updates
   double percentageChange; // Daily change for most, annual yield for deposits
@@ -110,6 +111,7 @@ class ToolSummary {
   final double? faceValue; // Nominal value of the bond
 
   ToolSummary({
+    this.id,
     required this.name,
     required this.quantity,
     required this.percentageChange,
@@ -497,7 +499,6 @@ class AccountData {
     //
     // }
   }
-
   /// Returns events for a specific account, sorted by date (oldest first).
   /// Events are filtered based on the account's hideEvents flag.
   List<Event> getEventsForAccount(String accountId) {
@@ -865,21 +866,22 @@ class AccountData {
   void addAccount(AccountSummary newAccount) {
     _accounts.add(newAccount);
 
-    // Initial money tool if needed (simplified from previous logic)
-    _tools.add(
-      ToolSummary(
-        name: 'Russian Ruble', // Descriptive name for cash
-        quantity: newAccount.balance.abs(), // Quantity should be positive
-        percentageChange: 0.0, // Initial cash has no change
-        accountId: newAccount.id,
-        type: ToolType.money,
-        currentValue: newAccount.balance,
-        ticker: 'RUR', // Specific ticker as requested
-      ),
-    );
-
     _updateTotalBalance(); // Recalculates total and notifies listeners
     // Notify for accounts list change
+  }
+
+  /// Adds a tool.
+  void addTool(ToolSummary newTool) {
+    _tools.add(newTool);
+
+    final AccountSummary account = _accounts.firstWhere(
+      (AccountSummary acc) => acc.id == 'total',
+    );
+
+    account.balance = _tools
+      .where((ToolSummary tool) => tool.accountId == newTool.accountId)
+      .fold(0.0, (double sum, ToolSummary tool) => sum + tool.currentValue);
+    _updateTotalBalance();
   }
 
   /// Adds a new account.
