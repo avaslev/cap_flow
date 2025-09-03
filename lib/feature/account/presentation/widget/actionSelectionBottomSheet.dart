@@ -1,5 +1,6 @@
 import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/logic/accountBloc.dart';
+import 'package:bookstore/feature/account/presentation/widget/form/expense.dart';
 import 'package:bookstore/feature/account/presentation/widget/form/income.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,6 +36,22 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                 .getMoneyToolsForAccount(accountData.activeAccountId)
                 .isNotEmpty;
 
+        _onTap(StatelessWidget form) {
+          Navigator.pop(context); // Close the bottom sheet
+          showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            builder:
+                (BuildContext context) => form,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+            ),
+            clipBehavior: Clip.antiAliasWithSaveLayer,
+          ).then((void value) {
+            accountBloc.add(AccountsTransitionEvent());
+          });
+        }
+
         return Container(
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
@@ -66,34 +83,7 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                   "Доход (Income)",
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                onTap: () {
-                  Navigator.pop(context); // Close the bottom sheet
-                  Future<void> future = showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (BuildContext context) {
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                        ),
-                        child: Center(
-                          child: IncomeForm(accountData: accountData),
-                        ),
-                      );
-                    },
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20.0),
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAliasWithSaveLayer,
-                  );
-                  future.then(
-                    (void value) {
-                      accountBloc.add(AccountsTransitionEvent());
-                    },
-                  );
-                },
+                onTap: () => _onTap(IncomeForm(accountData: accountData))
               ),
               ListTile(
                 leading: Icon(
@@ -104,27 +94,7 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                   "Расход (Expense)",
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                onTap: () {
-                  Navigator.pop(context); // Close the bottom sheet
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (BuildContext context) {
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                        ),
-                        child: Text('AddExpenseForm for $activeAccountId'),
-                      );
-                    },
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20.0),
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAliasWithSaveLayer,
-                  );
-                },
+                onTap: () => _onTap(ExpenseForm(accountData: accountData))
               ),
               if (hasMoneyTools) // Conditionally show Transfer action
                 ListTile(

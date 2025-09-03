@@ -159,6 +159,8 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
                 type: ToolType.values.byName(tool.type),
                 currentValue: 0,
               );
+      toolSummary.quantity = 0;
+      toolSummary.currentValue = 0;
       accountData.addTool(toolSummary);
     });
 
