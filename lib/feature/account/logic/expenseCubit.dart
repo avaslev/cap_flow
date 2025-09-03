@@ -73,10 +73,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
     return amount != null &&
         amount > 0 &&
         state.category.trim().isNotEmpty &&
-        state.selectedDate != null &&
         state.selectedMoneyToolId != null &&
         state.availableMoneyTools
-            .map<String>((ToolSummary t) => t.id!)
+            .map<String>((ToolSummary t) => t.id)
             .contains(state.selectedMoneyToolId);
   }
 
@@ -113,6 +112,8 @@ class ExpenseCubit extends Cubit<ExpenseState> {
           price: 1,
           currency: Currency.RUB,
           isTransmit: false,
+          name: category,
+          comment: comment
         ),
       );
 

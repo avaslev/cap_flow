@@ -1,6 +1,4 @@
 
-import 'package:uuid/uuid.dart';
-
 enum ActivityType {add, substract}
 enum Currency {RUB, USD}
 

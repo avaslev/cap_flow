@@ -1,6 +1,3 @@
-
-import 'package:uuid/uuid.dart';
-
 /// Data model for an account summary.
 class Account {
   final String id;

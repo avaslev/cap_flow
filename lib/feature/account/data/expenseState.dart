@@ -63,15 +63,4 @@ class ExpenseState {
     );
   }
 
-  @override
-  List<Object?> get props => [
-        amount,
-        category,
-        comment,
-        selectedDate,
-        selectedMoneyToolId,
-        availableMoneyTools,
-        formStatus,
-        errorMessage,
-      ];
 }
