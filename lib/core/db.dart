@@ -32,8 +32,6 @@ Map<int, String> migrationScripts = {
     name               TEXT      NOT NULL,
     accountId          TEXT      NOT NULL,
     type               TEXT      NOT NULL,
-    quantity           NUMERIC   NOT NULL,
-    price              NUMERIC   NOT NULL,
     ticker             TEXT,
     startDate          INTEGER,
     endDate            INTEGER,

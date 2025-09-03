@@ -15,17 +15,20 @@ part 'event.dart';
 part 'state.dart';
 
 class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
-  final AccountData accountData = AccountData();
+  AccountData accountData = AccountData();
   // Constructor initializes the bloc with an initial state
   AccountsBloc() : super(AccountsInitial()) {
     on<AccountsTransitionEvent>((event, emit) async {
       await _refreshAccountData();
+      await _refreshTools();
+      await _refreshActivities();
       emit(AccountsDataState(accountData));
     });
     on<ChangePageAccountsEvent>((event, emit) async {
       debugPrint("ChangePageAccountsEvent ${event.page}");
       String accountId = accountData.accounts[event.page].id;
-      if (accountId == accountData.targetDisplayAccount) accountData.setTargetDisplayAccount(null);
+      if (accountId == accountData.targetDisplayAccount)
+        accountData.setTargetDisplayAccount(null);
       if (null != accountData.targetDisplayAccount) return;
       accountData.setActiveAccount(accountId);
       emit(AccountsDataState(accountData));
@@ -56,8 +59,6 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         name: 'Money',
         accountId: account.id,
         type: ToolType.money.name,
-        quantity: event.account.balance,
-        price: 1,
         ticker: Currency.RUB.name,
       );
       await ToolRepository().insert(tool);
@@ -81,6 +82,8 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       accountData.setTargetDisplayAccount(account.id);
       accountData.setActiveAccount(account.id);
       await _refreshAccountData();
+      await _refreshTools();
+      await _refreshActivities();
       emit(AccountsDataState(accountData));
     });
 
@@ -89,7 +92,9 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       if (event.remove) {
         accountData.deleteAccount(event.accountId);
         await AccountRepository().delete(event.accountId);
-        accountData.getToolsForAccount(event.accountId).forEach((ToolSummary toolSummary) async {
+        accountData.getToolsForAccount(event.accountId).forEach((
+          ToolSummary toolSummary,
+        ) async {
           if (null != toolSummary.id) {
             await ActivityRepository().deleteByTool(toolSummary.id ?? '');
             await ToolRepository().delete(toolSummary.id ?? '');
@@ -105,14 +110,13 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           event.accountId,
           event.excludeFromTotal,
         );
-        await _refreshAccountData();
-        emit(AccountsDataState(accountData));
+        emit(AccountsDataState(await _refreshAccountData()));
       }
     });
   }
 
   Future<AccountData> _refreshAccountData() async {
-    for (final Account account in (await AccountRepository().geList())) {
+    (await AccountRepository().geList()).forEach((account) async {
       AccountSummary accountSummary = accountData.accounts.firstWhere(
         (a) => a.id == account.id,
         orElse: () {
@@ -128,40 +132,52 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
             hideEvents: bool.parse(account.hideEvents),
             excludeFromTotal: bool.parse(account.excludeFromTotal),
           );
-          accountData.addAccount(accountSummary);
 
           return accountSummary;
         },
       );
       accountSummary.hideEvents = bool.parse(account.hideEvents);
       accountSummary.excludeFromTotal = bool.parse(account.excludeFromTotal);
-      await _refreshToolsByAccount(accountSummary.id);
-    }
+      accountData.addAccount(accountSummary);
+    });
 
     return accountData;
   }
 
-  Future<AccountData> _refreshToolsByAccount(String accountId) async {
-    for (final Tool tool in (await ToolRepository().geListByAccount(accountId))) {
-      ToolSummary toolSummary = accountData.getToolsForAccount(accountId).firstWhere(
-        (t) => t.id == tool.id,
-        orElse: () {
-          ToolSummary toolSummary = ToolSummary(
-            id: tool.id,
-            name: tool.name,
-            quantity: tool.quantity, 
-            percentageChange: 0, 
-            accountId: accountId, 
-            type: ToolType.values.byName(tool.type), 
-            currentValue: tool.quantity*tool.price,
-          );
-          accountData.addTool(toolSummary);
-          return toolSummary;
-        },
-      );
-      toolSummary.quantity = tool.quantity;
-      toolSummary.currentValue = tool.quantity*tool.price;
-    }
+  Future<AccountData> _refreshTools() async {
+    Map<String, ToolSummary> toolMap = accountData.tools;
+    (await ToolRepository().geList()).forEach((tool) async {
+      ToolSummary toolSummary =
+          toolMap.containsKey(tool.id)
+              ? toolMap[tool.id]!
+              : ToolSummary(
+                id: tool.id,
+                name: tool.name,
+                quantity: 0,
+                percentageChange: 0,
+                accountId: tool.accountId,
+                type: ToolType.values.byName(tool.type),
+                currentValue: 0,
+              );
+      accountData.addTool(toolSummary);
+    });
+
+    return accountData;
+  }
+
+  Future<AccountData> _refreshActivities() async {
+    Map<String, ToolSummary> toolMap = accountData.tools;
+    (await ActivityRepository().getActivityList()).forEach((activity) async {
+      if (toolMap.containsKey(activity.toolId)) {
+        double quantity = activity.quantity * (activity.type == ActivityType.add ? 1 : -1);
+        ToolSummary toolSummary = toolMap[activity.toolId]!;
+        toolSummary.currentValue += activity.price * quantity;
+        toolSummary.quantity += quantity;
+
+        accountData.addTool(toolSummary);
+        debugPrint("_refreshToolsByAccount new ${toolSummary.currentValue}");
+      }
+    });
 
     return accountData;
   }

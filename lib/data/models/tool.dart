@@ -5,8 +5,6 @@ class Tool {
   final String name;
   final String accountId;
   final String type;
-  final double quantity;
-  final double price;
   final String? ticker; // Ticker symbol for some tools
 
   // Deposit specific fields, nullable for other tool types
@@ -27,8 +25,6 @@ class Tool {
     required this.name,
     required this.accountId,
     required this.type,
-    required this.quantity,
-    required this.price,
     this.ticker,
     this.startDate,
     this.endDate,
@@ -44,8 +40,6 @@ class Tool {
       'name': name,
       'accountId': accountId,
       'type': type,
-      'quantity': quantity,
-      'price': price,
       'ticker': ticker,
       'startDate': startDate?.millisecondsSinceEpoch,
       'endDate': endDate?.microsecondsSinceEpoch,
@@ -63,10 +57,6 @@ class Tool {
     final String name = map['name'] as String;
     final String accountId = map['accountId'] as String;
     final String type = map['type'] as String;
-    final double quantity =
-        (map['quantity'] is num) ? (map['quantity'] as num).toDouble() : 0;
-    final double price =
-        (map['price'] is num) ? (map['price'] as num).toDouble() : 0;
 
     // Nullable string fields can be directly cast with `as String?`.
     final String? ticker = map['ticker'] as String?;
@@ -105,8 +95,6 @@ class Tool {
       name: name,
       accountId: accountId,
       type: type,
-      quantity: quantity,
-      price: price,
       ticker: ticker,
       startDate: startDate,
       endDate: endDate,

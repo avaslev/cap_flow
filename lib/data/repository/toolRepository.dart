@@ -23,6 +23,12 @@ class ToolRepository {
     )).first);
   }
 
+  Future<List<Tool>> geList() async {
+    Database db = await DatabaseHelper.instance.db;
+    final tools = await db.query('tools');
+    return tools.map((toolMap) => Tool.fromMap(toolMap)).toList();
+  }
+
   Future<List<Tool>> geListByAccount(String accountId) async {
     Database db = await DatabaseHelper.instance.db;
     final tools = await db.query('tools', where: 'accountId = ?', whereArgs: [accountId]);

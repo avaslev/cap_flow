@@ -83,7 +83,7 @@ enum InvestmentOperationType { buy, sell }
 
 /// Manages the state of account summaries, events, and tools.
 class ToolSummary {
-  String? id;
+  String id;
   final String name;
   double quantity; // Made mutable for transfers/updates
   double percentageChange; // Daily change for most, annual yield for deposits
@@ -111,7 +111,7 @@ class ToolSummary {
   final double? faceValue; // Nominal value of the bond
 
   ToolSummary({
-    this.id,
+    required this.id,
     required this.name,
     required this.quantity,
     required this.percentageChange,
@@ -180,51 +180,51 @@ class AccountData {
 
   AccountData()
     : _accounts = <AccountSummary>[
-        AccountSummary(
-          id: 'checking',
-          name: 'Checking',
-          balance: 12500.00,
-          dailyChangeAmount: -120.00,
-          dailyChangePercentage: -0.96,
-          colorValue: 0xff007BFF, // Vibrant blue
-          type: AccountType.general,
-          hideEvents: false, // Initial value
-          excludeFromTotal: false, // Initial value
-        ),
-        AccountSummary(
-          id: 'savings',
-          name: 'Savings',
-          balance: 5523.34,
-          dailyChangeAmount: 655.40,
-          dailyChangePercentage: 11.87,
-          colorValue: 0xff28A745, // Strong green
-          type: AccountType.general,
-          hideEvents: false, // Initial value
-          excludeFromTotal: false, // Initial value
-        ),
-        AccountSummary(
-          id: 'investments',
-          name: 'Investments',
-          balance: 23000.50,
-          dailyChangeAmount: 800.20,
-          dailyChangePercentage: 3.48,
-          colorValue: 0xffFFC107, // Deep yellow
-          type: AccountType.brokerage,
-          hideEvents: false, // Initial value
-          excludeFromTotal: false, // Initial value
-        ),
-        // New: Cryptocurrency account
-        AccountSummary(
-          id: 'crypto_wallet',
-          name: 'Crypto Wallet',
-          balance: 15000.00,
-          dailyChangeAmount: 1200.00,
-          dailyChangePercentage: 8.00,
-          colorValue: 0xffFF007B, // A distinct color for crypto (e.g., Pink)
-          type: AccountType.cryptocurrency,
-          hideEvents: false,
-          excludeFromTotal: false,
-        ),
+        // AccountSummary(
+        //   id: 'checking',
+        //   name: 'Checking',
+        //   balance: 12500.00,
+        //   dailyChangeAmount: -120.00,
+        //   dailyChangePercentage: -0.96,
+        //   colorValue: 0xff007BFF, // Vibrant blue
+        //   type: AccountType.general,
+        //   hideEvents: false, // Initial value
+        //   excludeFromTotal: false, // Initial value
+        // ),
+        // AccountSummary(
+        //   id: 'savings',
+        //   name: 'Savings',
+        //   balance: 5523.34,
+        //   dailyChangeAmount: 655.40,
+        //   dailyChangePercentage: 11.87,
+        //   colorValue: 0xff28A745, // Strong green
+        //   type: AccountType.general,
+        //   hideEvents: false, // Initial value
+        //   excludeFromTotal: false, // Initial value
+        // ),
+        // AccountSummary(
+        //   id: 'investments',
+        //   name: 'Investments',
+        //   balance: 23000.50,
+        //   dailyChangeAmount: 800.20,
+        //   dailyChangePercentage: 3.48,
+        //   colorValue: 0xffFFC107, // Deep yellow
+        //   type: AccountType.brokerage,
+        //   hideEvents: false, // Initial value
+        //   excludeFromTotal: false, // Initial value
+        // ),
+        // // New: Cryptocurrency account
+        // AccountSummary(
+        //   id: 'crypto_wallet',
+        //   name: 'Crypto Wallet',
+        //   balance: 15000.00,
+        //   dailyChangeAmount: 1200.00,
+        //   dailyChangePercentage: 8.00,
+        //   colorValue: 0xffFF007B, // A distinct color for crypto (e.g., Pink)
+        //   type: AccountType.cryptocurrency,
+        //   hideEvents: false,
+        //   excludeFromTotal: false,
+        // ),
       ],
       _events = <Event>[
         Event(
@@ -299,121 +299,121 @@ class AccountData {
         ),
       ],
       _tools = <ToolSummary>[
-        ToolSummary(
-          name: 'Russian Ruble',
-          quantity: 1200.00,
-          percentageChange: 0.15,
-          accountId: 'checking',
-          type: ToolType.money,
-          currentValue: 1200.00,
-          ticker: 'RUR', // Added ticker
-        ),
-        ToolSummary(
-          name: 'S&P 500 ETF',
-          quantity: 5.5,
-          percentageChange: 1.23,
-          accountId: 'investments',
-          type: ToolType.etf,
-          currentValue: 2750.00,
-          ticker: 'SPY', // Added ticker
-        ),
-        ToolSummary(
-          name: 'Bitcoin',
-          quantity: 0.12,
-          percentageChange: -3.45,
-          accountId: 'crypto_wallet', // Changed accountId to new crypto_wallet
-          type: ToolType.cryptocurrency,
-          currentValue: 7200.00,
-          ticker: 'BTC',
-        ),
-        ToolSummary(
-          name: 'Ethereum',
-          quantity: 1.5,
-          percentageChange: 2.10,
-          accountId: 'crypto_wallet', // Added Ethereum to crypto_wallet
-          type: ToolType.cryptocurrency,
-          currentValue: 4500.00,
-          ticker: 'ETH',
-        ),
-        ToolSummary(
-          name: 'Fixed Deposit (6M)',
-          quantity: 2000.00,
-          percentageChange: 0.05,
-          accountId: 'savings',
-          type: ToolType.deposit,
-          currentValue: 2000.00,
-          startDate: DateTime(2023, 1, 1),
-          endDate: DateTime(2023, 7, 1),
-          payoutType: PayoutType.atEndOfTerm,
-          withdrawalToolId: 'checking_RUR', // Example ID
-        ),
-        ToolSummary(
-          name: 'Apple Inc. Stock',
-          quantity: 10.0,
-          percentageChange: 0.88,
-          accountId: 'investments',
-          type: ToolType.stocks,
-          currentValue: 1800.00,
-          ticker: 'AAPL', // Added ticker
-        ),
-        ToolSummary(
-          name: 'Tesla Inc. Stock',
-          quantity: 20.0,
-          percentageChange: 0.88,
-          accountId: 'investments',
-          type: ToolType.stocks,
-          currentValue: 18000.00,
-          ticker: 'TSLA', // Added ticker
-        ),
-        ToolSummary(
-          name: 'Nvidia Inc. Stock',
-          quantity: 30.0,
-          percentageChange: 0.88,
-          accountId: 'investments',
-          type: ToolType.stocks,
-          currentValue: 38000.00,
-          ticker: 'NVDA', // Added ticker
-        ),
-        ToolSummary(
-          name: 'USD',
-          quantity: 1200.00,
-          percentageChange: 0,
-          accountId: 'investments',
-          type: ToolType.money,
-          currentValue: 1200.00,
-        ),
-        ToolSummary(
-          name: 'Russian Ruble',
-          quantity: 5000.00,
-          percentageChange: 0.0,
-          accountId: 'crypto_wallet', // RUR for crypto_wallet
-          type: ToolType.money,
-          currentValue: 5000.00,
-          ticker: 'RUR',
-        ),
-        ToolSummary(
-          name: 'Mortgage Loan',
-          quantity: 1.0, // Represents one loan agreement
-          percentageChange: -0.10, // Annual interest rate as negative change
-          accountId: 'checking',
-          type: ToolType.credit,
-          currentValue: -150000.00, // Principal amount as a negative liability
-          interestRate: 10.0, // Example interest rate
-          loanStartDate: DateTime(2022, 1, 1),
-          loanTermMonths: 360, // 30 years
-          paymentDayOfMonth: 15,
-          creditPaymentType: CreditPaymentType.annuity,
-        ),
-        ToolSummary(
-          name: 'Treasury Bonds',
-          quantity: 3.0,
-          percentageChange: 0.25,
-          accountId: 'investments',
-          type: ToolType.bonds,
-          currentValue: 3000.00,
-          ticker: 'GOV',
-          faceValue: 1000.0, // Example face value
-        ),
+        // ToolSummary(
+        //   name: 'Russian Ruble',
+        //   quantity: 1200.00,
+        //   percentageChange: 0.15,
+        //   accountId: 'checking',
+        //   type: ToolType.money,
+        //   currentValue: 1200.00,
+        //   ticker: 'RUR', // Added ticker
+        // ),
+        // ToolSummary(
+        //   name: 'S&P 500 ETF',
+        //   quantity: 5.5,
+        //   percentageChange: 1.23,
+        //   accountId: 'investments',
+        //   type: ToolType.etf,
+        //   currentValue: 2750.00,
+        //   ticker: 'SPY', // Added ticker
+        // ),
+        // ToolSummary(
+        //   name: 'Bitcoin',
+        //   quantity: 0.12,
+        //   percentageChange: -3.45,
+        //   accountId: 'crypto_wallet', // Changed accountId to new crypto_wallet
+        //   type: ToolType.cryptocurrency,
+        //   currentValue: 7200.00,
+        //   ticker: 'BTC',
+        // ),
+        // ToolSummary(
+        //   name: 'Ethereum',
+        //   quantity: 1.5,
+        //   percentageChange: 2.10,
+        //   accountId: 'crypto_wallet', // Added Ethereum to crypto_wallet
+        //   type: ToolType.cryptocurrency,
+        //   currentValue: 4500.00,
+        //   ticker: 'ETH',
+        // ),
+        // ToolSummary(
+        //   name: 'Fixed Deposit (6M)',
+        //   quantity: 2000.00,
+        //   percentageChange: 0.05,
+        //   accountId: 'savings',
+        //   type: ToolType.deposit,
+        //   currentValue: 2000.00,
+        //   startDate: DateTime(2023, 1, 1),
+        //   endDate: DateTime(2023, 7, 1),
+        //   payoutType: PayoutType.atEndOfTerm,
+        //   withdrawalToolId: 'checking_RUR', // Example ID
+        // ),
+        // ToolSummary(
+        //   name: 'Apple Inc. Stock',
+        //   quantity: 10.0,
+        //   percentageChange: 0.88,
+        //   accountId: 'investments',
+        //   type: ToolType.stocks,
+        //   currentValue: 1800.00,
+        //   ticker: 'AAPL', // Added ticker
+        // ),
+        // ToolSummary(
+        //   name: 'Tesla Inc. Stock',
+        //   quantity: 20.0,
+        //   percentageChange: 0.88,
+        //   accountId: 'investments',
+        //   type: ToolType.stocks,
+        //   currentValue: 18000.00,
+        //   ticker: 'TSLA', // Added ticker
+        // ),
+        // ToolSummary(
+        //   name: 'Nvidia Inc. Stock',
+        //   quantity: 30.0,
+        //   percentageChange: 0.88,
+        //   accountId: 'investments',
+        //   type: ToolType.stocks,
+        //   currentValue: 38000.00,
+        //   ticker: 'NVDA', // Added ticker
+        // ),
+        // ToolSummary(
+        //   name: 'USD',
+        //   quantity: 1200.00,
+        //   percentageChange: 0,
+        //   accountId: 'investments',
+        //   type: ToolType.money,
+        //   currentValue: 1200.00,
+        // ),
+        // ToolSummary(
+        //   name: 'Russian Ruble',
+        //   quantity: 5000.00,
+        //   percentageChange: 0.0,
+        //   accountId: 'crypto_wallet', // RUR for crypto_wallet
+        //   type: ToolType.money,
+        //   currentValue: 5000.00,
+        //   ticker: 'RUR',
+        // ),
+        // ToolSummary(
+        //   name: 'Mortgage Loan',
+        //   quantity: 1.0, // Represents one loan agreement
+        //   percentageChange: -0.10, // Annual interest rate as negative change
+        //   accountId: 'checking',
+        //   type: ToolType.credit,
+        //   currentValue: -150000.00, // Principal amount as a negative liability
+        //   interestRate: 10.0, // Example interest rate
+        //   loanStartDate: DateTime(2022, 1, 1),
+        //   loanTermMonths: 360, // 30 years
+        //   paymentDayOfMonth: 15,
+        //   creditPaymentType: CreditPaymentType.annuity,
+        // ),
+        // ToolSummary(
+        //   name: 'Treasury Bonds',
+        //   quantity: 3.0,
+        //   percentageChange: 0.25,
+        //   accountId: 'investments',
+        //   type: ToolType.bonds,
+        //   currentValue: 3000.00,
+        //   ticker: 'GOV',
+        //   faceValue: 1000.0, // Example face value
+        // ),
       ],
       _activeAccountId = 'total' {
     _accounts.insert(
@@ -437,6 +437,10 @@ class AccountData {
   List<AccountSummary> get accounts =>
       List<AccountSummary>.unmodifiable(_accounts);
 
+  /// Returns an unmodifiable list of all account summaries, including 'total'.
+  Map<String,ToolSummary> get tools =>
+      {for (var item in _tools) item.id : item};
+
   /// Calculates and updates the balance, daily change amount, and daily change percentage for the 'total' account.
   void _updateTotalBalance() {
     double totalBalance = 0.0;
@@ -448,7 +452,10 @@ class AccountData {
         // Sum up current values of all tools for this account to get its balance
         final double accountToolsBalance = _tools
             .where((ToolSummary tool) => tool.accountId == acc.id)
-            .fold(0.0, (double sum, ToolSummary tool) => sum + tool.currentValue);
+            .fold(
+              0.0,
+              (double sum, ToolSummary tool) => sum + tool.currentValue,
+            );
 
         // Update account's balance to reflect sum of its tools
         if (acc.balance != accountToolsBalance) {
@@ -499,6 +506,7 @@ class AccountData {
     //
     // }
   }
+
   /// Returns events for a specific account, sorted by date (oldest first).
   /// Events are filtered based on the account's hideEvents flag.
   List<Event> getEventsForAccount(String accountId) {
@@ -532,7 +540,9 @@ class AccountData {
 
   /// Returns tools associated with a specific account, sorted by type and then name.
   List<ToolSummary> getToolsForAccount(String accountId) {
-    return _tools.where((ToolSummary tool) => tool.accountId == accountId).toList()
+    return _tools
+        .where((ToolSummary tool) => tool.accountId == accountId)
+        .toList()
       ..sort((ToolSummary a, ToolSummary b) {
         final int typeComparison = a.type.index.compareTo(b.type.index);
         if (typeComparison != 0) {
@@ -554,14 +564,17 @@ class AccountData {
 
   /// Returns all money tools from all accounts.
   List<ToolSummary> get allMoneyTools {
-    return _tools.where((ToolSummary tool) => tool.type == ToolType.money).toList();
+    return _tools
+        .where((ToolSummary tool) => tool.type == ToolType.money)
+        .toList();
   }
 
   /// Returns a [Tool] by its name and accountId, or null if not found.
   ToolSummary? getToolByNameAndAccountId(String toolName, String accountId) {
     try {
       return _tools.firstWhere(
-        (ToolSummary tool) => tool.name == toolName && tool.accountId == accountId,
+        (ToolSummary tool) =>
+            tool.name == toolName && tool.accountId == accountId,
       );
     } catch (e) {
       return null;
@@ -572,7 +585,8 @@ class AccountData {
   ToolSummary? getToolByTickerAndAccountId(String ticker, String accountId) {
     try {
       return _tools.firstWhere(
-        (ToolSummary tool) => tool.ticker == ticker && tool.accountId == accountId,
+        (ToolSummary tool) =>
+            tool.ticker == ticker && tool.accountId == accountId,
       );
     } catch (e) {
       return null;
@@ -732,7 +746,10 @@ class AccountData {
       fromToolName,
       fromAccountId,
     );
-    final ToolSummary? toTool = getToolByNameAndAccountId(toToolName, toAccountId);
+    final ToolSummary? toTool = getToolByNameAndAccountId(
+      toToolName,
+      toAccountId,
+    );
 
     if (fromTool == null) {
       debugPrint(
@@ -850,13 +867,16 @@ class AccountData {
       return;
     }
 
-    final int accountPage = _accounts.indexWhere((AccountSummary acc) => acc.id == accountId);
+    final int accountPage = _accounts.indexWhere(
+      (AccountSummary acc) => acc.id == accountId,
+    );
     _accounts.removeWhere((AccountSummary acc) => acc.id == accountId);
     _events.removeWhere((Event event) => event.accountId == accountId);
     _tools.removeWhere((ToolSummary tool) => tool.accountId == accountId);
 
     if (_activeAccountId == accountId) {
-      _activeAccountId = _accounts[accountPage-1].id; // Reset active account if deleted
+      _activeAccountId =
+          _accounts[accountPage - 1].id; // Reset active account if deleted
     }
     _deletableAccountId = null; // Exit delete mode
     _updateTotalBalance(); // Recalculate total balance
@@ -864,6 +884,9 @@ class AccountData {
 
   /// Adds a new account.
   void addAccount(AccountSummary newAccount) {
+    _accounts.isNotEmpty
+      ? _accounts.removeWhere((item) => item.id == newAccount.id)
+      : null;
     _accounts.add(newAccount);
 
     _updateTotalBalance(); // Recalculates total and notifies listeners
@@ -872,6 +895,9 @@ class AccountData {
 
   /// Adds a tool.
   void addTool(ToolSummary newTool) {
+    _tools.isNotEmpty
+        ? _tools.removeWhere((tool) => tool.id == newTool.id)
+        : null;
     _tools.add(newTool);
 
     final AccountSummary account = _accounts.firstWhere(
@@ -879,8 +905,8 @@ class AccountData {
     );
 
     account.balance = _tools
-      .where((ToolSummary tool) => tool.accountId == newTool.accountId)
-      .fold(0.0, (double sum, ToolSummary tool) => sum + tool.currentValue);
+        .where((ToolSummary tool) => tool.accountId == newTool.accountId)
+        .fold(0.0, (double sum, ToolSummary tool) => sum + tool.currentValue);
     _updateTotalBalance();
   }
 
@@ -904,6 +930,7 @@ class AccountData {
       final double currentValue = quantity * unitPrice;
       _tools.add(
         ToolSummary(
+          id: name,
           name: name,
           quantity: quantity,
           percentageChange: 0.0, // New money tools start with 0% change
@@ -976,6 +1003,7 @@ class AccountData {
     // Add the new deposit tool
     _tools.add(
       ToolSummary(
+        id: name,
         name: name,
         quantity: quantity, // Principal amount of deposit
         percentageChange: annualYield, // Annual yield for the deposit
@@ -1057,6 +1085,7 @@ class AccountData {
     // Add the new credit tool (as a liability, hence negative current value)
     _tools.add(
       ToolSummary(
+        id: name,
         name: name,
         quantity: 1.0, // Represents one credit agreement
         percentageChange:
@@ -1143,6 +1172,7 @@ class AccountData {
     // Add the new 'other' tool
     _tools.add(
       ToolSummary(
+        id: name,
         name: name,
         quantity:
             amount /
@@ -1440,6 +1470,7 @@ class AccountData {
       // Add new stock tool
       _tools.add(
         ToolSummary(
+          id: stockName,
           name: stockName,
           quantity: quantity,
           percentageChange:
@@ -1650,6 +1681,7 @@ class AccountData {
       // Add new ETF tool
       _tools.add(
         ToolSummary(
+          id: etfName,
           name: etfName,
           quantity: quantity,
           percentageChange:
@@ -1865,6 +1897,7 @@ class AccountData {
       // Add new bond tool
       _tools.add(
         ToolSummary(
+          id: bondName,
           name: bondName,
           quantity: quantity,
           percentageChange:
@@ -2077,6 +2110,7 @@ class AccountData {
       // Add new crypto tool
       _tools.add(
         ToolSummary(
+          id: cryptoName,
           name: cryptoName,
           quantity: quantity,
           percentageChange:

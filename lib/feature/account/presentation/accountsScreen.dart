@@ -2,6 +2,7 @@ import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/logic/accountBloc.dart';
 import 'package:bookstore/feature/account/logic/addAccountFormCubit.dart';
 import 'package:bookstore/feature/account/presentation/widget/accountCard.dart';
+import 'package:bookstore/feature/account/presentation/widget/actionSelectionBottomSheet.dart';
 import 'package:bookstore/feature/account/presentation/widget/addAccountForm.dart';
 import 'package:bookstore/feature/account/presentation/widget/eventList.dart';
 import 'package:bookstore/feature/account/presentation/widget/toolList.dart';
@@ -62,7 +63,7 @@ class AccountListScreen extends StatelessWidget {
           if (currentPageIndex == -1) {
             currentPageIndex = 0; // Default to first account if not found
           }
-          //   // Only animate if the active account changed and PageController is ready
+          // Only animate if the active account changed and PageController is ready
           if (_pageController.hasClients &&
               _pageController.page!.round() != currentPageIndex) {
             _pageController.animateToPage(
@@ -207,7 +208,7 @@ class AccountListScreen extends StatelessWidget {
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () {
-                                // _showActionBottomSheet(context);
+                                _showActionBottomSheet(context);
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: colorScheme.secondary,
@@ -311,5 +312,35 @@ class AccountListScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showActionBottomSheet(BuildContext context) {
+    final AccountsBloc accountsBloc = context.read<AccountsBloc>();
+    final AccountsState state = accountsBloc.state;
+    // Check if the state is AccountsDataState before accessing accountData
+    if (state is AccountsDataState) {
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return MultiBlocProvider(
+            providers: <BlocProvider<dynamic>>[
+              BlocProvider<AccountsBloc>.value(
+                value: accountsBloc, // Re-provide the existing AccountsBloc
+              ),
+            ],
+            child: const ActionSelectionBottomSheet(),
+          );
+        },
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+        ),
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+      );
+    } else {
+      // Handle the case where state is not AccountsDataState, e.g., show a snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account data not available.')),
+      );
+    }
   }
 }
