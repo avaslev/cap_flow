@@ -89,6 +89,8 @@ class IncomeCubit extends Cubit<IncomeState> {
             price: 1,
             currency: Currency.RUB,
             isTransmit: false,
+            name: category,
+            comment: comment,
           ),
         );
 

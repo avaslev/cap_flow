@@ -2,6 +2,7 @@ import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/logic/accountBloc.dart';
 import 'package:bookstore/feature/account/presentation/widget/form/expense.dart';
 import 'package:bookstore/feature/account/presentation/widget/form/income.dart';
+import 'package:bookstore/feature/account/presentation/widget/form/transfer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -41,8 +42,7 @@ class ActionSelectionBottomSheet extends StatelessWidget {
           showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
-            builder:
-                (BuildContext context) => form,
+            builder: (BuildContext context) => form,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
             ),
@@ -60,525 +60,471 @@ class ActionSelectionBottomSheet extends StatelessWidget {
               top: Radius.circular(20.0),
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Text(
-                  "Choose Action",
-                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.arrow_upward,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: Text(
-                  "Доход (Income)",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                onTap: () => _onTap(IncomeForm(accountData: accountData))
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.arrow_downward,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                title: Text(
-                  "Расход (Expense)",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                onTap: () => _onTap(ExpenseForm(accountData: accountData))
-              ),
-              if (hasMoneyTools) // Conditionally show Transfer action
-                ListTile(
-                  leading: Icon(
-                    Icons.swap_horiz,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  title: Text(
-                    "Перевод (Transfer)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close the bottom sheet
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text('AddTransferForm for $activeAccountId'),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              if (isGeneralAccount) // Only show for general accounts
-                ListTile(
-                  leading: Icon(
-                    Icons.account_balance_wallet,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  title: Text(
-                    "Добавить инструмент (Деньги)", // Add Money Tool
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close the bottom sheet
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddMoneyToolForm for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              if (isGeneralAccount) // Only show for general accounts
-                ListTile(
-                  leading: Icon(
-                    Icons.savings,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  title: Text(
-                    "Добавить депозит", // Add Deposit
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close the bottom sheet
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text('AddDepositForm for $activeAccountId'),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              if (isGeneralAccount) // Only show for general accounts
-                ListTile(
-                  leading: Icon(
-                    Icons.credit_score,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  title: Text(
-                    "Добавить кредит (Add Credit)", // New: Add Credit
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close the bottom sheet
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text('AddCreditForm for $activeAccountId'),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              if (isGeneralAccount) // Only show for general accounts
-                ListTile(
-                  leading: Icon(
-                    Icons.category,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  title: Text(
-                    "Добавить инструмент (Прочее)", // Add Other Tool
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close the bottom sheet
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddOtherToolForm for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              if (isBrokerageAccount) ...<Widget>[
-                // New: Actions for Brokerage accounts
-                ListTile(
-                  leading: Icon(
-                    Icons.add_shopping_cart,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(
-                    "Купить Акции (Buy Stocks)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Buy Stocks) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.sell,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    "Продать Акции (Sell Stocks)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Sell Stocks) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-                // New: ETF Actions
-                ListTile(
-                  leading: Icon(
-                    Icons.add_chart,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(
-                    "Купить ETF (Buy ETF)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Buy ETF) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.trending_down,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    "Продать ETF (Sell ETF)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Sell ETF) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-                // New: Bond Actions
-                ListTile(
-                  leading: Icon(
-                    Icons.attach_money,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(
-                    "Купить Облигации (Buy Bonds)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Buy Bonds) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.money_off_csred,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    "Продать Облигации (Sell Bonds)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Sell Bonds) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              ],
-              // NEW: Cryptocurrency Actions
-              if (isCryptocurrencyAccount) ...<Widget>[
-                ListTile(
-                  leading: Icon(
-                    Icons.currency_bitcoin,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(
-                    "Купить Криптовалюту (Buy Crypto)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Buy Crypto) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.currency_yen, // Using yen for selling crypto
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    "Продать Криптовалюту (Sell Crypto)",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'AddInvestmentOperationForm (Sell Crypto) for $activeAccountId',
-                            ),
-                          ),
-                        );
-                      },
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                    );
-                  },
-                ),
-              ],
-              ListTile(
-                leading: Icon(
-                  Icons.list_alt,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                title: Text(
-                  "Посмотреть активности по счету",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                onTap: () {
-                  Navigator.pop(context); // Close the bottom sheet
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('View account activities selected'),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    "Choose Action",
+                    style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                  );
-                  // TODO: Implement navigation to All Events screen (or specific account events)
-                },
-              ),
-              const SizedBox(height: 8.0), // Some bottom padding
-            ],
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.arrow_upward,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(
+                    "Доход (Income)",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  onTap: () => _onTap(IncomeForm(accountData: accountData)),
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.arrow_downward,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: Text(
+                    "Расход (Expense)",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  onTap: () => _onTap(ExpenseForm(accountData: accountData)),
+                ),
+                if (hasMoneyTools) // Conditionally show Transfer action
+                  ListTile(
+                    leading: Icon(
+                      Icons.swap_horiz,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    title: Text(
+                      "Перевод (Transfer)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () => _onTap(TransferForm(accountData: accountData)),
+                  ),
+                if (isGeneralAccount) // Only show for general accounts
+                  ListTile(
+                    leading: Icon(
+                      Icons.savings,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    title: Text(
+                      "Добавить депозит", // Add Deposit
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // Close the bottom sheet
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddDepositForm for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                if (isGeneralAccount) // Only show for general accounts
+                  ListTile(
+                    leading: Icon(
+                      Icons.credit_score,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    title: Text(
+                      "Добавить кредит (Add Credit)", // New: Add Credit
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // Close the bottom sheet
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text('AddCreditForm for $activeAccountId'),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                if (isGeneralAccount) // Only show for general accounts
+                  ListTile(
+                    leading: Icon(
+                      Icons.category,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    title: Text(
+                      "Добавить инструмент (Прочее)", // Add Other Tool
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // Close the bottom sheet
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddOtherToolForm for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                if (isBrokerageAccount) ...<Widget>[
+                  // New: Actions for Brokerage accounts
+                  ListTile(
+                    leading: Icon(
+                      Icons.add_shopping_cart,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      "Купить Акции (Buy Stocks)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Buy Stocks) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.sell,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(
+                      "Продать Акции (Sell Stocks)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Sell Stocks) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                  // New: ETF Actions
+                  ListTile(
+                    leading: Icon(
+                      Icons.add_chart,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      "Купить ETF (Buy ETF)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Buy ETF) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.trending_down,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(
+                      "Продать ETF (Sell ETF)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Sell ETF) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                  // New: Bond Actions
+                  ListTile(
+                    leading: Icon(
+                      Icons.attach_money,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      "Купить Облигации (Buy Bonds)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Buy Bonds) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.money_off_csred,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(
+                      "Продать Облигации (Sell Bonds)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Sell Bonds) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                ],
+                // NEW: Cryptocurrency Actions
+                if (isCryptocurrencyAccount) ...<Widget>[
+                  ListTile(
+                    leading: Icon(
+                      Icons.currency_bitcoin,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      "Купить Криптовалюту (Buy Crypto)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Buy Crypto) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.currency_yen, // Using yen for selling crypto
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(
+                      "Продать Криптовалюту (Sell Crypto)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AddInvestmentOperationForm (Sell Crypto) for $activeAccountId',
+                              ),
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      );
+                    },
+                  ),
+                ],
+                ListTile(
+                  leading: Icon(
+                    Icons.list_alt,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(
+                    "Посмотреть активности по счету",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the bottom sheet
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('View account activities selected'),
+                      ),
+                    );
+                    // TODO: Implement navigation to All Events screen (or specific account events)
+                  },
+                ),
+                const SizedBox(height: 8.0), // Some bottom padding
+              ],
+            ),
           ),
         );
       },

@@ -113,7 +113,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
           currency: Currency.RUB,
           isTransmit: false,
           name: category,
-          comment: comment
+          comment: comment,
         ),
       );
 
