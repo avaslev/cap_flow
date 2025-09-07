@@ -1,19 +1,17 @@
 import 'package:bookstore/data/models/activity.dart';
-import 'package:bookstore/data/models/tool.dart';
 import 'package:bookstore/data/repository/activityRepository.dart';
-import 'package:bookstore/data/repository/toolRepository.dart';
 import 'package:bookstore/feature/account/data/accountDataState.dart';
-import 'package:bookstore/feature/account/data/incomeState.dart';
-import 'package:flutter/material.dart';
+import 'package:bookstore/feature/account/data/activityState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
-/// Cubit responsible for managing the state and logic of the Add Income form.
-class IncomeCubit extends Cubit<IncomeState> {
+/// Cubit responsible for managing the state and logic of the Add Activity form.
+class ActivityCubit extends Cubit<ActivityState> {
 
-  IncomeCubit({
+  ActivityCubit({
     required List<ToolSummary> initialMoneyTools,
-  })  : super(IncomeState.initial(initialMoneyTools));
+    required ActivityStateType activityType,
+  })  : super(ActivityState.initial(initialMoneyTools, activityType));
 
   /// Updates the amount in the state.
   void amountChanged(String value) {
@@ -60,7 +58,7 @@ class IncomeCubit extends Cubit<IncomeState> {
             .contains(state.selectedMoneyToolId);
   }
     /// Submits the income data.
-  Future<void> submitIncome() async {
+  Future<void> submitActivity() async {
     if (!_validateForm()) {
       emit(state.copyWith(
           formStatus: FormStatus.validationError,
@@ -76,14 +74,15 @@ class IncomeCubit extends Cubit<IncomeState> {
       final String? comment =
           state.comment.trim().isEmpty ? null : state.comment.trim();
 
-      debugPrint("submitIncome ${state.selectedMoneyToolId}");
-
       // add activity ti tool
       await ActivityRepository().insert(
           Activity(
             id: Uuid().v7(),
             toolId: state.selectedMoneyToolId!,
-            type: ActivityType.add,
+            type: switch (state.activityType) {
+              ActivityStateType.add => ActivityType.add,
+              ActivityStateType.substract => ActivityType.substract,
+            },
             createAt: state.selectedDate,
             quantity: amount,
             price: 1,

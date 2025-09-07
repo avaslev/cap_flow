@@ -1,6 +1,5 @@
 import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/data/transferState.dart';
-import 'package:bookstore/feature/account/logic/accountBloc.dart';
 import 'package:bookstore/feature/account/logic/transferCubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -206,12 +205,6 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                       if (picked != null && picked != state.selectedDate) {
                         context.read<TransferCubit>().dateSelected(picked);
                       }
-                    },
-                    validator: (String? value) {
-                      if (state.selectedDate == null) {
-                        return 'Please select a date';
-                      }
-                      return null;
                     },
                   ),
                   const SizedBox(height: 16),

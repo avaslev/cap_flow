@@ -132,7 +132,7 @@ class TransferCubit extends Cubit<TransferState> {
           state.comment.trim().isEmpty ? null : state.comment.trim();
       final double commission = double.parse(state.commission ?? '0');
       final String name =
-          'transfer from ${_getAccountName(state.selectedFromToolId!)} to ${_getAccountName(state.selectedToToolId!)}';
+          'Transfer from ${_getAccountName(state.selectedFromToolId!)} to ${_getAccountName(state.selectedToToolId!)}';
 
       debugPrint(
         "submitTransfer ${state.selectedFromToolId} to ${state.selectedToToolId}",
@@ -163,7 +163,8 @@ class TransferCubit extends Cubit<TransferState> {
             price: 1,
             currency: Currency.RUB,
             isTransmit: false,
-            name: 'commission ${name}',
+            name: 'Commission',
+            comment: '${name}',
           ),
         );
       await ActivityRepository().insert(

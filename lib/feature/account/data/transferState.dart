@@ -64,7 +64,7 @@ class TransferState {
           selectedToToolId ?? this.selectedToToolId,
       commission: commission ?? this.commission,
       availableMoneyTools: availableMoneyTools ?? this.availableMoneyTools,
-      accounts: accounts ?? this.accounts,
+      accounts: accounts,
       formStatus: formStatus ?? this.formStatus,
       errorMessage: errorMessage, // Allow explicit nulling out of error message
     );

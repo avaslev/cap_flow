@@ -1,6 +1,6 @@
 import 'package:bookstore/feature/account/data/accountDataState.dart';
-import 'package:bookstore/feature/account/data/incomeState.dart';
-import 'package:bookstore/feature/account/logic/incomeCubit.dart';
+import 'package:bookstore/feature/account/data/activityState.dart';
+import 'package:bookstore/feature/account/logic/activityCubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -8,35 +8,41 @@ import 'package:intl/intl.dart';
 import '../../../../../core/utils/formatCurrency.dart';
 
 /// A modal bottom sheet for adding income, now integrated with `bloc/cubit`.
-class IncomeForm extends StatelessWidget {
+class ActivityForm extends StatelessWidget {
   final AccountData accountData;
+  final ActivityStateType activityStateType;
 
-  const IncomeForm({super.key, required this.accountData});
+  const ActivityForm({
+    super.key,
+    required this.accountData,
+    required this.activityStateType,
+  });
 
   @override
   Widget build(BuildContext context) {
     // We need AccountData to initialize the Cubit with initial tools and to
-    // perform the actual addIncome operation.
+    // perform the actual addActivity operation.
     final List<ToolSummary> initialMoneyTools = accountData
         .getMoneyToolsForAccount(accountData.activeAccountId);
 
-    return BlocProvider<IncomeCubit>(
+    return BlocProvider<ActivityCubit>(
       create:
-          (BuildContext context) => IncomeCubit(
+          (BuildContext context) => ActivityCubit(
             initialMoneyTools: initialMoneyTools,
+            activityType: activityStateType,
           ),
-      child: BlocListener<IncomeCubit, IncomeState>(
-        listener: (BuildContext context, IncomeState state) {
+      child: BlocListener<ActivityCubit, ActivityState>(
+        listener: (BuildContext context, ActivityState state) {
           if (state.formStatus == FormStatus.success) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Income added successfully!')),
+              const SnackBar(content: Text('Activity added successfully!')),
             );
             Navigator.pop(context); // Close the bottom sheet
           } else if (state.formStatus == FormStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Failed to add income: ${state.errorMessage ?? "Unknown error"}',
+                  'Failed to add activity: ${state.errorMessage ?? "Unknown error"}',
                 ),
               ),
             );
@@ -48,21 +54,21 @@ class IncomeForm extends StatelessWidget {
             );
           }
         },
-        child: const _IncomeFormContent(),
+        child: const _ActivityFormContent(),
       ),
     );
   }
 }
 
-/// The actual content of the Add Income form, built using `BlocBuilder`.
-class _IncomeFormContent extends StatefulWidget {
-  const _IncomeFormContent();
+/// The actual content of the Add Activity form, built using `BlocBuilder`.
+class _ActivityFormContent extends StatefulWidget {
+  const _ActivityFormContent();
 
   @override
-  State<_IncomeFormContent> createState() => _IncomeFormContentState();
+  State<_ActivityFormContent> createState() => _ActivityFormContentState();
 }
 
-class _IncomeFormContentState extends State<_IncomeFormContent> {
+class _ActivityFormContentState extends State<_ActivityFormContent> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
@@ -78,8 +84,8 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          child: BlocBuilder<IncomeCubit, IncomeState>(
-            builder: (BuildContext context, IncomeState state) {
+          child: BlocBuilder<ActivityCubit, ActivityState>(
+            builder: (BuildContext context, ActivityState state) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,7 +93,9 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
-                      "Add Income",
+                      state.activityType == ActivityStateType.add
+                          ? "Add income"
+                          : "Add expense",
                       style: Theme.of(
                         context,
                       ).textTheme.headlineSmall!.copyWith(
@@ -120,9 +128,7 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                           );
                         }).toList(),
                     onChanged: (String? newValue) {
-                      context.read<IncomeCubit>().moneyToolSelected(
-                        newValue,
-                      );
+                      context.read<ActivityCubit>().moneyToolSelected(newValue);
                     },
                     validator: (String? value) {
                       if (value == null || value.isEmpty) {
@@ -151,7 +157,7 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                     ),
                     onChanged:
                         (String value) =>
-                            context.read<IncomeCubit>().amountChanged(value),
+                            context.read<ActivityCubit>().amountChanged(value),
                     validator: (String? value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter the amount';
@@ -187,14 +193,8 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                         lastDate: DateTime(2101),
                       );
                       if (picked != null && picked != state.selectedDate) {
-                        context.read<IncomeCubit>().dateSelected(picked);
+                        context.read<ActivityCubit>().dateSelected(picked);
                       }
-                    },
-                    validator: (String? value) {
-                      if (state.selectedDate == null) {
-                        return 'Please select a date';
-                      }
-                      return null;
                     },
                   ),
                   const SizedBox(height: 16),
@@ -213,7 +213,7 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                     ),
                     onChanged:
                         (String value) => context
-                            .read<IncomeCubit>()
+                            .read<ActivityCubit>()
                             .categoryChanged(value),
                     validator: (String? value) {
                       if (value == null || value.trim().isEmpty) {
@@ -236,9 +236,8 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                       ),
                     ),
                     onChanged:
-                        (String value) => context
-                            .read<IncomeCubit>()
-                            .commentChanged(value),
+                        (String value) =>
+                            context.read<ActivityCubit>().commentChanged(value),
                     maxLines: 2,
                   ),
                   const SizedBox(height: 24),
@@ -249,7 +248,7 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                             : () {
                               // Trigger local form validation first
                               if (_formKey.currentState!.validate()) {
-                                context.read<IncomeCubit>().submitIncome();
+                                context.read<ActivityCubit>().submitActivity();
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -287,7 +286,9 @@ class _IncomeFormContentState extends State<_IncomeFormContent> {
                     label: Text(
                       state.formStatus == FormStatus.loading
                           ? "Adding..."
-                          : "Add Income",
+                          : (state.activityType == ActivityStateType.add
+                              ? "Add income"
+                              : "Add expense"),
                       style: Theme.of(context).textTheme.labelLarge!.copyWith(
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
