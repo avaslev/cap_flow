@@ -95,10 +95,8 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         accountData.getToolsForAccount(event.accountId).forEach((
           ToolSummary toolSummary,
         ) async {
-          if (null != toolSummary.id) {
-            await ActivityRepository().deleteByTool(toolSummary.id ?? '');
-            await ToolRepository().delete(toolSummary.id ?? '');
-          }
+          await ActivityRepository().deleteByTool(toolSummary.id);
+          await ToolRepository().delete(toolSummary.id);
         });
         emit(AccountsDataState(accountData));
       } else {
@@ -171,7 +169,8 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
     Map<String, ToolSummary> toolMap = accountData.tools;
     (await ActivityRepository().getActivityList()).forEach((activity) async {
       if (toolMap.containsKey(activity.toolId)) {
-        double quantity = activity.quantity * (activity.type == ActivityType.add ? 1 : -1);
+        double quantity =
+            activity.quantity * (activity.type == ActivityType.add ? 1 : -1);
         ToolSummary toolSummary = toolMap[activity.toolId]!;
         toolSummary.currentValue += activity.price * quantity;
         toolSummary.quantity += quantity;

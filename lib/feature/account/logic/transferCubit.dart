@@ -1,7 +1,5 @@
 import 'package:bookstore/data/models/activity.dart';
-import 'package:bookstore/data/models/tool.dart';
 import 'package:bookstore/data/repository/activityRepository.dart';
-import 'package:bookstore/data/repository/toolRepository.dart';
 import 'package:bookstore/feature/account/data/accountDataState.dart';
 import 'package:bookstore/feature/account/data/transferState.dart';
 import 'package:flutter/material.dart';
@@ -86,15 +84,14 @@ class TransferCubit extends Cubit<TransferState> {
     final double? amount = double.tryParse(state.amount);
     return amount != null &&
         amount > 0 &&
-        state.selectedDate != null &&
         state.selectedFromToolId != null &&
         state.selectedToToolId != null &&
         state.selectedToToolId != state.selectedFromToolId &&
         state.availableMoneyTools
-            .map<String>((ToolSummary t) => t.id!)
+            .map<String>((ToolSummary t) => t.id)
             .contains(state.selectedFromToolId) &&
         state.availableMoneyTools
-            .map<String>((ToolSummary t) => t.id!)
+            .map<String>((ToolSummary t) => t.id)
             .contains(state.selectedToToolId);
   }
 
@@ -150,6 +147,7 @@ class TransferCubit extends Cubit<TransferState> {
           currency: Currency.RUB,
           isTransmit: true,
           name: name,
+          comment: '${comment}',
         ),
       );
       if (commission > 0)
@@ -178,6 +176,7 @@ class TransferCubit extends Cubit<TransferState> {
           currency: Currency.RUB,
           isTransmit: true,
           name: name,
+          comment: '${comment}',
         ),
       );
 

@@ -51,10 +51,9 @@ class ActivityCubit extends Cubit<ActivityState> {
     return amount != null &&
         amount > 0 &&
         state.category.trim().isNotEmpty &&
-        state.selectedDate != null &&
         state.selectedMoneyToolId != null &&
         state.availableMoneyTools
-            .map<String>((ToolSummary t) => t.id!)
+            .map<String>((ToolSummary t) => t.id)
             .contains(state.selectedMoneyToolId);
   }
     /// Submits the income data.
