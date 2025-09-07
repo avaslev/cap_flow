@@ -1,5 +1,5 @@
-import 'package:bookstore/core/db.dart';
-import 'package:bookstore/data/models/tool.dart';
+import 'package:investflow/core/db.dart';
+import 'package:investflow/data/models/tool.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ToolRepository {

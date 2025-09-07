@@ -1,7 +1,7 @@
-import 'package:bookstore/data/models/activity.dart';
-import 'package:bookstore/data/repository/activityRepository.dart';
-import 'package:bookstore/feature/account/data/accountDataState.dart';
-import 'package:bookstore/feature/account/data/transferState.dart';
+import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/data/transferState.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';

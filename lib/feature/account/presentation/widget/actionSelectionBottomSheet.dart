@@ -1,8 +1,8 @@
-import 'package:bookstore/feature/account/data/accountDataState.dart';
-import 'package:bookstore/feature/account/data/activityState.dart';
-import 'package:bookstore/feature/account/logic/accountBloc.dart';
-import 'package:bookstore/feature/account/presentation/widget/form/activity.dart';
-import 'package:bookstore/feature/account/presentation/widget/form/transfer.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/data/activityState.dart';
+import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
+import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';

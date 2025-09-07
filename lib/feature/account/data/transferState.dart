@@ -1,4 +1,4 @@
-import 'package:bookstore/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
 
 
 /// Represents the possible states of the form submission process.

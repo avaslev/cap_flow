@@ -1,6 +1,6 @@
-import 'package:bookstore/core/utils/getAccountIcon.dart';
-import 'package:bookstore/feature/account/data/accountDataState.dart';
-import 'package:bookstore/feature/account/logic/accountBloc.dart';
+import 'package:investflow/core/utils/getAccountIcon.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

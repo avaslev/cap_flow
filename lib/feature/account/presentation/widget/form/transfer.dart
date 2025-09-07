@@ -1,6 +1,6 @@
-import 'package:bookstore/feature/account/data/accountDataState.dart';
-import 'package:bookstore/feature/account/data/transferState.dart';
-import 'package:bookstore/feature/account/logic/transferCubit.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/data/transferState.dart';
+import 'package:investflow/feature/account/logic/transferCubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';

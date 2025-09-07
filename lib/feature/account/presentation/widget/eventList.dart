@@ -1,5 +1,5 @@
-import 'package:bookstore/core/utils/formatCurrency.dart';
-import 'package:bookstore/feature/account/data/accountDataState.dart';
+import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
