@@ -40,6 +40,21 @@ Map<int, String> migrationScripts = {
     paymentDayOfMonth  INTEGER,
     faceValue          NUMERIC
 )''',
+  4: '''CREATE TABLE IF NOT EXISTS scheduled_transactions (
+    id                TEXT    PRIMARY KEY,          -- UUID
+    account_id        TEXT    NOT NULL,            -- ссылка на аккаунт
+    name              TEXT    NOT NULL,
+    amount            REAL    NOT NULL,
+    type              TEXT    NOT NULL,            -- income | expense | transfer
+    category          TEXT    NOT NULL,
+    date              INTEGER NOT NULL,            -- epoch‑ms
+    wallet_id         TEXT    NOT NULL,
+    destination_wallet_id TEXT,                     -- nullable, только для переводов
+    comment           TEXT,                        -- nullable
+    recurrence_type   TEXT    NOT NULL,            -- none | weekly | monthly | annually | monthlyOnDay
+    recurrence_end_date INTEGER,                  -- nullable, epoch‑ms
+    recurrence_day_of_month INTEGER               -- nullable
+)''',
 };
 
 class DatabaseHelper {

@@ -6,11 +6,11 @@ import 'package:adaptive_navigation/adaptive_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class BookstoreScaffold extends StatelessWidget {
+class InvestflowScaffold extends StatelessWidget {
   final Widget child;
   final int selectedIndex;
 
-  const BookstoreScaffold({
+  const InvestflowScaffold({
     required this.child,
     required this.selectedIndex,
     super.key,

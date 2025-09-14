@@ -1,4 +1,3 @@
-
 enum ActivityType {add, substract}
 enum Currency {RUB, USD}
 
