@@ -55,10 +55,13 @@ ThemeData getTheme(context) {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        minimumSize: const Size.fromHeight(50), // Make button wider
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-        // textStyle: customTextTheme.labelLarge?.copyWith(fontSize: 18),
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        minimumSize: const Size(double.infinity, 50),
       ),
     ),
     textButtonTheme: TextButtonThemeData(

@@ -22,8 +22,11 @@ const double windowHeight = 1200;
 // project structure https://codexrush.com/blog/the-ideal-flutter-folder-structure-codexrush/
 
 void setupWindow() {
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+  if (!kIsWeb) {
     WidgetsFlutterBinding.ensureInitialized();
+  }
+
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     setWindowTitle('Navigation and routing');
     setWindowMinSize(const Size(windowWidth, windowHeight));
     setWindowMaxSize(const Size(windowWidth, windowHeight));

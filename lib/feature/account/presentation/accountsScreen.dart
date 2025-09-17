@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/logic/addAccountFormCubit.dart';
@@ -176,6 +177,8 @@ class AccountListScreen extends StatelessWidget {
                                     ),
                                   ),
                                 );
+                                print('/accounts/${state.accountData.activeAccountId}/events');
+                                GoRouter.of(context).go('/accounts/${state.accountData.activeAccountId}/events');
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: colorScheme.primary,

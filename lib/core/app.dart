@@ -278,15 +278,8 @@ class _InvestAppState extends State<InvestApp> {
                       String accountId = state.pathParameters['accountId']!;
                       return FadeTransitionPage<dynamic>(
                         key: state.pageKey,
-                        child: MultiBlocProvider(
-                          providers: <BlocProvider<dynamic>>[
-                            BlocProvider<FinancialEventBloc>(
-                              create: (BuildContext context) => FinancialEventBloc(),
-                            ),
-                            BlocProvider<WalletBloc>(
-                              create: (BuildContext context) => WalletBloc(),
-                            ),
-                          ],
+                        child: BlocProvider(
+                          create: (context) => FinancialEventBloc(),
                           child: FinancialEventOverviewPage(accountId: accountId),
                         ),
                       );

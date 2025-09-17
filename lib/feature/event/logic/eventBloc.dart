@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
 import 'package:investflow/data/models/tool.dart';
+import 'package:investflow/data/repository/categoryRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/event/data/event.dart';
@@ -14,14 +15,15 @@ import 'package:investflow/feature/event/logic/eventState.dart';
 
 class FinancialEventBloc extends Bloc<FinancialEventEvent, FinancialEventState> {
   final ScheduledTransactionRepository _repo = ScheduledTransactionRepository();
+  final CategoryRepository _categoriesRepo = CategoryRepository();
+  final ToolRepository _toolsRepo = ToolRepository();
   String _accountId = '';
   List<Wallet> _wallets = [];
+  List<String> _categories = [];
 
     FinancialEventBloc()
-      : super(const FinancialEventLoaded(<FinancialEvent>[], <Wallet>[], '')) {
+      : super(const FinancialEventLoaded(<FinancialEvent>[], <Wallet>[], <String>[], '')) {
     on<LoadFinancialEvents>(_load);
-    on<AddFinancialEvent>(_add);
-    on<EditFinancialEvent>(_edit);
     on<DeleteFinancialEvent>(_delete);
   }
 
@@ -29,7 +31,7 @@ class FinancialEventBloc extends Bloc<FinancialEventEvent, FinancialEventState> 
       LoadFinancialEvents event, Emitter<FinancialEventState> emit) async {
     _accountId = event.accountId;
     final list = (await _repo.getByAccount(_accountId)).map((item) => _mapToEvent(item)).toList();
-    _wallets = _wallets.length > 0 ? _wallets : (await ToolRepository().geListByAccount(event.accountId)).map(
+    _wallets = _wallets.length > 0 ? _wallets : (await _toolsRepo.geListByAccount(event.accountId)).map(
       (Tool tool) => Wallet(
         id: tool.id,
         name: tool.name,
@@ -37,21 +39,8 @@ class FinancialEventBloc extends Bloc<FinancialEventEvent, FinancialEventState> 
         color: Colors.indigo,
       ),
     ).toList();
-    emit(FinancialEventLoaded(list, _wallets, _accountId));
-  }
-
-  Future<void> _add(
-      AddFinancialEvent event, Emitter<FinancialEventState> emit) async {
-    print('FinancialEvent _add ' + _accountId);
-    await _repo.add(event.event.toScheduledTransaction(_accountId));
-    // Перезагружа e
-    add(LoadFinancialEvents(_accountId));
-  }
-
-  Future<void> _edit(
-      EditFinancialEvent event, Emitter<FinancialEventState> emit) async {
-    await _repo.update(event.event.toScheduledTransaction(_accountId));
-    add(LoadFinancialEvents(_accountId));
+    _categories = _categories.length > 0 ? _categories : (await _categoriesRepo.getList(event.accountId, null));
+    emit(FinancialEventLoaded(list, _wallets, _categories, _accountId));
   }
 
   Future<void> _delete(
@@ -61,7 +50,6 @@ class FinancialEventBloc extends Bloc<FinancialEventEvent, FinancialEventState> 
   }
 
   FinancialEvent _mapToEvent (ScheduledTransaction tx) {
-    print(tx.toString());
     return FinancialEvent(
             id: tx.id,
             name: tx.name,
@@ -80,10 +68,3 @@ class FinancialEventBloc extends Bloc<FinancialEventEvent, FinancialEventState> 
           );
   }
 }
-
-// Initial dummy wallet data
-const List<Wallet> initialWallets = <Wallet>[
-  Wallet(id: '01993c8b-733d-7d4a-8636-f65bb654cd6a', name: 'Основной счет', icon: Icons.account_balance_wallet, color: Colors.indigo),
-  Wallet(id: 'w2', name: 'Наличные', icon: Icons.money, color: Colors.brown),
-  Wallet(id: 'w3', name: 'Сбережения', icon: Icons.savings, color: Colors.teal),
-];

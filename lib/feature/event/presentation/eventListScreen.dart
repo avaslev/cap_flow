@@ -7,7 +7,6 @@ import 'package:investflow/feature/event/logic/eventBloc.dart';
 import 'package:investflow/feature/event/logic/eventEvent.dart';
 import 'package:investflow/feature/event/logic/eventState.dart';
 import 'package:investflow/feature/event/logic/util.dart';
-import 'package:investflow/feature/event/logic/waletBloc.dart';
 import 'package:investflow/feature/event/presentation/form/eventForm.dart';
 
 class FinancialEventOverviewPage extends StatelessWidget {
@@ -18,8 +17,6 @@ class FinancialEventOverviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final FinancialEventBloc financialEventBloc = BlocProvider.of<FinancialEventBloc>(context);
     financialEventBloc.add(LoadFinancialEvents(accountId));
-    final WalletBloc walletBloc = BlocProvider.of<WalletBloc>(context);
-    walletBloc.add(LoadWallets(accountId));
 
     return Scaffold(
       appBar: AppBar(
@@ -29,22 +26,7 @@ class FinancialEventOverviewPage extends StatelessWidget {
             icon: const Icon(Icons.add),
             tooltip: 'Добавить событие',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder:
-                      (BuildContext routeContext) => MultiBlocProvider(
-                        providers: <BlocProvider<dynamic>>[
-                          BlocProvider<FinancialEventBloc>.value(
-                            value: context.read<FinancialEventBloc>(),
-                          ),
-                          BlocProvider<WalletBloc>.value(
-                            value: context.read<WalletBloc>(),
-                          ),
-                        ],
-                        child: FinancialEventFormPage(accountId: accountId,),
-                      ),
-                ),
-              );
+              _showActionBottomSheet(context, null);
             },
           ),
         ],
@@ -88,11 +70,9 @@ class FinancialEventOverviewPage extends StatelessWidget {
             }
 
             String getWalletNameById(String walletId) {
-              return eventState.wallets
-                  .firstWhere(
-                    (Wallet w) => w.id == walletId,
-                  )
-                  .name;
+              return eventState.wallets.length > 0
+                ? eventState.wallets.firstWhere((Wallet w) => w.id == walletId,).name
+                : '';
             }
 
             return ListView.builder(
@@ -219,25 +199,7 @@ class FinancialEventOverviewPage extends StatelessWidget {
                         ),
                       ),
                       isThreeLine: true,
-                      onTap: () => _showActionBottomSheet(context),
-                        // _showActionBottomSheet()
-                        // Navigator.of(context).push(
-                        //   MaterialPageRoute<void>(
-                        //     builder:
-                        //         (BuildContext routeContext) => MultiBlocProvider(
-                        //           providers: <BlocProvider<dynamic>>[
-                        //             BlocProvider<FinancialEventBloc>.value(
-                        //               value: context.read<FinancialEventBloc>(),
-                        //             ),
-                        //             BlocProvider<WalletBloc>.value(
-                        //               value: context.read<WalletBloc>(),
-                        //             ),
-                        //           ],
-                        //           child: FinancialEventFormPage(event: event, accountId: accountId,),
-                        //         ),
-                        //   ),
-                        // );
-                      // },
+                      onTap: () => _showActionBottomSheet(context, event),
                     ),
                   ),
                 );
@@ -275,7 +237,7 @@ class FinancialEventOverviewPage extends StatelessWidget {
     );
   }
 
-  void _showActionBottomSheet(BuildContext context) {
+  void _showActionBottomSheet(BuildContext context, FinancialEvent? financialEvent) {
     final FinancialEventBloc financialEventBloc = context.read<FinancialEventBloc>();
     final FinancialEventState state = financialEventBloc.state;
     // Check if the state is AccountsDataState before accessing accountData
@@ -289,14 +251,16 @@ class FinancialEventOverviewPage extends StatelessWidget {
                 value: financialEventBloc, // Re-provide the existing AccountsBloc
               ),
             ],
-            child: FinancialEventFormPage(accountId: state.accountId),
+            child: FinancialEventForm(event: financialEvent, accountId: state.accountId,),
           );
         },
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
         ),
         clipBehavior: Clip.antiAliasWithSaveLayer,
-      );
+      ).whenComplete(() {
+        financialEventBloc.add(LoadFinancialEvents(state.accountId));
+      });
     } else {
       // Handle the case where state is not AccountsDataState, e.g., show a snackbar
       ScaffoldMessenger.of(context).showSnackBar(
