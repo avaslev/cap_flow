@@ -1,9 +1,11 @@
 import 'package:bloc/bloc.dart';
 import 'package:investflow/data/models/account.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/models/scheduledTransaction.dart';
 import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ part 'event.dart';
 part 'state.dart';
 
 class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
+  ScheduledTransactionRepository _eventRepo = ScheduledTransactionRepository();
   AccountData accountData = AccountData();
   // Constructor initializes the bloc with an initial state
   AccountsBloc() : super(AccountsInitial()) {
@@ -22,6 +25,21 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       await _refreshAccountData();
       await _refreshTools();
       await _refreshActivities();
+      final now = DateTime.now();
+      (await _eventRepo.getExecutableEvents(DateTime(now.year, now.month + 1, now.day,
+      now.hour, now.minute, now.second, now.millisecond, now.microsecond))).forEach((ScheduledTransaction transaction) {
+        accountData.addEvent(
+          transaction.id, 
+          transaction.type,  
+          '${transaction.name}, ${accountData.getAccountById(transaction.accountId)?.name}', 
+          'description',
+          transaction.accountId, 
+          transaction.amount,
+          transaction.nextExecutionDate,
+        );
+        print(transaction);
+      });
+      print('test');
       emit(AccountsDataState(accountData));
     });
     on<ChangePageAccountsEvent>((event, emit) async {

@@ -7,7 +7,7 @@ class CategoryRepository {
   /// Returns distinct activity‑categories, joining the `tools` table.
   ///
   /// * `accountId` – filters on `activities.accountId`.
-  /// * `toolId`   – filters on `tools.id` (joined via `activities.toolId`).
+  /// * `toolId`   – filters on `tools.id` (joined via `activities.tool_id`).
   /// * If both are `null` the method returns every category present in
   ///   `activities`.
   Future<List<String>> getList(String? accountId, String? toolId) async {
@@ -31,7 +31,7 @@ class CategoryRepository {
     final String sql = '''
       SELECT DISTINCT activities.name
       FROM activities
-      LEFT JOIN tools ON activities.toolId = tools.id
+      LEFT JOIN tools ON activities.tool_id = tools.id
       WHERE activities.name IS NOT NULL ${whereParts.isNotEmpty ? 'AND ${whereParts.join(' AND ')}' : ''}
     ''';
 

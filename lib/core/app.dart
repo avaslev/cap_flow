@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investflow/feature/event/logic/eventBloc.dart';
-import 'package:investflow/feature/event/logic/waletBloc.dart';
 import 'package:investflow/feature/event/presentation/eventListScreen.dart';
 
 import '../src/auth.dart';

@@ -8,16 +8,17 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 Map<int, String> migrationScripts = {
   1: '''CREATE TABLE activities (
-    id       TEXT (36) PRIMARY KEY NOT NULL,
-    toolId   TEXT      NOT NULL,
-    type     TEXT      NOT NULL,
-    createAt INTEGER   NOT NULL,
-    quantity NUMERIC   NOT NULL,
-    price    NUMERIC   NOT NULL,
-    currency TEXT      NOT NULL,
-    isTransmit INTEGER NOT NULL,
-    name     TEXT,
-    comment  TEXT
+    id          TEXT (36) PRIMARY KEY NOT NULL,
+    tool_id     TEXT      NOT NULL,
+    type        TEXT      NOT NULL,
+    create_at   INTEGER   NOT NULL,
+    quantity     NUMERIC   NOT NULL,
+    price       NUMERIC   NOT NULL,
+    currency    TEXT      NOT NULL,
+    is_transmit INTEGER   NOT NULL,
+    name        TEXT,
+    comment     TEXT,
+    event_id    TEXT 
 )''',
   2: '''CREATE TABLE accounts (
     id               TEXT (36) PRIMARY KEY NOT NULL,
@@ -52,8 +53,12 @@ Map<int, String> migrationScripts = {
     destination_wallet_id TEXT,                     -- nullable, только для переводов
     comment           TEXT,                        -- nullable
     recurrence_type   TEXT    NOT NULL,            -- none | weekly | monthly | annually | monthlyOnDay
-    recurrence_end_date INTEGER,                  -- nullable, epoch‑ms
-    recurrence_day_of_month INTEGER               -- nullable
+    recurrence_end_date INTEGER,                    -- nullable, epoch‑ms
+    recurrence_day_of_month INTEGER,                -- nullable
+    -- Поля, отвечающие за планирование выполнения
+    next_execution_date     INTEGER NOT NULL,            -- epoch‑ms, дата следующего запуска
+    total_executions        INTEGER NOT NULL,            -- общее количество запланированных запусков
+    executed_count          INTEGER NOT NULL            -- сколько уже выполнено
 )''',
 };
 

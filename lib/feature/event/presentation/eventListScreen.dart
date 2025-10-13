@@ -8,6 +8,8 @@ import 'package:investflow/feature/event/logic/eventEvent.dart';
 import 'package:investflow/feature/event/logic/eventState.dart';
 import 'package:investflow/feature/event/logic/util.dart';
 import 'package:investflow/feature/event/presentation/form/eventForm.dart';
+import 'package:investflow/widgets/itemAvatar.dart';
+import 'package:investflow/widgets/itemValue.dart';
 
 class FinancialEventOverviewPage extends StatelessWidget {
   final String accountId;
@@ -177,10 +179,7 @@ class FinancialEventOverviewPage extends StatelessWidget {
                   },
                   child: Card(
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: event.type.color.withOpacity(0.1),
-                        child: Icon(event.type.icon, color: event.type.color),
-                      ),
+                      leading: ItemAvatar(type: event.type.name),
                       title: Text(
                         event.name,
                         style: Theme.of(context).listTileTheme.titleTextStyle,
@@ -190,14 +189,7 @@ class FinancialEventOverviewPage extends StatelessWidget {
                         style:
                             Theme.of(context).listTileTheme.subtitleTextStyle,
                       ),
-                      trailing: Text(
-                        '${event.type == FinancialEventType.expense ? '-' : ''}${event.amount.toStringAsFixed(2)} ₽',
-                        style: TextStyle(
-                          color: event.type.color,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
+                      trailing: ItemValue(type: event.type.name, amount: event.amount),
                       isThreeLine: true,
                       onTap: () => _showActionBottomSheet(context, event),
                     ),

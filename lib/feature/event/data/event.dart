@@ -80,13 +80,13 @@ class FinancialEvent {
   final FinancialEventType type;
   final String category;
   final DateTime date;
-  final String walletId; // Source wallet for transfers
-  final String? destinationWalletId; // Destination wallet for transfers, nullable
-  final String? comment; // New: Optional comment field
+  final String walletId;                 // source wallet for transfers
+  final String? destinationWalletId;     // destination wallet for transfers
+  final String? comment;                 // optional comment
 
   final RecurrenceType recurrenceType;
-  final DateTime? recurrenceEndDate; // Nullable, end date for recurrence
-  final int? recurrenceDayOfMonth; // For MonthlyOnDay, e.g., 15 for 15th of month
+  final DateTime? recurrenceEndDate;     // nullable end date for recurrence
+  final int? recurrenceDayOfMonth;       // for monthlyOnDay (e.g. 15 → 15‑е число)
 
   const FinancialEvent({
     required this.id,
@@ -96,8 +96,8 @@ class FinancialEvent {
     required this.category,
     required this.date,
     required this.walletId,
-    this.destinationWalletId, // Make it optional
-    this.comment, // Initialize new field
+    this.destinationWalletId,
+    this.comment,
     this.recurrenceType = RecurrenceType.none,
     this.recurrenceEndDate,
     this.recurrenceDayOfMonth,
@@ -113,7 +113,7 @@ class FinancialEvent {
     DateTime? date,
     String? walletId,
     String? destinationWalletId,
-    String? comment, // Add to copyWith
+    String? comment,
     RecurrenceType? recurrenceType,
     DateTime? recurrenceEndDate,
     int? recurrenceDayOfMonth,
@@ -127,33 +127,55 @@ class FinancialEvent {
       date: date ?? this.date,
       walletId: walletId ?? this.walletId,
       destinationWalletId: destinationWalletId ?? this.destinationWalletId,
-      comment: comment ?? this.comment, // Use new field
+      comment: comment ?? this.comment,
       recurrenceType: recurrenceType ?? this.recurrenceType,
       recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
-      recurrenceDayOfMonth: recurrenceDayOfMonth ?? this.recurrenceDayOfMonth,
+      recurrenceDayOfMonth:
+          recurrenceDayOfMonth ?? this.recurrenceDayOfMonth,
     );
   }
 
   @override
   String toString() {
-    return 'FinancialEvent(id: $id, name: $name, amount: $amount, type: ${type.displayName}, category: $category, date: $date, walletId: $walletId, destinationWalletId: $destinationWalletId, comment: $comment, recurrenceType: ${recurrenceType.displayName}, recurrenceEndDate: $recurrenceEndDate, recurrenceDayOfMonth: $recurrenceDayOfMonth)';
+    return 'FinancialEvent('
+        'id: $id, '
+        'name: $name, '
+        'amount: $amount, '
+        'type: ${type.displayName}, '
+        'category: $category, '
+        'date: $date, '
+        'walletId: $walletId, '
+        'destinationWalletId: $destinationWalletId, '
+        'comment: $comment, '
+        'recurrenceType: ${recurrenceType.displayName}, '
+        'recurrenceEndDate: $recurrenceEndDate, '
+        'recurrenceDayOfMonth: $recurrenceDayOfMonth'
+        ')';
   }
 }
 
+/// Extension that converts a `FinancialEvent` into a `ScheduledTransaction`.
 extension FinancialEventX on FinancialEvent {
-  ScheduledTransaction toScheduledTransaction(String accountId) => ScheduledTransaction(
-        id: id,
-        accountId: accountId,
-        name: name,
-        amount: amount,
-        type: type.name,                     // enum → string
-        category: category,
-        date: date,
-        walletId: walletId,
-        destinationWalletId: destinationWalletId,
-        comment: comment,
-        recurrenceType: recurrenceType.name,
-        recurrenceEndDate: recurrenceEndDate,
-        recurrenceDayOfMonth: recurrenceDayOfMonth,
-      );
+  ScheduledTransaction toScheduledTransaction(String accountId, int totalExecutions, int executedCount) {
+    return ScheduledTransaction(
+      id: id,
+      accountId: accountId,
+      name: name,
+      amount: amount,
+      type: type.name,                         // enum → string
+      category: category,
+      date: date,
+      walletId: walletId,
+      destinationWalletId: destinationWalletId,
+      comment: comment,
+      recurrenceType: recurrenceType.name,
+      recurrenceEndDate: recurrenceEndDate,
+      recurrenceDayOfMonth: recurrenceDayOfMonth,
+      // Для новой транзакции первая дата выполнения совпадает с `date`
+      nextExecutionDate: date,
+      // При создании плановой транзакции пока неизвестно количество запусков
+      totalExecutions: totalExecutions,
+      executedCount: executedCount,
+    );
+  }
 }

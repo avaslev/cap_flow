@@ -95,9 +95,10 @@ class FinancialEventCubit extends Cubit<FinancialEventEditState> {
     try {
       if (state.event.id.isEmpty) {
         final event = state.event.copyWith(id: Uuid().v7());
-        await _repo.add(event.toScheduledTransaction(state.accountId));
+        await _repo.add(event.toScheduledTransaction(state.accountId, 1, 0));
       } else {
-        await _repo.update(state.event.toScheduledTransaction(state.accountId));
+        final st = await _repo.getById(state.event.id);
+        await _repo.update(state.event.toScheduledTransaction(state.accountId, st.totalExecutions, st.executedCount));
       }
 
       emit(state.copyWith(formStatus: FormStatus.success));

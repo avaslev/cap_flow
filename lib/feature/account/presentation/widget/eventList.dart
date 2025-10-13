@@ -1,7 +1,8 @@
-import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:investflow/widgets/itemAvatar.dart';
+import 'package:investflow/widgets/itemValue.dart';
 
 /// A widget to display a list of financial events.
 class EventList extends StatelessWidget {
@@ -48,11 +49,8 @@ class EventTile extends StatelessWidget {
   final Event event;
   final AccountData accountData;
 
-  const EventTile({
-    Key? key,
-    required this.event,
-    required this.accountData,
-  }) : super(key: key);
+  const EventTile({Key? key, required this.event, required this.accountData})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -62,56 +60,19 @@ class EventTile extends StatelessWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 0, // Flat design
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      // Highlight past events with a distinct background color
-      color: isPastEvent ? colorScheme.surfaceVariant : colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Row(
-          children: <Widget>[
-            Icon(
-              event.isCredit ? Icons.arrow_upward : Icons.arrow_downward,
-              color: event.isCredit ? colorScheme.primary : colorScheme.error,
-              size: 24,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    event.description,
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${DateFormat('MMM d, yyyy').format(event.date)} - $accountName',
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '${event.isCredit ? '+' : '-'}${formatCurrency(event.amount.abs())}',
-              style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: event.isCredit
-                        ? colorScheme.primary
-                        : colorScheme.error,
-                  ),
-            ),
-          ],
+      child: ListTile(
+        leading: ItemAvatar(type: event.eventType),
+        title: Text(
+          event.name,
+          style: Theme.of(context).listTileTheme.titleTextStyle,
         ),
+        subtitle: Text(
+          '${event.description.isEmpty ? '' : event.description + ', '}${DateFormat('MMM d, yyyy').format(event.date)} ',
+          style: Theme.of(context).listTileTheme.subtitleTextStyle,
+        ),
+        trailing: ItemValue(type: event.eventType, amount: event.amount),
+        isThreeLine: true,
+        // onTap: () => _showActionBottomSheet(context, event),
       ),
     );
   }

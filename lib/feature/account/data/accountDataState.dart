@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/formatCurrency.dart';
@@ -38,16 +40,20 @@ class AccountSummary {
 
 /// Data model for a financial event/transaction.
 class Event {
+  final String eventId;
+  final String eventType;
+  final String name;
   final String description;
   final double amount;
-  final bool isCredit; // true for income (+), false for expense (-)
   final String accountId; // To link events to specific accounts
   final DateTime date; // Date of the event
 
   Event({
+    required this.eventId,
+    required this.eventType,
+    required this.name,
     required this.description,
     required this.amount,
-    required this.isCredit,
     required this.accountId,
     required this.date,
   });
@@ -135,7 +141,7 @@ class ToolSummary {
 /// Manages the state of account summaries, events, and tools.
 class AccountData {
   final List<AccountSummary> _accounts;
-  final List<Event> _events;
+  final Map<String, Event> _events;
   final List<ToolSummary> _tools;
   String _activeAccountId;
   String? _deletableAccountId; // New state for delete mode
@@ -226,78 +232,7 @@ class AccountData {
         //   excludeFromTotal: false,
         // ),
       ],
-      _events = <Event>[
-        Event(
-          description: 'Salary Deposit',
-          amount: 3000.00,
-          isCredit: true,
-          accountId: 'checking',
-          date: DateTime.now().subtract(const Duration(days: 2)), // Past
-        ),
-        Event(
-          description: 'Groceries',
-          amount: 85.50,
-          isCredit: false,
-          accountId: 'checking',
-          date: DateTime.now().subtract(const Duration(days: 1)), // Past
-        ),
-        Event(
-          description: 'Online Subscription',
-          amount: 15.00,
-          isCredit: false,
-          accountId: 'checking',
-          date: DateTime.now().subtract(const Duration(days: 2)), // Past
-        ),
-        Event(
-          description: 'Freelance Payment',
-          amount: 500.00,
-          isCredit: true,
-          accountId: 'savings',
-          date: DateTime.now().subtract(const Duration(days: 3)), // Past
-        ),
-        Event(
-          description: 'Restaurant Dinner',
-          amount: 60.00,
-          isCredit: false,
-          accountId: 'checking',
-          date: DateTime.now().subtract(const Duration(days: 4)), // Past
-        ),
-        Event(
-          description: 'Utility Bill',
-          amount: 120.00,
-          isCredit: false,
-          accountId: 'checking',
-          date: DateTime.now().subtract(const Duration(days: 5)), // Past
-        ),
-        Event(
-          description: 'Refund from Store',
-          amount: 45.00,
-          isCredit: true,
-          accountId: 'checking',
-          date: DateTime.now().subtract(const Duration(days: 6)), // Past
-        ),
-        Event(
-          description: 'Future Income',
-          amount: 1000.00,
-          isCredit: true,
-          accountId: 'savings',
-          date: DateTime.now().add(const Duration(days: 1)), // Future
-        ),
-        Event(
-          description: 'Upcoming Bill',
-          amount: 75.00,
-          isCredit: false,
-          accountId: 'checking',
-          date: DateTime.now().add(const Duration(days: 2)), // Future
-        ),
-        Event(
-          description: 'Dividends',
-          amount: 250.00,
-          isCredit: true,
-          accountId: 'investments',
-          date: DateTime.now().add(const Duration(days: 3)), // Future
-        ),
-      ],
+      _events = new Map<String, Event>(),
       _tools = <ToolSummary>[
         // ToolSummary(
         //   name: 'Russian Ruble',
@@ -507,34 +442,18 @@ class AccountData {
     // }
   }
 
-  /// Returns events for a specific account, sorted by date (oldest first).
-  /// Events are filtered based on the account's hideEvents flag.
-  List<Event> getEventsForAccount(String accountId) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null || account.hideEvents) {
-      return <
-        Event
-      >[]; // Return empty list if account not found or events are hidden
-    }
-    return _events.where((Event event) => event.accountId == accountId).toList()
-      ..sort(
-        (Event a, Event b) =>
-            a.date.compareTo(b.date), // Changed to oldest first
-      );
-  }
-
   /// Returns all events across all accounts, sorted by date (oldest first).
   /// Events from accounts with hideEvents flag set to true are excluded.
   List<Event> get allEvents {
     final List<Event> filteredEvents =
-        _events.where((Event event) {
-          final AccountSummary? account = getAccountById(event.accountId);
-          return account != null && !account.hideEvents;
-        }).toList();
-
+      _events.values.where((Event event) {
+        final AccountSummary? account = getAccountById(event.accountId);
+        return account != null && !account.hideEvents;
+      }).toList();
     final List<Event> sortedEvents = List<Event>.from(filteredEvents)..sort(
       (Event a, Event b) => a.date.compareTo(b.date),
     ); // Changed to oldest first
+
     return List<Event>.unmodifiable(sortedEvents);
   }
 
@@ -644,93 +563,28 @@ class AccountData {
 
   /// Adds a new financial event (income or expense) and updates the account balance.
   void addEvent(
-    String accountId,
+    String eventId,
+    String eventType,
+    String name,
     String description,
+    String accountId,
     double amount,
-    bool isCredit,
+    DateTime date,
   ) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account != null && account.id != 'total') {
-      _events.add(
-        Event(
+
+    final event = Event(
+          eventId: eventId,
+          eventType: eventType,
+          name: name,
           description: description,
           amount: amount,
-          isCredit: isCredit,
           accountId: accountId,
-          date: DateTime.now(),
-        ),
-      );
-      // Event logic updates account balance, but actual tool balances are managed by addIncome/addExpense
-      // This general addEvent is likely for internal use or less detailed operations
-      if (isCredit) {
-        account.balance += amount;
-      } else {
-        account.balance -= amount;
-      }
-      _updateTotalBalance(); // This will notify listeners for account balance changes
-      //  // Also notify for events list change
-    } else if (account?.id == 'total') {
-      debugPrint(
-        'Cannot add transactions directly to "Total Balance" account.',
-      );
-    } else {
-      debugPrint('Account with ID "$accountId" not found.');
-    }
+          date: date,
+        );
+
+    _events.update(eventId, (oldEvent) => event, ifAbsent: () => event);
   }
 
-  /// Performs a transfer between two accounts and updates their balances.
-  void makeTransfer(String fromAccountId, String toAccountId, double amount) {
-    final AccountSummary? fromAccount = getAccountById(fromAccountId);
-    final AccountSummary? toAccount = getAccountById(toAccountId);
-
-    if (fromAccount == null) {
-      debugPrint('Source account "$fromAccountId" not found.');
-      return;
-    }
-    if (toAccount == null) {
-      debugPrint('Destination account "$toAccountId" not found.');
-      return;
-    }
-    if (fromAccount.id == 'total' || toAccount.id == 'total') {
-      debugPrint('Cannot transfer from/to "Total Balance" account directly.');
-      return;
-    }
-    // This is account-level transfer, not tool-level. Tool-level handles currency conversions.
-    // This method is now effectively deprecated or used for simpler transfers.
-    // Consider consolidating with makeToolTransfer if all transfers are tool-based.
-    if (fromAccount.balance < amount) {
-      debugPrint(
-        'Insufficient funds in ${fromAccount.name} for this transfer.',
-      );
-      return;
-    }
-
-    fromAccount.balance -= amount;
-    toAccount.balance += amount;
-
-    // Record as two events for historical tracking
-    _events.add(
-      Event(
-        description: 'Transfer to ${toAccount.name}',
-        amount: amount,
-        isCredit: false,
-        accountId: fromAccountId,
-        date: DateTime.now(),
-      ),
-    );
-    _events.add(
-      Event(
-        description: 'Transfer from ${fromAccount.name}',
-        amount: amount,
-        isCredit: true,
-        accountId: toAccountId,
-        date: DateTime.now(),
-      ),
-    );
-
-    _updateTotalBalance(); // This will notify listeners for account balance changes
-    //  // Also notify for events list change
-  }
 
   /// Performs a transfer between two money tools, potentially across different accounts, and updates their balances.
   void makeToolTransfer({
@@ -825,38 +679,6 @@ class AccountData {
     }
     // toAccount.balance += amount; // Account balance is updated by _updateTotalBalance
 
-    // Record events
-    _events.add(
-      Event(
-        description: 'Transfer: ${fromTool.name} -> ${toTool.name}',
-        amount: amount,
-        isCredit: false,
-        accountId: fromAccountId,
-        date: date,
-      ),
-    );
-    _events.add(
-      Event(
-        description: 'Transfer: ${fromTool.name} -> ${toTool.name}',
-        amount: amount,
-        isCredit: true,
-        accountId: toAccountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Transfer Commission (from ${fromTool.name})',
-          amount: commission,
-          isCredit: false,
-          accountId: fromAccountId,
-          date: date,
-        ),
-      );
-    }
-
     _updateTotalBalance(); // This will recalculate account balances based on tool values
   }
 
@@ -871,7 +693,7 @@ class AccountData {
       (AccountSummary acc) => acc.id == accountId,
     );
     _accounts.removeWhere((AccountSummary acc) => acc.id == accountId);
-    _events.removeWhere((Event event) => event.accountId == accountId);
+    _events.removeWhere((String key,  event) => event.accountId == accountId);
     _tools.removeWhere((ToolSummary tool) => tool.accountId == accountId);
 
     if (_activeAccountId == accountId) {
@@ -1017,17 +839,6 @@ class AccountData {
       ),
     );
 
-    // Add an event for the deposit creation (as an outflow from the money tool)
-    _events.add(
-      Event(
-        description: 'Deposit: "$name" created (from ${withdrawalTool.name})',
-        amount: withdrawalValue, // Record the value of outflow
-        isCredit: false, // Outflow from existing money tool
-        accountId: accountId,
-        date: DateTime.now(),
-      ),
-    );
-
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
 
@@ -1102,16 +913,6 @@ class AccountData {
       ),
     );
 
-    // Add an event for the credit creation (as an inflow to the account)
-    _events.add(
-      Event(
-        description: 'Credit: "$name" received (to ${transferToTool.name})',
-        amount: amount,
-        isCredit: true, // Inflow from credit
-        accountId: accountId,
-        date: DateTime.now(),
-      ),
-    );
 
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
@@ -1182,18 +983,6 @@ class AccountData {
         type: ToolType.other,
         currentValue: amount, // Value in RUB
         ticker: withdrawalTool.ticker, // Ticker from the withdrawal tool
-      ),
-    );
-
-    // Add an event for the 'other' tool creation (as an outflow from the money tool)
-    _events.add(
-      Event(
-        description:
-            'Other Tool: "$name" created (from ${withdrawalTool.name})',
-        amount: amount, // Record the value of outflow in RUB
-        isCredit: false, // Outflow from existing money tool
-        accountId: accountId,
-        date: DateTime.now(),
       ),
     );
 
@@ -1290,17 +1079,6 @@ class AccountData {
       );
     }
 
-    _events.add(
-      Event(
-        description:
-            '$category${comment != null && comment.isNotEmpty ? ' ($comment)' : ''}',
-        amount: amount,
-        isCredit: true,
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
 
@@ -1372,17 +1150,6 @@ class AccountData {
         'Warning: Effective unit price for tool ${targetTool.name} is zero/negative, cannot update quantity correctly for expense.',
       );
     }
-
-    _events.add(
-      Event(
-        description:
-            '$category${comment != null && comment.isNotEmpty ? ' ($comment)' : ''}',
-        amount: amount,
-        isCredit: false, // Expense
-        accountId: accountId,
-        date: date,
-      ),
-    );
 
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
@@ -1483,29 +1250,6 @@ class AccountData {
       );
     }
 
-    _events.add(
-      Event(
-        description:
-            'Buy $quantity $ticker ($stockName) @ ${formatCurrency(pricePerUnit)}',
-        amount: quantity * pricePerUnit,
-        isCredit: false, // Expense
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Stock Buy Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
-      );
-    }
-
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
 
@@ -1574,29 +1318,6 @@ class AccountData {
     } else {
       debugPrint(
         'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for stock sale.',
-      );
-    }
-
-    _events.add(
-      Event(
-        description:
-            'Sell $quantity $ticker ($stockName) @ ${formatCurrency(pricePerUnit)}',
-        amount: quantity * pricePerUnit,
-        isCredit: true, // Income
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Stock Sell Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
       );
     }
 
@@ -1694,29 +1415,6 @@ class AccountData {
       );
     }
 
-    _events.add(
-      Event(
-        description:
-            'Buy $quantity $ticker ($etfName) @ ${formatCurrency(pricePerUnit)}',
-        amount: quantity * pricePerUnit,
-        isCredit: false, // Expense
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'ETF Buy Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
-      );
-    }
-
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
 
@@ -1785,29 +1483,6 @@ class AccountData {
     } else {
       debugPrint(
         'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for ETF sale.',
-      );
-    }
-
-    _events.add(
-      Event(
-        description:
-            'Sell $quantity $ticker ($etfName) @ ${formatCurrency(pricePerUnit)}',
-        amount: quantity * pricePerUnit,
-        isCredit: true, // Income
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'ETF Sell Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
       );
     }
 
@@ -1912,29 +1587,6 @@ class AccountData {
       );
     }
 
-    _events.add(
-      Event(
-        description:
-            'Buy $quantity $ticker ($bondName) @ ${formatCurrency(pricePerUnit)} + ACI ${formatCurrency(accruedCouponIncome)}',
-        amount: totalCost, // Record full cost as event amount
-        isCredit: false, // Expense
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Bond Buy Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
-      );
-    }
-
     _updateTotalBalance();
   }
 
@@ -2003,29 +1655,6 @@ class AccountData {
     } else {
       debugPrint(
         'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for bond sale.',
-      );
-    }
-
-    _events.add(
-      Event(
-        description:
-            'Sell $quantity $ticker ($bondName) @ ${formatCurrency(pricePerUnit)} + ACI ${formatCurrency(accruedCouponIncome)}',
-        amount: totalProceeds, // Record full proceeds as event amount
-        isCredit: true, // Income
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Bond Sell Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
       );
     }
 
@@ -2123,29 +1752,6 @@ class AccountData {
       );
     }
 
-    _events.add(
-      Event(
-        description:
-            'Buy $quantity $ticker ($cryptoName) @ ${formatCurrency(pricePerUnit)}',
-        amount: quantity * pricePerUnit,
-        isCredit: false, // Expense
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Crypto Buy Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
-      );
-    }
-
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
 
@@ -2214,29 +1820,6 @@ class AccountData {
     } else {
       debugPrint(
         'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for crypto sale.',
-      );
-    }
-
-    _events.add(
-      Event(
-        description:
-            'Sell $quantity $ticker ($cryptoName) @ ${formatCurrency(pricePerUnit)}',
-        amount: quantity * pricePerUnit,
-        isCredit: true, // Income
-        accountId: accountId,
-        date: date,
-      ),
-    );
-
-    if (commission > 0) {
-      _events.add(
-        Event(
-          description: 'Crypto Sell Commission ($ticker)',
-          amount: commission,
-          isCredit: false, // Expense
-          accountId: accountId,
-          date: date,
-        ),
       );
     }
 

@@ -12,7 +12,7 @@ class Activity {
   final bool isTransmit;
   final String? name;
   final String? comment;
-
+  final String? eventId; // Новое свойство
 
   Activity({
     required this.id,
@@ -23,38 +23,40 @@ class Activity {
     required this.price,
     required this.currency,
     required this.isTransmit,
-     this.name,
-     this.comment,
+    this.name,
+    this.comment,
+    this.eventId, // Добавлено в конструктор
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'toolId': toolId,
+      'tool_id': toolId,
       'type': type.name,
-      'createAt': createAt.millisecondsSinceEpoch,
+      'create_at': createAt.millisecondsSinceEpoch,
       'quantity': quantity,
       'price': price,
       'currency': currency.name,
-      'isTransmit': isTransmit ? 1 : 0,
+      'is_transmit': isTransmit ? 1 : 0,
       'name': name,
-      'comment': comment
+      'comment': comment,
+      'event_id': eventId // Добавлено в метод toMap
     };
   }
 
   factory Activity.fromMap(Map<String, dynamic> map) {
-    print(map);
     return Activity(
       id: map['id'].toString(),
-      toolId: map['toolId'].toString(),
+      toolId: map['tool_id'].toString(),
       type: ActivityType.values.byName(map['type'].toString()),
-      createAt: DateTime.fromMillisecondsSinceEpoch(int.parse(map['createAt'].toString())),
+      createAt: DateTime.fromMillisecondsSinceEpoch(int.parse(map['create_at'].toString())),
       quantity: (map['quantity'] is num) ? (map['quantity'] as num).toDouble() : 0,
       price: (map['price'] is num) ? (map['price'] as num).toDouble() : 0,
       currency: Currency.values.byName(map['currency'].toString()),
-      isTransmit: map['currency'].toString() == '1',
-      name: map['name'].toString(),
-      comment: map['comment'].toString()
+      isTransmit: map['is_transmit'].toString() == '1',
+      name: map['name']?.toString(),
+      comment: map['comment']?.toString(),
+      eventId: map['event_id']?.toString() // Добавлено в метод fromMap
     );
   }
 }

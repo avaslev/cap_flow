@@ -1,19 +1,20 @@
-/// Класс, представляющий запланированную транзакцию, сохраняемую в SQLite.
 class ScheduledTransaction {
-  final String id; // уникальный идентификатор (UUID)
+  final String id;                       // UUID
   final String accountId;
-  final String name; // название события
-  final double amount; // сумма
-  final String type; // тип (income, expense, transfer)
-  final String category; // категория
-  final DateTime date; // дата первой плановой операции
-  final String walletId; // исходный кошелёк
-  final String? destinationWalletId; // целевой кошелёк (для переводов)
-  final String? comment; // необязательный комментарий
-  final String recurrenceType; // тип повторения
-  final DateTime? recurrenceEndDate; // дата окончания повторения
-  final int?
-  recurrenceDayOfMonth; // день месяца для RecurrenceType.monthlyOnDay
+  final String name;                     // название события
+  final double amount;                   // сумма
+  final String type;                     // income | expense | transfer
+  final String category;                 // категория
+  final DateTime date;                   // дата первой плановой операции
+  final DateTime nextExecutionDate;      // дата следующего запуска
+  final int totalExecutions;             // общее количество запусков
+  final int executedCount;               // количество уже выполненных запусков
+  final String walletId;                 // исходный кошелёк
+  final String? destinationWalletId;     // целевой кошелёк (для переводов)
+  final String? comment;                 // необязательный комментарий
+  final String recurrenceType;           // none | weekly | monthly | annually | monthlyOnDay
+  final DateTime? recurrenceEndDate;     // дата окончания повторения
+  final int? recurrenceDayOfMonth;       // день месяца для RecurrenceType.monthlyOnDay
 
   const ScheduledTransaction({
     required this.id,
@@ -29,6 +30,9 @@ class ScheduledTransaction {
     this.comment,
     this.recurrenceEndDate,
     this.recurrenceDayOfMonth,
+    required this.nextExecutionDate,
+    required this.totalExecutions,
+    required this.executedCount,
   });
 
   /// Преобразует объект в `Map<String, dynamic>` — имена колонок
@@ -48,6 +52,10 @@ class ScheduledTransaction {
       'recurrence_type': recurrenceType,
       'recurrence_end_date': recurrenceEndDate?.millisecondsSinceEpoch,
       'recurrence_day_of_month': recurrenceDayOfMonth,
+      // новые колонки
+      'next_execution_date': nextExecutionDate.millisecondsSinceEpoch,
+      'total_executions': totalExecutions,
+      'executed_count': executedCount,
     };
   }
 
@@ -65,24 +73,68 @@ class ScheduledTransaction {
       destinationWalletId: map['destination_wallet_id']?.toString(),
       comment: map['comment']?.toString(),
       recurrenceType: map['recurrence_type'].toString(),
-      recurrenceEndDate:
-          map['recurrence_end_date'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(
-                map['recurrence_end_date'] as int,
-              )
-              : null,
+      recurrenceEndDate: map['recurrence_end_date'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              map['recurrence_end_date'] as int)
+          : null,
       recurrenceDayOfMonth: map['recurrence_day_of_month'] as int?,
+      // новые поля
+      nextExecutionDate: DateTime.fromMillisecondsSinceEpoch(
+          map['next_execution_date'] as int),
+      totalExecutions: map['total_executions'] as int,
+      executedCount: map['executed_count'] as int,
     );
   }
 
   @override
   String toString() {
     return 'ScheduledTransaction('
-        'id: $id, accountId: $accountId, name: $name, amount: $amount, type: ${type}, '
-        'category: $category, date: $date, walletId: $walletId, '
-        'destinationWalletId: $destinationWalletId, comment: $comment, '
-        'recurrenceType: ${recurrenceType}, '
-        'recurrenceEndDate: $recurrenceEndDate, '
-        'recurrenceDayOfMonth: $recurrenceDayOfMonth)';
+        'id: $id, accountId: $accountId, name: $name, amount: $amount, '
+        'type: ${type}, category: $category, date: $date, '
+        'walletId: $walletId, destinationWalletId: $destinationWalletId, '
+        'comment: $comment, recurrenceType: ${recurrenceType}, '
+        'recurrenceEndDate: $recurrenceEndDate, recurrenceDayOfMonth: $recurrenceDayOfMonth, '
+        'nextExecutionDate: $nextExecutionDate, totalExecutions: $totalExecutions, '
+        'executedCount: $executedCount)';
+  }
+
+  /// Создаёт копию с изменёнными полями.
+  ScheduledTransaction copyWith({
+    String? id,
+    String? accountId,
+    String? name,
+    double? amount,
+    String? eType,
+    String? category,
+    DateTime? date,
+    String? walletId,
+    String? destinationWalletId,
+    String? comment,
+    String? recurrenceType,
+    DateTime? recurrenceEndDate,
+    int? recurrenceDayOfMonth,
+    DateTime? nextExecutionDate,
+    int? totalExecutions,
+    int? executedCount,
+  }) {
+    return ScheduledTransaction(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      name: name ?? this.name,
+      amount: amount ?? this.amount,
+      type: eType ?? this.type,
+      category: category ?? this.category,
+      date: date ?? this.date,
+      walletId: walletId ?? this.walletId,
+      destinationWalletId: destinationWalletId ?? this.destinationWalletId,
+      comment: comment ?? this.comment,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
+      recurrenceDayOfMonth:
+          recurrenceDayOfMonth ?? this.recurrenceDayOfMonth,
+      nextExecutionDate: nextExecutionDate ?? this.nextExecutionDate,
+      totalExecutions: totalExecutions ?? this.totalExecutions,
+      executedCount: executedCount ?? this.executedCount,
+    );
   }
 }
