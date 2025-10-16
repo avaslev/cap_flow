@@ -1,5 +1,8 @@
+import 'package:investflow/core/utils/calculateNextOccurrence.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/models/scheduledTransaction.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,11 +10,13 @@ import 'package:uuid/uuid.dart';
 
 /// Cubit responsible for managing the state and logic of the Add Activity form.
 class ActivityCubit extends Cubit<ActivityState> {
+  ScheduledTransactionRepository _eventRepo = ScheduledTransactionRepository();
 
   ActivityCubit({
     required List<ToolSummary> initialMoneyTools,
     required ActivityStateType activityType,
-  })  : super(ActivityState.initial(initialMoneyTools, activityType));
+    Event? event,
+  })  : super(ActivityState.initial(initialMoneyTools, activityType, event));
 
   /// Updates the amount in the state.
   void amountChanged(String value) {
@@ -91,6 +96,20 @@ class ActivityCubit extends Cubit<ActivityState> {
             comment: comment,
           ),
         );
+
+      if (state.eventId != null) {
+        ScheduledTransaction st = await _eventRepo.getById(state.eventId!);
+        await _eventRepo.update(st.copyWith(
+          executedCount: st.executedCount + 1, 
+          nextExecutionDate: calculateNextOccurrence(
+            initialDate: st.date, 
+            recurrenceType: st.recurrenceType, 
+            recurrenceEndDate: st.recurrenceEndDate,
+            recurrenceDayOfMonth: st.recurrenceDayOfMonth,
+            now: state.selectedDate)
+        ));
+      }
+
 
       emit(state.copyWith(formStatus: FormStatus.success));
     } catch (e) {

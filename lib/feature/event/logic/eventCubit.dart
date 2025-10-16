@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:investflow/core/utils/calculateNextOccurrence.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/feature/event/data/event.dart';
 import 'package:investflow/feature/event/logic/eventState.dart';
@@ -95,7 +96,21 @@ class FinancialEventCubit extends Cubit<FinancialEventEditState> {
     try {
       if (state.event.id.isEmpty) {
         final event = state.event.copyWith(id: Uuid().v7());
-        await _repo.add(event.toScheduledTransaction(state.accountId, 1, 0));
+        int totalExecutions = 1;
+        if (event.recurrenceEndDate != null) {
+          DateTime? nextDate = event.date;
+          while (null != nextDate && nextDate.isBefore(event.recurrenceEndDate!)) {
+            nextDate = calculateNextOccurrence(
+              initialDate: event.date, 
+              recurrenceType: event.recurrenceType.name, 
+              recurrenceEndDate: event.recurrenceEndDate, 
+              recurrenceDayOfMonth: event.recurrenceDayOfMonth,
+              now: nextDate
+            );
+            totalExecutions++;
+          }
+        }
+        await _repo.add(event.toScheduledTransaction(state.accountId, totalExecutions, 0));
       } else {
         final st = await _repo.getById(state.event.id);
         await _repo.update(state.event.toScheduledTransaction(state.accountId, st.totalExecutions, st.executedCount));

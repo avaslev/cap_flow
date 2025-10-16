@@ -16,6 +16,7 @@ class ActivityState {
   final ActivityStateType activityType;
   final FormStatus formStatus;
   final String? errorMessage;
+  final String? eventId;
 
   const ActivityState({
     required this.amount,
@@ -27,19 +28,21 @@ class ActivityState {
     required this.activityType,
     this.formStatus = FormStatus.initial,
     this.errorMessage,
+    this.eventId,
   });
 
   /// Factory constructor to create an initial state for the form.
-  factory ActivityState.initial(List<ToolSummary> initialMoneyTools, ActivityStateType activityType) {
+  factory ActivityState.initial(List<ToolSummary> initialMoneyTools, ActivityStateType activityType, Event? event) {
+    List<ToolSummary> _initialMoneyTools = initialMoneyTools.where((tool) => null == event ? true : event.toolId == tool.id).toList();
     return ActivityState(
-      amount: '',
-      category: '',
-      comment: '',
-      selectedDate: DateTime.now(),
-      selectedMoneyToolId:
-          initialMoneyTools.isNotEmpty ? initialMoneyTools.first.id : null,
-      availableMoneyTools: initialMoneyTools,
+      amount: event?.amount.toString() ?? '', 
+      category: event?.name ?? '',             
+      comment: event?.description ?? '',        
+      selectedDate: event?.date ?? DateTime.now(), 
+      selectedMoneyToolId: _initialMoneyTools.isNotEmpty ? _initialMoneyTools.first.id : null,
+      availableMoneyTools: _initialMoneyTools,
       activityType: activityType,
+      eventId: event?.eventId,
     );
   }
 
@@ -53,6 +56,7 @@ class ActivityState {
     List<ToolSummary>? availableMoneyTools,
     FormStatus? formStatus,
     String? errorMessage,
+    String? eventId,
   }) {
     return ActivityState(
       amount: amount ?? this.amount,
@@ -65,6 +69,7 @@ class ActivityState {
       formStatus: formStatus ?? this.formStatus,
       errorMessage: errorMessage, // Allow explicit nulling out of error message
       activityType: activityType,
+      eventId: eventId ?? this.eventId,
     );
   }
 

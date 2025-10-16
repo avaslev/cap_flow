@@ -1,5 +1,6 @@
 import 'package:investflow/core/db.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ScheduledTransactionRepository {
@@ -55,16 +56,14 @@ class ScheduledTransactionRepository {
     // Приводим дату к миллисекундам, так как в БД даты хранятся как INTEGER.
     final int toMs = toDate.millisecondsSinceEpoch;
 
-    // Формируем WHERE‑условие.
-    //   next_execution_date <= :toMs
-    //   AND executed_count < total_executions
-    //   AND (recurrence_end_date IS NULL OR next_execution_date <= recurrence_end_date)
     final rows = await db.query(
       'scheduled_transactions',
       where: '''
         next_execution_date <= ?
-        AND executed_count < total_executions
-        AND (recurrence_end_date IS NULL OR next_execution_date <= recurrence_end_date)
+        AND (
+          (executed_count < total_executions)
+          OR (recurrence_type != 'none' AND recurrence_end_date IS NULL)
+        )
       ''',
       whereArgs: [toMs],
     );
@@ -79,6 +78,15 @@ class ScheduledTransactionRepository {
       'scheduled_transactions',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<void> deleteByAccount(String accountId) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.delete(
+      'scheduled_transactions',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
     );
   }
 }

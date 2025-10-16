@@ -26,20 +26,20 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       await _refreshTools();
       await _refreshActivities();
       final now = DateTime.now();
+      accountData.clearEvents();
       (await _eventRepo.getExecutableEvents(DateTime(now.year, now.month + 1, now.day,
       now.hour, now.minute, now.second, now.millisecond, now.microsecond))).forEach((ScheduledTransaction transaction) {
         accountData.addEvent(
           transaction.id, 
           transaction.type,  
           '${transaction.name}, ${accountData.getAccountById(transaction.accountId)?.name}', 
-          'description',
+          transaction.comment ?? '',
           transaction.accountId, 
+          transaction.walletId, 
           transaction.amount,
           transaction.nextExecutionDate,
         );
-        print(transaction);
       });
-      print('test');
       emit(AccountsDataState(accountData));
     });
     on<ChangePageAccountsEvent>((event, emit) async {
@@ -116,6 +116,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           await ActivityRepository().deleteByTool(toolSummary.id);
           await ToolRepository().delete(toolSummary.id);
         });
+        await ScheduledTransactionRepository().deleteByAccount(event.accountId);
         emit(AccountsDataState(accountData));
       } else {
         await AccountRepository().changeHideEvents(

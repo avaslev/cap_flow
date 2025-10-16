@@ -46,6 +46,7 @@ class Event {
   final String description;
   final double amount;
   final String accountId; // To link events to specific accounts
+  final String toolId; // To link events to specific accounts
   final DateTime date; // Date of the event
 
   Event({
@@ -55,6 +56,7 @@ class Event {
     required this.description,
     required this.amount,
     required this.accountId,
+    required this.toolId,
     required this.date,
   });
 }
@@ -568,6 +570,7 @@ class AccountData {
     String name,
     String description,
     String accountId,
+    String toolId,
     double amount,
     DateTime date,
   ) {
@@ -579,10 +582,15 @@ class AccountData {
           description: description,
           amount: amount,
           accountId: accountId,
+          toolId: toolId,
           date: date,
         );
 
     _events.update(eventId, (oldEvent) => event, ifAbsent: () => event);
+  }
+
+  void clearEvents() {
+    _events.removeWhere((key, value) => true);
   }
 
 

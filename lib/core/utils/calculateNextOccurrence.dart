@@ -1,8 +1,5 @@
 import 'dart:math';
 
-import 'package:investflow/feature/event/data/event.dart';
-
-
 // --- Helper Functions for Date Calculations ---
 // These are private to this file as they are internal utilities.
 
@@ -44,18 +41,30 @@ DateTime _addMonthCorrectly(DateTime date, int months) {
 
 /// Calculates the next occurrence date for a recurring financial event
 /// after a specified reference [now] time.
+///
+/// Parameters:
+/// - [initialDate]: The starting date for the event.
+/// - [recurrenceType]: The type of recurrence as a string (e.g., 'weekly', 'monthly', etc.).
+/// - [recurrenceEndDate]: The end date for the recurrence, if any.
+/// - [recurrenceDayOfMonth]: The specific day of the month for monthly recurrences (optional).
 /// Returns null if there are no future occurrences (e.g., recurrence ended or not recurring).
-DateTime? calculateNextOccurrence(FinancialEvent event, DateTime now) {
-  if (event.recurrenceType == RecurrenceType.none) {
+DateTime? calculateNextOccurrence({
+  required DateTime initialDate,
+  required String recurrenceType,
+  DateTime? recurrenceEndDate,
+  int? recurrenceDayOfMonth,
+  required DateTime now,
+}) {
+  if (recurrenceType == 'none') {
     return null;
   }
 
-  DateTime currentCandidate = event.date;
+  DateTime currentCandidate = initialDate;
 
   // Loop indefinitely until a suitable next occurrence is found or determined that none exist.
   while (true) {
     // 1. Check if current candidate date is past the recurrence end date
-    if (event.recurrenceEndDate != null && currentCandidate.isAfter(event.recurrenceEndDate!)) {
+    if (recurrenceEndDate != null && currentCandidate.isAfter(recurrenceEndDate)) {
       return null; // No more occurrences
     }
 
@@ -65,36 +74,40 @@ DateTime? calculateNextOccurrence(FinancialEvent event, DateTime now) {
     }
 
     // 3. If we reach here, currentCandidate is at or before 'now', so we need to advance it
-    switch (event.recurrenceType) {
-      case RecurrenceType.weekly:
+    switch (recurrenceType) {
+      case 'weekly':
         currentCandidate = currentCandidate.add(const Duration(days: 7));
         break;
-      case RecurrenceType.monthly:
+      case 'monthly':
         currentCandidate = _addMonthCorrectly(currentCandidate, 1);
         break;
-      case RecurrenceType.annually:
+      case 'annual':
         int targetDay = currentCandidate.day;
         int nextYear = currentCandidate.year + 1;
         int nextMonth = currentCandidate.month;
         int daysInNextMonth = _daysInMonth(nextYear, nextMonth);
-        currentCandidate = DateTime(nextYear, nextMonth, min(targetDay, daysInNextMonth),
-            currentCandidate.hour, currentCandidate.minute, currentCandidate.second, currentCandidate.millisecond, currentCandidate.microsecond);
+        currentCandidate = DateTime(nextYear, nextMonth, 
+          min(targetDay, daysInNextMonth),
+          currentCandidate.hour, currentCandidate.minute, 
+          currentCandidate.second, currentCandidate.millisecond, 
+          currentCandidate.microsecond);
         break;
-      case RecurrenceType.monthlyOnDay:
-        final int targetRecurrenceDay = event.recurrenceDayOfMonth ?? event.date.day;
+      case 'monthlyOnDay':
+        final int targetRecurrenceDay = recurrenceDayOfMonth ?? currentCandidate.day;
         int year = currentCandidate.year;
         int month = currentCandidate.month;
 
-        // First, check if there's a valid occurrence in the current month that is after 'now'.
-        // If currentCandidate.day is before targetRecurrenceDay, the date with targetRecurrenceDay in the current month
-        // might be after 'now'.
+        // Check for a valid occurrence in the current month
         if (currentCandidate.day < targetRecurrenceDay) {
-          DateTime potentialDateInCurrentMonth = DateTime(year, month, min(targetRecurrenceDay, _daysInMonth(year, month)),
-              currentCandidate.hour, currentCandidate.minute, currentCandidate.second, currentCandidate.millisecond, currentCandidate.microsecond);
+          DateTime potentialDateInCurrentMonth = DateTime(year, month, 
+            min(targetRecurrenceDay, _daysInMonth(year, month)),
+            currentCandidate.hour, currentCandidate.minute, 
+            currentCandidate.second, currentCandidate.millisecond, 
+            currentCandidate.microsecond);
 
           if (potentialDateInCurrentMonth.isAfter(now)) {
-            // This date is in the future. Return it if it's not past the end date.
-            if (event.recurrenceEndDate == null || !potentialDateInCurrentMonth.isAfter(event.recurrenceEndDate!)) {
+            // This date is in the future. Return if not past the end date
+            if (recurrenceEndDate == null || !potentialDateInCurrentMonth.isAfter(recurrenceEndDate)) {
               return potentialDateInCurrentMonth;
             } else {
               return null; // Potential date is past end date
@@ -102,19 +115,20 @@ DateTime? calculateNextOccurrence(FinancialEvent event, DateTime now) {
           }
         }
 
-        // If no occurrence was found in the current month that is after 'now',
-        // or if currentCandidate.day is already >= targetRecurrenceDay,
-        // then advance to the next month to find the target day.
+        // No occurrence found, advance to the next month
         month++;
         if (month > 12) {
           month = 1;
           year++;
         }
-        currentCandidate = DateTime(year, month, min(targetRecurrenceDay, _daysInMonth(year, month)),
-            currentCandidate.hour, currentCandidate.minute, currentCandidate.second, currentCandidate.millisecond, currentCandidate.microsecond);
+        currentCandidate = DateTime(year, month, 
+          min(targetRecurrenceDay, _daysInMonth(year, month)),
+          currentCandidate.hour, currentCandidate.minute, 
+          currentCandidate.second, currentCandidate.millisecond, 
+          currentCandidate.microsecond);
         break;
-      case RecurrenceType.none:
-        return null; // Should be handled by initial check, but for safety
+      case 'none':
+        return null; // Should be handled above
     }
   }
 }

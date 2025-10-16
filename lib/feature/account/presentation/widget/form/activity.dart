@@ -11,11 +11,14 @@ import '../../../../../core/utils/formatCurrency.dart';
 class ActivityForm extends StatelessWidget {
   final AccountData accountData;
   final ActivityStateType activityStateType;
+  final Event? event; // Новый необязательный параметр
+
 
   const ActivityForm({
     super.key,
     required this.accountData,
     required this.activityStateType,
+    this.event, // Сделано необязательным
   });
 
   @override
@@ -23,13 +26,14 @@ class ActivityForm extends StatelessWidget {
     // We need AccountData to initialize the Cubit with initial tools and to
     // perform the actual addActivity operation.
     final List<ToolSummary> initialMoneyTools = accountData
-        .getMoneyToolsForAccount(accountData.activeAccountId);
+        .getMoneyToolsForAccount(null == event ? accountData.activeAccountId : event!.accountId);
 
     return BlocProvider<ActivityCubit>(
       create:
           (BuildContext context) => ActivityCubit(
             initialMoneyTools: initialMoneyTools,
             activityType: activityStateType,
+            event: event,
           ),
       child: BlocListener<ActivityCubit, ActivityState>(
         listener: (BuildContext context, ActivityState state) {

@@ -1,6 +1,13 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:investflow/feature/account/data/activityState.dart';
+import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
+import 'package:investflow/feature/event/data/event.dart';
+import 'package:investflow/feature/event/logic/eventBloc.dart';
+import 'package:investflow/feature/event/logic/eventState.dart';
 import 'package:investflow/widgets/itemAvatar.dart';
 import 'package:investflow/widgets/itemValue.dart';
 
@@ -49,14 +56,11 @@ class EventTile extends StatelessWidget {
   final Event event;
   final AccountData accountData;
 
-  const EventTile({Key? key, required this.event, required this.accountData})
-    : super(key: key);
+  const EventTile({Key? key, required this.event, required this.accountData}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final String accountName =
-        accountData.getAccountById(event.accountId)?.name ?? "Unknown";
-    final bool isPastEvent = event.date.isBefore(DateTime.now());
+    final String accountName = accountData.getAccountById(event.accountId)?.name ?? "Unknown";
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -72,8 +76,37 @@ class EventTile extends StatelessWidget {
         ),
         trailing: ItemValue(type: event.eventType, amount: event.amount),
         isThreeLine: true,
-        // onTap: () => _showActionBottomSheet(context, event),
+        onTap: () => _showActionBottomSheet(context, event),
       ),
     );
+  }
+
+  void _showActionBottomSheet(BuildContext context, Event financialEvent) {
+    final AccountsBloc accountsBloc = context.read<AccountsBloc>();
+    
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return MultiBlocProvider(
+          providers: <BlocProvider<dynamic>>[
+            BlocProvider<AccountsBloc>.value(
+              value: accountsBloc, // Re-provide the existing AccountsBloc
+            ),
+          ],
+          child: switch(event.eventType) {
+            'income' => ActivityForm(accountData: accountData, activityStateType: ActivityStateType.add, event: event),
+            'expense' => ActivityForm(accountData: accountData, activityStateType: ActivityStateType.substract, event: event),
+            // 'transfer' => ActivityForm(accountData: accountData, activityStateType: ActivityStateType.substract,),
+            String() => throw UnimplementedError(),
+          }
+        );
+      },
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+    ).whenComplete(() {
+      accountsBloc.add(AccountsTransitionEvent());
+    });
   }
 }

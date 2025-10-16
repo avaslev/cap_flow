@@ -6,7 +6,7 @@ import 'package:investflow/feature/event/data/wallet.dart';
 import 'package:investflow/feature/event/logic/eventBloc.dart';
 import 'package:investflow/feature/event/logic/eventEvent.dart';
 import 'package:investflow/feature/event/logic/eventState.dart';
-import 'package:investflow/feature/event/logic/util.dart';
+import 'package:investflow/core/utils/calculateNextOccurrence.dart';
 import 'package:investflow/feature/event/presentation/form/eventForm.dart';
 import 'package:investflow/widgets/itemAvatar.dart';
 import 'package:investflow/widgets/itemValue.dart';
@@ -93,8 +93,11 @@ class FinancialEventOverviewPage extends StatelessWidget {
                 String recurrenceInfoText = '';
                 if (event.recurrenceType != RecurrenceType.none) {
                   final DateTime? nextOccurrence = calculateNextOccurrence(
-                    event,
-                    DateTime.now(),
+                    initialDate: event.date, 
+                    recurrenceType: event.recurrenceType.name, 
+                    recurrenceEndDate: event.recurrenceEndDate,
+                    recurrenceDayOfMonth: event.recurrenceDayOfMonth,
+                    now: DateTime.now()
                   );
                   if (nextOccurrence != null) {
                     recurrenceInfoText =
