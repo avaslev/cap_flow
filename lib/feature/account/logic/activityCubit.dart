@@ -110,7 +110,28 @@ class ActivityCubit extends Cubit<ActivityState> {
         ));
       }
 
+      emit(state.copyWith(formStatus: FormStatus.success));
+    } catch (e) {
+      emit(state.copyWith(
+          formStatus: FormStatus.failure, errorMessage: e.toString()));
+    }
+  }
 
+  Future<void> submitSkipEvent() async {
+    emit(state.copyWith(formStatus: FormStatus.loading, errorMessage: null));
+    try {
+      if (state.eventId != null) {
+        ScheduledTransaction st = await _eventRepo.getById(state.eventId!);
+        await _eventRepo.update(st.copyWith(
+          executedCount: st.executedCount + 1, 
+          nextExecutionDate: calculateNextOccurrence(
+            initialDate: st.date, 
+            recurrenceType: st.recurrenceType, 
+            recurrenceEndDate: st.recurrenceEndDate,
+            recurrenceDayOfMonth: st.recurrenceDayOfMonth,
+            now: state.selectedDate)
+        ));
+      }
       emit(state.copyWith(formStatus: FormStatus.success));
     } catch (e) {
       emit(state.copyWith(

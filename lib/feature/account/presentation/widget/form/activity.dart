@@ -13,7 +13,6 @@ class ActivityForm extends StatelessWidget {
   final ActivityStateType activityStateType;
   final Event? event; // Новый необязательный параметр
 
-
   const ActivityForm({
     super.key,
     required this.accountData,
@@ -26,7 +25,9 @@ class ActivityForm extends StatelessWidget {
     // We need AccountData to initialize the Cubit with initial tools and to
     // perform the actual addActivity operation.
     final List<ToolSummary> initialMoneyTools = accountData
-        .getMoneyToolsForAccount(null == event ? accountData.activeAccountId : event!.accountId);
+        .getMoneyToolsForAccount(
+          null == event ? accountData.activeAccountId : event!.accountId,
+        );
 
     return BlocProvider<ActivityCubit>(
       create:
@@ -245,66 +246,121 @@ class _ActivityFormContentState extends State<_ActivityFormContent> {
                     maxLines: 2,
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed:
-                        state.formStatus == FormStatus.loading
-                            ? null // Disable button while loading
-                            : () {
-                              // Trigger local form validation first
-                              if (_formKey.currentState!.validate()) {
-                                context.read<ActivityCubit>().submitActivity();
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please correct the highlighted errors.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    icon:
-                        state.formStatus == FormStatus.loading
-                            ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: colorScheme.onPrimary,
-                                strokeWidth: 2,
+                  if (state.eventId != null)
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: state.formStatus == FormStatus.loading
+                                ? null // Disable button while loading
+                                : () => context.read<ActivityCubit>().submitSkipEvent(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.secondaryContainer,
+                              foregroundColor: colorScheme.onSecondaryContainer,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.0),
                               ),
-                            )
-                            : Icon(
-                              Icons.add_circle_outline,
-                              color: colorScheme.onPrimary,
-                              size: 20,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              minimumSize: const Size(double.infinity, 50),
                             ),
-                    label: Text(
-                      state.formStatus == FormStatus.loading
-                          ? "Adding..."
-                          : (state.activityType == ActivityStateType.add
-                              ? "Add income"
-                              : "Add expense"),
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: colorScheme.onPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                            child: Text(
+                              'Skip',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge!
+                                  .copyWith(
+                                    color: colorScheme.onSecondaryContainer,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSubmitButton(
+                            context,
+                            state,
+                            colorScheme,
+                            _formKey,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    _buildSubmitButton(
+                      context,
+                      state,
+                      colorScheme,
+                      _formKey,
                     ),
-                  ),
                   const SizedBox(height: 8),
                 ],
               );
             },
           ),
         ),
+      ),
+    );
+  }
+
+/// Helper method to build the submit button, encapsulated for clarity.
+  Widget _buildSubmitButton(
+    BuildContext context,
+    ActivityState state,
+    ColorScheme colorScheme,
+    GlobalKey<FormState> formKey,
+  ) {
+    return ElevatedButton.icon(
+      onPressed: state.formStatus == FormStatus.loading
+          ? null // Disable button while loading
+          : () {
+              // Trigger local form validation first
+              if (formKey.currentState!.validate()) {
+                context.read<ActivityCubit>().submitActivity();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Please correct the highlighted errors.',
+                    ),
+                  ),
+                );
+              }
+            },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        minimumSize: const Size(double.infinity, 50),
+      ),
+      icon: state.formStatus == FormStatus.loading
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: colorScheme.onPrimary,
+                strokeWidth: 2,
+              ),
+            )
+          : Icon(
+              Icons.add_circle_outline,
+              color: colorScheme.onPrimary,
+              size: 20,
+            ),
+      label: Text(
+        state.formStatus == FormStatus.loading
+            ? "Adding..."
+            : (state.activityType == ActivityStateType.add
+                ? "Add income"
+                : "Add expense"),
+        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+              color: colorScheme.onPrimary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }
