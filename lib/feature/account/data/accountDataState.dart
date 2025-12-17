@@ -460,18 +460,18 @@ class AccountData {
   }
 
   /// Returns tools associated with a specific account, sorted by type and then name.
-  List<ToolSummary> getToolsForAccount(String accountId) {
-    return _tools
-        .where((ToolSummary tool) => tool.accountId == accountId)
-        .toList()
-      ..sort((ToolSummary a, ToolSummary b) {
-        final int typeComparison = a.type.index.compareTo(b.type.index);
-        if (typeComparison != 0) {
-          return typeComparison;
-        }
-        return a.name.compareTo(b.name);
-      });
-  }
+List<ToolSummary> getToolsForAccount(String accountId) {
+  final List<ToolSummary> filtered = _tools
+      .where((ToolSummary tool) => tool.accountId == accountId)
+      .toList();
+  filtered.sort((ToolSummary a, ToolSummary b) {
+    final int typeComparison = a.type.index.compareTo(b.type.index);
+    if (typeComparison != 0) return typeComparison;
+    return a.name.compareTo(b.name);
+  });
+  
+  return filtered;
+}
 
   /// Returns only money tools associated with a specific account.
   List<ToolSummary> getMoneyToolsForAccount(String accountId) {
