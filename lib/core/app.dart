@@ -14,6 +14,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investflow/feature/event/logic/eventBloc.dart';
 import 'package:investflow/feature/event/presentation/eventListScreen.dart';
+import 'package:investflow/feature/report/logic/bloc.dart';
+import 'package:investflow/feature/report/presentation/screen.dart';
 
 import '../src/auth.dart';
 import '../src/data.dart';
@@ -280,6 +282,19 @@ class _InvestAppState extends State<InvestApp> {
                         child: BlocProvider(
                           create: (context) => FinancialEventBloc(),
                           child: FinancialEventOverviewPage(accountId: accountId),
+                        ),
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: '/:accountId/report',
+                    pageBuilder: (context, state) {
+                      String accountId = state.pathParameters['accountId']!;
+                      return FadeTransitionPage<dynamic>(
+                        key: state.pageKey,
+                        child: BlocProvider(
+                          create: (context) => ReportBloc(),
+                          child: ReportScreen(accountId: accountId),
                         ),
                       );
                     },

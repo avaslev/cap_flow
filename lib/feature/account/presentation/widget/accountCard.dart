@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:investflow/core/utils/getAccountIcon.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
@@ -116,6 +117,7 @@ class AccountCard extends StatelessWidget {
                               ),
                             ),
                           );
+                          GoRouter.of(context).go('/accounts/${account.id}/report');
                         },
                         child: Icon(
                           Icons.show_chart,

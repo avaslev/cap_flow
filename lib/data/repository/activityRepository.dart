@@ -17,12 +17,12 @@ class ActivityRepository {
 
   Future<List<Activity>> getActivityListByTool(String toolId) async {
     Database db = await DatabaseHelper.instance.db;
-    final actions = await db.query('activities', where: 'toolId = ?', whereArgs: [toolId]);
+    final actions = await db.query('activities', where: 'tool_id = ?', whereArgs: [toolId]);
     return actions.map((actionMap) => Activity.fromMap(actionMap)).toList();
   }
 
   Future<void> deleteByTool(String toolId) async {
     Database db = await DatabaseHelper.instance.db;
-    await db.delete('activities', where: 'toolId = ?', whereArgs: [toolId]);
+    await db.delete('activities', where: 'tool_id = ?', whereArgs: [toolId]);
   }
 }

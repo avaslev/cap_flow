@@ -27,7 +27,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       await _refreshActivities();
       final now = DateTime.now();
       accountData.clearEvents();
-      (await _eventRepo.getExecutableEvents(DateTime(now.year, now.month + 1, now.day,
+      (await _eventRepo.getExecutableEvents(DateTime(now.year, now.month, now.day + 20,
       now.hour, now.minute, now.second, now.millisecond, now.microsecond))).forEach((ScheduledTransaction transaction) {
         accountData.addEvent(
           transaction.id, 
@@ -92,6 +92,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
             price: 1,
             currency: Currency.RUB,
             isTransmit: true,
+            name: 'Create ' + event.account.name,
           ),
         );
       }
@@ -106,16 +107,14 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
     });
 
     on<ChangeAccountEvent>((event, emit) async {
-      debugPrint("ChangeAccountEvent ${event.hideEvents}");
-      if (event.remove) {
-        accountData.deleteAccount(event.accountId);
-        await AccountRepository().delete(event.accountId);
-        accountData.getToolsForAccount(event.accountId).forEach((
-          ToolSummary toolSummary,
-        ) async {
+      if (true == event.remove) {
+        final tools = accountData.getToolsForAccount(event.accountId);
+        for (final toolSummary in tools) {
           await ActivityRepository().deleteByTool(toolSummary.id);
           await ToolRepository().delete(toolSummary.id);
-        });
+        }
+        accountData.deleteAccount(event.accountId);
+        await AccountRepository().delete(event.accountId);
         await ScheduledTransactionRepository().deleteByAccount(event.accountId);
         emit(AccountsDataState(accountData));
       } else {

@@ -1,5 +1,4 @@
 import 'package:investflow/core/db.dart';
-import 'package:investflow/data/models/activity.dart';
 import 'package:sqflite/sqflite.dart';
 
 class CategoryRepository {

@@ -49,7 +49,6 @@ class Tool {
   }
 
   factory Tool.fromMap(Map<String, dynamic> map) {
-    print(map);
     // Required fields are assumed to be present and of correct type.
     final String id = map['id'] as String;
     final String name = map['name'] as String;

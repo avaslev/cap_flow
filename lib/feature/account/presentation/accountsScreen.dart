@@ -1,13 +1,11 @@
 import 'package:go_router/go_router.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/logic/addAccountFormCubit.dart';
 import 'package:investflow/feature/account/presentation/widget/accountCard.dart';
 import 'package:investflow/feature/account/presentation/widget/actionSelectionBottomSheet.dart';
 import 'package:investflow/feature/account/presentation/widget/addAccountForm.dart';
 import 'package:investflow/feature/account/presentation/widget/eventList.dart';
-import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
 import 'package:investflow/feature/account/presentation/widget/toolList.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -57,7 +55,9 @@ class AccountListScreen extends StatelessWidget {
       body: BlocBuilder<AccountsBloc, AccountsState>(
         builder: (context, state) {
           if (state is! AccountsDataState) {
-            return const CircularProgressIndicator();
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
           }
           // Find initial page index based on activeAccountId
           int currentPageIndex = state.accountData.accounts.indexWhere(
@@ -179,7 +179,6 @@ class AccountListScreen extends StatelessWidget {
                                     ),
                                   ),
                                 );
-                                print('/accounts/${state.accountData.activeAccountId}/events');
                                 GoRouter.of(context).go('/accounts/${state.accountData.activeAccountId}/events');
                               },
                               style: ElevatedButton.styleFrom(
@@ -273,7 +272,7 @@ class AccountListScreen extends StatelessWidget {
                               context,
                             ).textTheme.titleLarge!.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: colorScheme.onBackground,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ),
