@@ -194,17 +194,10 @@ class ReportScreen extends StatelessWidget {
                       showTitles: true,
                       reservedSize: 35,
                       getTitlesWidget: (value, meta) {
-                        final monthStr = formatMonth(value.floor());
-                        final monthNumber = monthStr.substring(
-                          0,
-                          2,
-                        ); // "01", "02", ...
-
-                        // ✅ Только номер месяца, кроме января (01) — с годом
                         final displayText =
-                            monthNumber == '01'
-                                ? monthStr // "01.25"
-                                : monthNumber; // "02", "03", ...
+                            value.toString().substring(4) == '01'
+                                ? value.toString().substring(4) + '.' + value.toString().substring(2,4)
+                                : value.toString().substring(4);
 
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -377,10 +370,12 @@ class ReportScreen extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         final monthIndex = (value / 2).floor();
                         if (monthIndex >= 0 && monthIndex <= 11) {
-                          final monthStr = formatMonth(monthIndex);
-                          final monthNumber = monthStr.substring(0, 2);
                           final displayText =
-                              monthNumber == '01' ? monthStr : monthNumber;
+                              monthData[monthIndex].month == '01'
+                                  ? monthData[monthIndex].month +
+                                      '.' +
+                                      monthData[monthIndex].year
+                                  : monthData[monthIndex].month;
 
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),

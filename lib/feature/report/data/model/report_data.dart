@@ -26,25 +26,29 @@ class ReportData {
       'Other': 50000.0,
     },
     totalLineData: [
-      ChartPoint(0, 100000),
-      ChartPoint(1, 120000),
-      ChartPoint(2, 150000),
-      ChartPoint(3, 180000),
-      ChartPoint(4, 200000),
-      ChartPoint(5, 220000),
-      ChartPoint(6, 250000),
-      ChartPoint(7, 280000),
-      ChartPoint(8, 300000),
-      ChartPoint(9, 320000),
-      ChartPoint(10, 350000),
-      ChartPoint(11, 380000),
+      ChartPoint(2501, 100000),
+      ChartPoint(2502, 120000),
+      ChartPoint(2503, 150000),
+      ChartPoint(2504, 180000),
+      ChartPoint(2505, 200000),
+      ChartPoint(2506, 220000),
+      ChartPoint(2507, 250000),
+      ChartPoint(2508, 280000),
+      ChartPoint(2509, 300000),
+      ChartPoint(2510, 320000),
+      ChartPoint(2511, 350000),
+      ChartPoint(2512, 380000),
     ],
     totalLineDataPercentage: 28,
     incomeExpenseData: List.generate(12, (index) => MonthIncomeExpense(
+      year: '25',
+      month: (index + 1).toString().padLeft(2, '0'),
       income: 100000 + index * 15000,
       expense: 80000 + index * 10000,
     )),
     plannedData: List.generate(12, (index) => MonthIncomeExpense(
+      year: '25',
+      month: (index + 1).toString().padLeft(2, '0'),
       income: 120000 + index * 12000,
       expense: 90000 + index * 8000,
     )),
@@ -77,10 +81,14 @@ class ChartPoint {
 }
 
 class MonthIncomeExpense {
+  final String year;
+  final String month;
   final double income;
   final double expense;
 
   const MonthIncomeExpense({
+    required this.year,
+    required this.month,
     required this.income,
     required this.expense,
   });
