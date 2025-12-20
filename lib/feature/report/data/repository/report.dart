@@ -32,7 +32,7 @@ class ReportRepository {
       ),
       plannedData: await _getPlannedData(
         accountId,
-        now.millisecondsSinceEpoch,
+        DateTime(now.year, now.month, 1).millisecondsSinceEpoch,
         DateTime(now.year, now.month + 12, 1).millisecondsSinceEpoch,
       ),
     );

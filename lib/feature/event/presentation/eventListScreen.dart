@@ -17,7 +17,8 @@ class FinancialEventOverviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final FinancialEventBloc financialEventBloc = BlocProvider.of<FinancialEventBloc>(context);
+    final FinancialEventBloc financialEventBloc =
+        BlocProvider.of<FinancialEventBloc>(context);
     financialEventBloc.add(LoadFinancialEvents(accountId));
 
     return Scaffold(
@@ -73,8 +74,10 @@ class FinancialEventOverviewPage extends StatelessWidget {
 
             String getWalletNameById(String walletId) {
               return eventState.wallets.length > 0
-                ? eventState.wallets.firstWhere((Wallet w) => w.id == walletId,).name
-                : '';
+                  ? eventState.wallets
+                      .firstWhere((Wallet w) => w.id == walletId)
+                      .name
+                  : '';
             }
 
             return ListView.builder(
@@ -93,11 +96,11 @@ class FinancialEventOverviewPage extends StatelessWidget {
                 String recurrenceInfoText = '';
                 if (event.recurrenceType != RecurrenceType.none) {
                   final DateTime? nextOccurrence = calculateNextOccurrence(
-                    initialDate: event.date, 
-                    recurrenceType: event.recurrenceType.name, 
+                    initialDate: event.date,
+                    recurrenceType: event.recurrenceType.name,
                     recurrenceEndDate: event.recurrenceEndDate,
                     recurrenceDayOfMonth: event.recurrenceDayOfMonth,
-                    now: DateTime.now()
+                    now: DateTime.now(),
                   );
                   if (nextOccurrence != null) {
                     recurrenceInfoText =
@@ -192,7 +195,10 @@ class FinancialEventOverviewPage extends StatelessWidget {
                         style:
                             Theme.of(context).listTileTheme.subtitleTextStyle,
                       ),
-                      trailing: ItemValue(type: event.type.name, amount: event.amount),
+                      trailing: ItemValue(
+                        type: event.type.name,
+                        amount: event.amount,
+                      ),
                       isThreeLine: true,
                       onTap: () => _showActionBottomSheet(context, event),
                     ),
@@ -232,27 +238,48 @@ class FinancialEventOverviewPage extends StatelessWidget {
     );
   }
 
-  void _showActionBottomSheet(BuildContext context, FinancialEvent? financialEvent) {
-    final FinancialEventBloc financialEventBloc = context.read<FinancialEventBloc>();
+  void _showActionBottomSheet(
+    BuildContext context,
+    FinancialEvent? financialEvent,
+  ) {
+    final FinancialEventBloc financialEventBloc =
+        context.read<FinancialEventBloc>();
     final FinancialEventState state = financialEventBloc.state;
     // Check if the state is AccountsDataState before accessing accountData
     if (state is FinancialEventLoaded) {
       showModalBottomSheet<void>(
         context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
         builder: (BuildContext context) {
           return MultiBlocProvider(
             providers: <BlocProvider<dynamic>>[
-              BlocProvider<FinancialEventBloc>.value(
-                value: financialEventBloc, // Re-provide the existing AccountsBloc
-              ),
+              BlocProvider<FinancialEventBloc>.value(value: financialEventBloc),
             ],
-            child: FinancialEventForm(event: financialEvent, accountId: state.accountId,),
+            child: DraggableScrollableSheet(
+              initialChildSize: 0.9,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              snap: true,
+              snapSizes: const [0.5, 0.9, 0.95],
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: FinancialEventForm(
+                    event: financialEvent,
+                    accountId: state.accountId,
+                    scrollController: scrollController,
+                  ),
+                );
+              },
+            ),
           );
         },
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-        ),
-        clipBehavior: Clip.antiAliasWithSaveLayer,
       ).whenComplete(() {
         financialEventBloc.add(LoadFinancialEvents(state.accountId));
       });
