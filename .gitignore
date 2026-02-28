@@ -9,6 +9,7 @@
 .history
 .svn/
 .vscode
+.continue
 
 # IntelliJ related
 *.iml
