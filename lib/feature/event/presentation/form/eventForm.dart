@@ -287,6 +287,7 @@ class _FinancialEventFormmContentState
                                   })
                                   .take(5); // Limit suggestions to 5
                             },
+
                             onSelected: (String selection) {
                               context
                                   .read<FinancialEventCubit>()
@@ -305,6 +306,11 @@ class _FinancialEventFormmContentState
                                   labelText: 'Категория',
                                   prefixIcon: Icon(Icons.tag),
                                 ),
+                                onChanged: (String text) {
+                                  context
+                                      .read<FinancialEventCubit>()
+                                      .categoryChanged(text);
+                                },
                                 onFieldSubmitted: (String value) {
                                   onFieldSubmitted();
                                 },
@@ -322,7 +328,7 @@ class _FinancialEventFormmContentState
                                 (String value) => context
                                     .read<FinancialEventCubit>()
                                     .commentChanged(value),
-                            maxLines: 3, // Allow multiple lines for comments
+                            maxLines: 3,
                             keyboardType: TextInputType.multiline,
                           ),
                           const SizedBox(height: 16.0),
@@ -498,20 +504,20 @@ class _FinancialEventFormmContentState
                             ),
                             isExpanded: true,
                             items:
-                                RecurrenceType.values.map<
-                                  DropdownMenuItem<RecurrenceType>
-                                >((RecurrenceType type) {
-                                  return DropdownMenuItem<RecurrenceType>(
-                                    value: type,
-                                    child: Text(
-                                      type.displayName,
-                                      overflow:
-                                          TextOverflow
-                                              .ellipsis,
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  );
-                                }).toList(),
+                                RecurrenceType.values
+                                    .map<DropdownMenuItem<RecurrenceType>>((
+                                      RecurrenceType type,
+                                    ) {
+                                      return DropdownMenuItem<RecurrenceType>(
+                                        value: type,
+                                        child: Text(
+                                          type.displayName,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      );
+                                    })
+                                    .toList(),
                             onChanged: (RecurrenceType? newValue) {
                               if (newValue != null) {
                                 setState(() {
