@@ -322,7 +322,7 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                     label: Text(
                       state.formStatus == FormStatus.loading
                           ? "Adding..."
-                          : "Add Income",
+                          : "Add transfer",
                       style: Theme.of(context).textTheme.labelLarge!.copyWith(
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
