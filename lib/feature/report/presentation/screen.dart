@@ -236,9 +236,9 @@ class ReportScreen extends StatelessWidget {
                 ),
                 lineBarsData: [
                   LineChartBarData(
-                    spots:
+                    spots: 
                         data.totalLineData
-                            .map((p) => FlSpot(p.x, p.y))
+                            .map((p) => FlSpot(12, p.value))
                             .toList(),
                     isCurved: true,
                     color: Colors.transparent,

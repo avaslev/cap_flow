@@ -94,7 +94,8 @@ class ReportRepository {
 
     final monthlyData = await _database.rawQuery('''
     SELECT 
-      strftime('%m', datetime(a.create_at/1000, 'unixepoch')) as month,
+      strftime('%Y', datetime(a.create_at/1000, 'unixepoch')) as year_index,
+      strftime('%m', datetime(a.create_at/1000, 'unixepoch')) as month_index,
       SUM(
         CASE 
           WHEN a.type = 'add'
@@ -109,7 +110,8 @@ class ReportRepository {
     LEFT JOIN activities a ON t.id = a.tool_id 
       AND a.create_at BETWEEN ? AND ?
     WHERE $accountCondition
-    GROUP BY month
+    GROUP BY year_index, month_index
+    ORDER BY year_index, month_index
     ''', params);
 
     double totalChanges = 0.0;
@@ -126,16 +128,23 @@ class ReportRepository {
     return List.generate(12, (i) {
       final targetMonth = ((startMonth - 1 + i) % 12) + 1;
       final targetMonthStr = targetMonth.toString().padLeft(2, '0');
+      final targetYear = (targetMonth > startMonth ? startYear : startYear + 1).toString();
       final row = monthlyData.firstWhere(
-        (r) => (r['month'] as String?) == targetMonthStr,
-        orElse: () => {'total_value': 0.0},
+         (r) =>
+            (r['month_index'] as String?) == targetMonthStr 
+            && (r['year_index'] as String?) == targetYear,
+        orElse: () => {
+          'year_index': targetYear,
+          'month_index': targetMonthStr,
+          'total_value': 0.0
+        },
       );
       final monthlyChange = (row['total_value'] as num?)?.toDouble() ?? 0.0;
       runningTotal += monthlyChange;
       return ChartPoint(
-        ((startYear + ((startMonth - 1 + i) > 11 ? 1 : 0)) * 100 + targetMonth)
-            .toDouble(),
-        runningTotal,
+        year: targetYear,
+        month: targetMonthStr,
+        value: runningTotal,
       );
     });
   }
@@ -187,19 +196,18 @@ class ReportRepository {
     return List.generate(12, (index) {
       final targetMonth = ((startMonth - 1 + index) % 12) + 1;
       final targetMonthStr = targetMonth.toString().padLeft(2, '0');
+      final targetYear = (targetMonth > startMonth ? startYear : startYear + 1).toString();
 
       final row = result.firstWhere(
         (r) =>
-            (r['month_index'] as String?) ==
-            '${(index + 1).toString().padLeft(2, '0')}',
+            (r['month_index'] as String?) == targetMonthStr 
+            && (r['year_index'] as String?) == targetYear,
         orElse:
             () => {
               'income': 0.0,
               'expense': 0.0,
-              'year_index':
-                  (startYear + ((startMonth - 1 + index) > 11 ? 1 : 0))
-                      .toString(),
-              'month_index': targetMonthStr, // ✅ НЕ null!
+              'year_index': targetYear,
+              'month_index': targetMonthStr,
             },
       );
       return MonthIncomeExpense(
@@ -281,16 +289,16 @@ class ReportRepository {
     double totalMonthlyReturn = 0.0;
     int validMonths = 0;
 
-    for (int i = 1; i < totalLineData.length; i++) {
-      final prevValue = totalLineData[i - 1].y;
-      final currentValue = totalLineData[i].y;
+    // for (int i = 1; i < totalLineData.length; i++) {
+    //   final prevValue = totalLineData[i - 1].y;
+    //   final currentValue = totalLineData[i].y;
 
-      if (prevValue > 0) {
-        final monthlyReturn = ((currentValue - prevValue) / prevValue) * 100;
-        totalMonthlyReturn += monthlyReturn;
-        validMonths++;
-      }
-    }
+    //   if (prevValue > 0) {
+    //     final monthlyReturn = ((currentValue - prevValue) / prevValue) * 100;
+    //     totalMonthlyReturn += monthlyReturn;
+    //     validMonths++;
+    //   }
+    // }
 
     return validMonths > 0
         ? (totalMonthlyReturn / validMonths * 10).round() / 10

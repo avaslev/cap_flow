@@ -26,32 +26,38 @@ class ReportData {
       'Other': 50000.0,
     },
     totalLineData: [
-      ChartPoint(2501, 100000),
-      ChartPoint(2502, 120000),
-      ChartPoint(2503, 150000),
-      ChartPoint(2504, 180000),
-      ChartPoint(2505, 200000),
-      ChartPoint(2506, 220000),
-      ChartPoint(2507, 250000),
-      ChartPoint(2508, 280000),
-      ChartPoint(2509, 300000),
-      ChartPoint(2510, 320000),
-      ChartPoint(2511, 350000),
-      ChartPoint(2512, 380000),
+      // ChartPoint(2501, 100000),
+      // ChartPoint(2502, 120000),
+      // ChartPoint(2503, 150000),
+      // ChartPoint(2504, 180000),
+      // ChartPoint(2505, 200000),
+      // ChartPoint(2506, 220000),
+      // ChartPoint(2507, 250000),
+      // ChartPoint(2508, 280000),
+      // ChartPoint(2509, 300000),
+      // ChartPoint(2510, 320000),
+      // ChartPoint(2511, 350000),
+      // ChartPoint(2512, 380000),
     ],
     totalLineDataPercentage: 28,
-    incomeExpenseData: List.generate(12, (index) => MonthIncomeExpense(
-      year: '25',
-      month: (index + 1).toString().padLeft(2, '0'),
-      income: 100000 + index * 15000,
-      expense: 80000 + index * 10000,
-    )),
-    plannedData: List.generate(12, (index) => MonthIncomeExpense(
-      year: '25',
-      month: (index + 1).toString().padLeft(2, '0'),
-      income: 120000 + index * 12000,
-      expense: 90000 + index * 8000,
-    )),
+    incomeExpenseData: List.generate(
+      12,
+      (index) => MonthIncomeExpense(
+        year: '25',
+        month: (index + 1).toString().padLeft(2, '0'),
+        income: 100000 + index * 15000,
+        expense: 80000 + index * 10000,
+      ),
+    ),
+    plannedData: List.generate(
+      12,
+      (index) => MonthIncomeExpense(
+        year: '25',
+        month: (index + 1).toString().padLeft(2, '0'),
+        income: 120000 + index * 12000,
+        expense: 90000 + index * 8000,
+      ),
+    ),
   );
 
   // ✅ copyWith для иммутабельности
@@ -65,19 +71,24 @@ class ReportData {
     return ReportData(
       summary: summary ?? this.summary,
       totalLineData: totalLineData ?? this.totalLineData,
-      totalLineDataPercentage: totalLineDataPercentage ?? this.totalLineDataPercentage,
+      totalLineDataPercentage:
+          totalLineDataPercentage ?? this.totalLineDataPercentage,
       incomeExpenseData: incomeExpenseData ?? this.incomeExpenseData,
       plannedData: plannedData ?? this.plannedData,
     );
   }
 }
 
-// ✅ Простые классы данных без зависимостей
 class ChartPoint {
-  final double x;
-  final double y;
+  final String year;
+  final String month;
+  final double value;
 
-  const ChartPoint(this.x, this.y);
+  const ChartPoint({
+    required this.year,
+    required this.month,
+    required this.value,
+  });
 }
 
 class MonthIncomeExpense {
