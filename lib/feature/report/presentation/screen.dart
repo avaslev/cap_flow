@@ -193,16 +193,21 @@ class ReportScreen extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 35,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
-                        final displayText =
-                            value.toString().substring(4) == '01'
-                                ? value.toString().substring(4) + '.' + value.toString().substring(2,4)
-                                : value.toString().substring(4);
-
+                        final int monthIndex = value.toInt();
+                        if (monthIndex < 0 || monthIndex >= 12) {
+                          return const SizedBox();
+                        }
+                        // Pre‑computed month labels like "01.26", "02.26", …
+                        final List<String> monthLabels = List.generate(12, (i) => formatMonth(i));
+                        final String monthLabel = monthLabels[monthIndex];
+                        // Show full "01.26" only for January (index 0); otherwise just the month part.
+                        final String display = data.totalLineData[monthIndex].month == "01" ? monthLabel : monthLabel.split('.').first;
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            displayText,
+                            display,
                             style: const TextStyle(
                               fontSize: 10,
                               color: Colors.grey,
@@ -236,10 +241,7 @@ class ReportScreen extends StatelessWidget {
                 ),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: 
-                        data.totalLineData
-                            .map((p) => FlSpot(12, p.value))
-                            .toList(),
+                    spots: List.generate(12, (i) => FlSpot(i.toDouble(), data.totalLineData[i].value)),
                     isCurved: true,
                     color: Colors.transparent,
                     barWidth: 4,

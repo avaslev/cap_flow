@@ -128,7 +128,7 @@ class ReportRepository {
     return List.generate(12, (i) {
       final targetMonth = ((startMonth - 1 + i) % 12) + 1;
       final targetMonthStr = targetMonth.toString().padLeft(2, '0');
-      final targetYear = (targetMonth > startMonth ? startYear : startYear + 1).toString();
+      final targetYear = (targetMonth >= startMonth ? startYear : startYear + 1).toString();
       final row = monthlyData.firstWhere(
          (r) =>
             (r['month_index'] as String?) == targetMonthStr 
