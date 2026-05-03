@@ -289,19 +289,20 @@ class ReportRepository {
     double totalMonthlyReturn = 0.0;
     int validMonths = 0;
 
-    // for (int i = 1; i < totalLineData.length; i++) {
-    //   final prevValue = totalLineData[i - 1].y;
-    //   final currentValue = totalLineData[i].y;
+    for (int i = 1; i < totalLineData.length; i++) {
+      final prevValue = totalLineData[i - 1].value;
+      final currentValue = totalLineData[i].value;
 
-    //   if (prevValue > 0) {
-    //     final monthlyReturn = ((currentValue - prevValue) / prevValue) * 100;
-    //     totalMonthlyReturn += monthlyReturn;
-    //     validMonths++;
-    //   }
-    // }
+      if (prevValue != 0) {
+        final monthlyReturn = ((currentValue - prevValue) / prevValue) * 100;
+        totalMonthlyReturn += monthlyReturn;
+      }
+      validMonths++;
+    }
 
-    return validMonths > 0
-        ? (totalMonthlyReturn / validMonths * 10).round() / 10
-        : 0.0;
+    return ((totalLineData[11].value / totalLineData[0].value) - 1) * 100;
   }
+
+
+
 }
