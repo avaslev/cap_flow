@@ -1,8 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
-import '../../../core/utils/formatCurrency.dart';
 
 /// Enum for different types of financial accounts.
 enum AccountType {
@@ -187,171 +183,9 @@ class AccountData {
   Map<String, String> get allInvestmentOptions => _allInvestmentOptions;
 
   AccountData()
-    : _accounts = <AccountSummary>[
-        // AccountSummary(
-        //   id: 'checking',
-        //   name: 'Checking',
-        //   balance: 12500.00,
-        //   dailyChangeAmount: -120.00,
-        //   dailyChangePercentage: -0.96,
-        //   colorValue: 0xff007BFF, // Vibrant blue
-        //   type: AccountType.general,
-        //   hideEvents: false, // Initial value
-        //   excludeFromTotal: false, // Initial value
-        // ),
-        // AccountSummary(
-        //   id: 'savings',
-        //   name: 'Savings',
-        //   balance: 5523.34,
-        //   dailyChangeAmount: 655.40,
-        //   dailyChangePercentage: 11.87,
-        //   colorValue: 0xff28A745, // Strong green
-        //   type: AccountType.general,
-        //   hideEvents: false, // Initial value
-        //   excludeFromTotal: false, // Initial value
-        // ),
-        // AccountSummary(
-        //   id: 'investments',
-        //   name: 'Investments',
-        //   balance: 23000.50,
-        //   dailyChangeAmount: 800.20,
-        //   dailyChangePercentage: 3.48,
-        //   colorValue: 0xffFFC107, // Deep yellow
-        //   type: AccountType.brokerage,
-        //   hideEvents: false, // Initial value
-        //   excludeFromTotal: false, // Initial value
-        // ),
-        // // New: Cryptocurrency account
-        // AccountSummary(
-        //   id: 'crypto_wallet',
-        //   name: 'Crypto Wallet',
-        //   balance: 15000.00,
-        //   dailyChangeAmount: 1200.00,
-        //   dailyChangePercentage: 8.00,
-        //   colorValue: 0xffFF007B, // A distinct color for crypto (e.g., Pink)
-        //   type: AccountType.cryptocurrency,
-        //   hideEvents: false,
-        //   excludeFromTotal: false,
-        // ),
-      ],
+    : _accounts = <AccountSummary>[],
       _events = new Map<String, Event>(),
-      _tools = <ToolSummary>[
-        // ToolSummary(
-        //   name: 'Russian Ruble',
-        //   quantity: 1200.00,
-        //   percentageChange: 0.15,
-        //   accountId: 'checking',
-        //   type: ToolType.money,
-        //   currentValue: 1200.00,
-        //   ticker: 'RUR', // Added ticker
-        // ),
-        // ToolSummary(
-        //   name: 'S&P 500 ETF',
-        //   quantity: 5.5,
-        //   percentageChange: 1.23,
-        //   accountId: 'investments',
-        //   type: ToolType.etf,
-        //   currentValue: 2750.00,
-        //   ticker: 'SPY', // Added ticker
-        // ),
-        // ToolSummary(
-        //   name: 'Bitcoin',
-        //   quantity: 0.12,
-        //   percentageChange: -3.45,
-        //   accountId: 'crypto_wallet', // Changed accountId to new crypto_wallet
-        //   type: ToolType.cryptocurrency,
-        //   currentValue: 7200.00,
-        //   ticker: 'BTC',
-        // ),
-        // ToolSummary(
-        //   name: 'Ethereum',
-        //   quantity: 1.5,
-        //   percentageChange: 2.10,
-        //   accountId: 'crypto_wallet', // Added Ethereum to crypto_wallet
-        //   type: ToolType.cryptocurrency,
-        //   currentValue: 4500.00,
-        //   ticker: 'ETH',
-        // ),
-        // ToolSummary(
-        //   name: 'Fixed Deposit (6M)',
-        //   quantity: 2000.00,
-        //   percentageChange: 0.05,
-        //   accountId: 'savings',
-        //   type: ToolType.deposit,
-        //   currentValue: 2000.00,
-        //   startDate: DateTime(2023, 1, 1),
-        //   endDate: DateTime(2023, 7, 1),
-        //   payoutType: PayoutType.atEndOfTerm,
-        //   withdrawalToolId: 'checking_RUR', // Example ID
-        // ),
-        // ToolSummary(
-        //   name: 'Apple Inc. Stock',
-        //   quantity: 10.0,
-        //   percentageChange: 0.88,
-        //   accountId: 'investments',
-        //   type: ToolType.stocks,
-        //   currentValue: 1800.00,
-        //   ticker: 'AAPL', // Added ticker
-        // ),
-        // ToolSummary(
-        //   name: 'Tesla Inc. Stock',
-        //   quantity: 20.0,
-        //   percentageChange: 0.88,
-        //   accountId: 'investments',
-        //   type: ToolType.stocks,
-        //   currentValue: 18000.00,
-        //   ticker: 'TSLA', // Added ticker
-        // ),
-        // ToolSummary(
-        //   name: 'Nvidia Inc. Stock',
-        //   quantity: 30.0,
-        //   percentageChange: 0.88,
-        //   accountId: 'investments',
-        //   type: ToolType.stocks,
-        //   currentValue: 38000.00,
-        //   ticker: 'NVDA', // Added ticker
-        // ),
-        // ToolSummary(
-        //   name: 'USD',
-        //   quantity: 1200.00,
-        //   percentageChange: 0,
-        //   accountId: 'investments',
-        //   type: ToolType.money,
-        //   currentValue: 1200.00,
-        // ),
-        // ToolSummary(
-        //   name: 'Russian Ruble',
-        //   quantity: 5000.00,
-        //   percentageChange: 0.0,
-        //   accountId: 'crypto_wallet', // RUR for crypto_wallet
-        //   type: ToolType.money,
-        //   currentValue: 5000.00,
-        //   ticker: 'RUR',
-        // ),
-        // ToolSummary(
-        //   name: 'Mortgage Loan',
-        //   quantity: 1.0, // Represents one loan agreement
-        //   percentageChange: -0.10, // Annual interest rate as negative change
-        //   accountId: 'checking',
-        //   type: ToolType.credit,
-        //   currentValue: -150000.00, // Principal amount as a negative liability
-        //   interestRate: 10.0, // Example interest rate
-        //   loanStartDate: DateTime(2022, 1, 1),
-        //   loanTermMonths: 360, // 30 years
-        //   paymentDayOfMonth: 15,
-        //   creditPaymentType: CreditPaymentType.annuity,
-        // ),
-        // ToolSummary(
-        //   name: 'Treasury Bonds',
-        //   quantity: 3.0,
-        //   percentageChange: 0.25,
-        //   accountId: 'investments',
-        //   type: ToolType.bonds,
-        //   currentValue: 3000.00,
-        //   ticker: 'GOV',
-        //   faceValue: 1000.0, // Example face value
-        // ),
-      ],
+      _tools = <ToolSummary>[],
       _activeAccountId = 'total' {
     _accounts.insert(
       0,
@@ -382,7 +216,6 @@ class AccountData {
   void _updateTotalBalance() {
     double totalBalance = 0.0;
     double totalDailyChangeAmount = 0.0;
-    bool changed = false;
 
     for (final AccountSummary acc in _accounts) {
       if (acc.id != 'total' && !acc.excludeFromTotal) {
@@ -397,7 +230,6 @@ class AccountData {
         // Update account's balance to reflect sum of its tools
         if (acc.balance != accountToolsBalance) {
           acc.balance = accountToolsBalance;
-          changed = true;
         }
 
         totalBalance += acc.balance;
@@ -411,12 +243,10 @@ class AccountData {
 
     if (totalAccount.balance != totalBalance) {
       totalAccount.balance = totalBalance;
-      changed = true;
     }
 
     if (totalAccount.dailyChangeAmount != totalDailyChangeAmount) {
       totalAccount.dailyChangeAmount = totalDailyChangeAmount;
-      changed = true;
     }
 
     double totalDailyChangePercentage = 0.0;
@@ -436,12 +266,7 @@ class AccountData {
 
     if (totalAccount.dailyChangePercentage != totalDailyChangePercentage) {
       totalAccount.dailyChangePercentage = totalDailyChangePercentage;
-      changed = true;
     }
-
-    // if (changed) {
-    //
-    // }
   }
 
   /// Returns all events across all accounts, sorted by date (oldest first).
@@ -755,29 +580,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     String currencyTicker,
     double unitPrice,
   ) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account != null && account.id != 'total') {
-      final double currentValue = quantity * unitPrice;
-      _tools.add(
-        ToolSummary(
-          id: name,
-          name: name,
-          quantity: quantity,
-          percentageChange: 0.0, // New money tools start with 0% change
-          accountId: accountId,
-          type: ToolType.money,
-          currentValue: currentValue,
-          ticker: currencyTicker,
-        ),
-      );
-      // Account balance is updated by _updateTotalBalance
-      _updateTotalBalance(); // Recalculates total and notifies listeners
-      // Notify for tools list change
-    } else if (account?.id == 'total') {
-      debugPrint('Cannot add tools directly to "Total Balance" account.');
-    } else {
-      debugPrint('Account with ID "$accountId" not found.');
-    }
+    throw Exception('Метод устарел');
   }
 
   /// Adds a new deposit tool to a specified account.
@@ -1035,59 +838,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required String category,
     String? comment,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null || account.id == 'total') {
-      debugPrint(
-        'Cannot add income to "Total Balance" or non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? targetTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.money &&
-          tool.name == toolName,
-      orElse: () => null,
-    );
-
-    if (targetTool == null) {
-      debugPrint(
-        'Target money tool "$toolName" not found in account "$accountId".',
-      );
-      return;
-    }
-
-    // Calculate the 'unit price' to correctly update quantity for non-RUR currencies.
-    // If the tool has a quantity, use its current effective unit price (currentValue / quantity).
-    // If quantity is zero (e.g., first income to an empty currency tool), use a default rate.
-    double effectiveRatePerUnit = 1.0; // Default for RUR
-    if (targetTool.ticker == 'USD') {
-      if (targetTool.quantity > 0) {
-        effectiveRatePerUnit = targetTool.currentValue / targetTool.quantity;
-      } else {
-        // Fallback rate if tool is empty. This is crucial for new or zero-balance foreign currency tools.
-        effectiveRatePerUnit =
-            90.0; // Assuming a fixed or average USD rate for income
-      }
-    }
-
-    // Update the current value (in RUB) of the tool
-    targetTool.currentValue += amount;
-
-    // Update the quantity of the tool based on the income amount (in RUB) and the effective rate.
-    // This correctly translates RUB income into units of the tool's native currency.
-    if (effectiveRatePerUnit > 0) {
-      // Avoid division by zero
-      targetTool.quantity += (amount / effectiveRatePerUnit);
-    } else {
-      debugPrint(
-        'Warning: Effective unit price for tool ${targetTool.name} is zero/negative, cannot update quantity correctly for income.',
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Adds a new expense event, updating a specific money tool and the account balance.
@@ -1101,84 +852,13 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required String category,
     String? comment,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null || account.id == 'total') {
-      debugPrint(
-        'Cannot add expense to "Total Balance" or non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? targetTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.money &&
-          tool.name == toolName,
-      orElse: () => null,
-    );
-
-    if (targetTool == null) {
-      debugPrint(
-        'Target money tool "$toolName" not found in account "$accountId".',
-      );
-      return;
-    }
-
-    // Calculate the 'unit price' to correctly update quantity for non-RUR currencies.
-    double effectiveRatePerUnit = 1.0; // Default for RUR
-    if (targetTool.ticker == 'USD') {
-      if (targetTool.quantity > 0) {
-        effectiveRatePerUnit = targetTool.currentValue / targetTool.quantity;
-      } else {
-        // Fallback rate if tool is empty or quantity is zero.
-        effectiveRatePerUnit =
-            90.0; // Assuming a fixed or average USD rate for expense
-      }
-    }
-
-    // Check for sufficient funds. This is a simple check; more robust handling might involve
-    // allowing overdrafts and marking the account as overdrawn.
-    if (amount > 0 && targetTool.currentValue < amount) {
-      debugPrint(
-        'Warning: Insufficient funds in ${targetTool.name} to cover this expense.',
-      );
-      // For this app, we'll allow it to go negative to reflect possible overdrafts.
-    }
-
-    // Update the current value (in RUB) of the tool
-    targetTool.currentValue -= amount;
-
-    // Update the quantity of the tool based on the expense amount (in RUB) and the effective rate.
-    if (effectiveRatePerUnit > 0) {
-      // Avoid division by zero
-      targetTool.quantity -= (amount / effectiveRatePerUnit);
-    } else {
-      debugPrint(
-        'Warning: Effective unit price for tool ${targetTool.name} is zero/negative, cannot update quantity correctly for expense.',
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
-  /// Helper to get the default money tool for an account (preferably RUR, else any).
-  ToolSummary? _getDefaultMoneyToolForAccount(String accountId) {
-    final List<ToolSummary> moneyTools = getMoneyToolsForAccount(accountId);
-    // Prefer Russian Ruble tool
-    final ToolSummary? rurTool = moneyTools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) => tool != null && tool.ticker == 'RUR',
-      orElse: () => null,
-    );
-    if (rurTool != null) {
-      return rurTool;
-    }
-    // Otherwise, return any other money tool if available
-    return moneyTools.isNotEmpty ? moneyTools.first : null;
-  }
 
   /// Buys a specified quantity of a stock for an account.
   /// Deducts total cost from the *money tool* of the active account.
+  @deprecated
   void buyStock({
     required String accountId,
     required String ticker,
@@ -1188,162 +868,27 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.brokerage) {
-      debugPrint(
-        'Cannot buy stock for "Total Balance" or non-brokerage/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to deduct funds from.',
-      );
-      return;
-    }
-
-    final double totalCost = (quantity * pricePerUnit) + commission;
-
-    if (moneyTool.currentValue < totalCost) {
-      debugPrint('Insufficient funds in ${moneyTool.name} to buy $stockName.');
-      // Allow for now, but in a real app, this should prevent the transaction or warn user.
-    }
-
-    // Deduct from money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue -= totalCost;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity -= (totalCost / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for stock purchase.',
-      );
-    }
-
-    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.stocks,
-      orElse: () => null,
-    );
-
-    if (existingTool != null) {
-      // Update existing stock holding
-      existingTool.quantity += quantity;
-      existingTool.currentValue += (quantity * pricePerUnit);
-    } else {
-      // Add new stock tool
-      _tools.add(
-        ToolSummary(
-          id: stockName,
-          name: stockName,
-          quantity: quantity,
-          percentageChange:
-              0.0, // Initial purchase has no immediate percentage change
-          accountId: accountId,
-          type: ToolType.stocks,
-          currentValue: quantity * pricePerUnit,
-          ticker: ticker,
-        ),
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Sells a specified quantity of a stock for an account.
   /// Adds total proceeds to the *money tool* of the active account.
+  @deprecated
   void sellStock({
     required String accountId,
     required String ticker,
-    required String
-    stockName, // For event description, not strictly needed for lookup
+    required String stockName,
     required double quantity,
     required double pricePerUnit,
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.brokerage) {
-      debugPrint(
-        'Cannot sell stock for "Total Balance" or non-brokerage/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to receive funds.',
-      );
-      return;
-    }
-
-    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.stocks,
-      orElse: () => null,
-    );
-
-    if (existingTool == null || existingTool.quantity < quantity) {
-      debugPrint(
-        'Insufficient quantity of $ticker in ${account.name} to sell.',
-      );
-      // Should prevent transaction or show an error
-      return;
-    }
-
-    final double totalProceeds = (quantity * pricePerUnit) - commission;
-
-    // Update existing stock holding
-    existingTool.quantity -= quantity;
-    existingTool.currentValue -= (quantity * pricePerUnit);
-
-    // Add proceeds to money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue += totalProceeds;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity += (totalProceeds / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for stock sale.',
-      );
-    }
-
-    // Remove tool if quantity drops to zero or below
-    if (existingTool.quantity <= 0) {
-      _tools.removeWhere(
-        (ToolSummary tool) =>
-            tool.ticker == ticker &&
-            tool.accountId == accountId &&
-            tool.type == ToolType.stocks,
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Buys a specified quantity of an ETF for an account.
   /// Deducts total cost from the *money tool* of the active account.
+  @deprecated
   void buyEtf({
     required String accountId,
     required String ticker,
@@ -1353,162 +898,25 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.brokerage) {
-      debugPrint(
-        'Cannot buy ETF for "Total Balance" or non-brokerage/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to deduct funds from.',
-      );
-      return;
-    }
-
-    final double totalCost = (quantity * pricePerUnit) + commission;
-
-    if (moneyTool.currentValue < totalCost) {
-      debugPrint('Insufficient funds in ${moneyTool.name} to buy $etfName.');
-      // Allow for now, but in a real app, this should prevent the transaction or warn user.
-    }
-
-    // Deduct from money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue -= totalCost;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity -= (totalCost / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for ETF purchase.',
-      );
-    }
-
-    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.etf,
-      orElse: () => null,
-    );
-
-    if (existingTool != null) {
-      // Update existing ETF holding
-      existingTool.quantity += quantity;
-      existingTool.currentValue += (quantity * pricePerUnit);
-    } else {
-      // Add new ETF tool
-      _tools.add(
-        ToolSummary(
-          id: etfName,
-          name: etfName,
-          quantity: quantity,
-          percentageChange:
-              0.0, // Initial purchase has no immediate percentage change
-          accountId: accountId,
-          type: ToolType.etf,
-          currentValue: quantity * pricePerUnit,
-          ticker: ticker,
-        ),
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
-
-  /// Sells a specified quantity of an ETF for an account.
   /// Adds total proceeds to the *money tool* of the active account.
+  @deprecated
   void sellEtf({
     required String accountId,
     required String ticker,
-    required String
-    etfName, // For event description, not strictly needed for lookup
+    required String etfName, // For event description, not strictly needed for lookup
     required double quantity,
     required double pricePerUnit,
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.brokerage) {
-      debugPrint(
-        'Cannot sell ETF for "Total Balance" or non-brokerage/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to receive funds.',
-      );
-      return;
-    }
-
-    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.etf,
-      orElse: () => null,
-    );
-
-    if (existingTool == null || existingTool.quantity < quantity) {
-      debugPrint(
-        'Insufficient quantity of $ticker in ${account.name} to sell.',
-      );
-      // Should prevent transaction or show an error
-      return;
-    }
-
-    final double totalProceeds = (quantity * pricePerUnit) - commission;
-
-    // Update existing ETF holding
-    existingTool.quantity -= quantity;
-    existingTool.currentValue -= (quantity * pricePerUnit);
-
-    // Add proceeds to money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue += totalProceeds;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity += (totalProceeds / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for ETF sale.',
-      );
-    }
-
-    // Remove tool if quantity drops to zero or below
-    if (existingTool.quantity <= 0) {
-      _tools.removeWhere(
-        (ToolSummary tool) =>
-            tool.ticker == ticker &&
-            tool.accountId == accountId &&
-            tool.type == ToolType.etf,
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Buys a specified quantity of a bond for an account.
   /// Deducts total cost (market price + ACI + commission) from the money tool.
+  @deprecated
   void buyBond({
     required String accountId,
     required String ticker,
@@ -1520,167 +928,28 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.brokerage) {
-      debugPrint(
-        'Cannot buy bond for "Total Balance" or non-brokerage/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to deduct funds from.',
-      );
-      return;
-    }
-
-    final double totalCost =
-        (quantity * pricePerUnit) + accruedCouponIncome + commission;
-
-    if (moneyTool.currentValue < totalCost) {
-      debugPrint('Insufficient funds in ${moneyTool.name} to buy $bondName.');
-      // Allow for now, but in a real app, this should prevent the transaction or warn user.
-    }
-
-    // Deduct from money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue -= totalCost;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity -= (totalCost / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for bond purchase.',
-      );
-    }
-
-    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.bonds,
-      orElse: () => null,
-    );
-
-    if (existingTool != null) {
-      // Update existing bond holding
-      existingTool.quantity += quantity;
-      existingTool.currentValue += (quantity * pricePerUnit);
-      // Face value is usually constant for a given bond type, assume it matches
-      // If it can change, a more complex update or separate bond series might be needed.
-    } else {
-      // Add new bond tool
-      _tools.add(
-        ToolSummary(
-          id: bondName,
-          name: bondName,
-          quantity: quantity,
-          percentageChange:
-              0.0, // Initial purchase has no immediate percentage change
-          accountId: accountId,
-          type: ToolType.bonds,
-          currentValue:
-              quantity * pricePerUnit, // Current value is market value
-          ticker: ticker,
-          faceValue: faceValue, // Store nominal value
-        ),
-      );
-    }
-
-    _updateTotalBalance();
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Sells a specified quantity of a bond for an account.
   /// Adds total proceeds (market price + ACI - commission) to the money tool.
+  @deprecated
   void sellBond({
     required String accountId,
     required String ticker,
     required String bondName,
     required double quantity, // Number of bonds
     required double pricePerUnit, // Market price per bond
-    required double accruedCouponIncome, // Accumulated coupon income received
+    required double accruedCouponIncome, // Accumulated coupon income to be received
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.brokerage) {
-      debugPrint(
-        'Cannot sell bond for "Total Balance" or non-brokerage/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to receive funds.',
-      );
-      return;
-    }
-
-    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.bonds,
-      orElse: () => null,
-    );
-
-    if (existingTool == null || existingTool.quantity < quantity) {
-      debugPrint(
-        'Insufficient quantity of $ticker in ${account.name} to sell.',
-      );
-      return;
-    }
-
-    final double totalProceeds =
-        (quantity * pricePerUnit) + accruedCouponIncome - commission;
-
-    // Update existing bond holding
-    existingTool.quantity -= quantity;
-    existingTool.currentValue -= (quantity * pricePerUnit);
-
-    // Add proceeds to money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue += totalProceeds;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity += (totalProceeds / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for bond sale.',
-      );
-    }
-
-    // Remove tool if quantity drops to zero or below
-    if (existingTool.quantity <= 0) {
-      _tools.removeWhere(
-        (ToolSummary tool) =>
-            tool.ticker == ticker &&
-            tool.accountId == accountId &&
-            tool.type == ToolType.bonds,
-      );
-    }
-
-    _updateTotalBalance();
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Buys a specified quantity of a cryptocurrency for an account.
   /// Deducts total cost from the *money tool* of the active account.
+  @deprecated
   void buyCrypto({
     required String accountId,
     required String ticker,
@@ -1690,157 +959,21 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.cryptocurrency) {
-      debugPrint(
-        'Cannot buy cryptocurrency for "Total Balance" or non-cryptocurrency/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to deduct funds from.',
-      );
-      return;
-    }
-
-    final double totalCost = (quantity * pricePerUnit) + commission;
-
-    if (moneyTool.currentValue < totalCost) {
-      debugPrint('Insufficient funds in ${moneyTool.name} to buy $cryptoName.');
-      // Allow for now, but in a real app, this should prevent the transaction or warn user.
-    }
-
-    // Deduct from money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue -= totalCost;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity -= (totalCost / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for crypto purchase.',
-      );
-    }
-
-    ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.cryptocurrency,
-      orElse: () => null,
-    );
-
-    if (existingTool != null) {
-      // Update existing crypto holding
-      existingTool.quantity += quantity;
-      existingTool.currentValue += (quantity * pricePerUnit);
-    } else {
-      // Add new crypto tool
-      _tools.add(
-        ToolSummary(
-          id: cryptoName,
-          name: cryptoName,
-          quantity: quantity,
-          percentageChange:
-              0.0, // Initial purchase has no immediate percentage change
-          accountId: accountId,
-          type: ToolType.cryptocurrency,
-          currentValue: quantity * pricePerUnit,
-          ticker: ticker,
-        ),
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
   /// Sells a specified quantity of a cryptocurrency for an account.
   /// Adds total proceeds to the *money tool* of the active account.
+  @deprecated
   void sellCrypto({
     required String accountId,
     required String ticker,
-    required String
-    cryptoName, // For event description, not strictly needed for lookup
+    required String cryptoName, // For event description, not strictly needed for lookup
     required double quantity,
     required double pricePerUnit,
     required double commission,
     required DateTime date,
   }) {
-    final AccountSummary? account = getAccountById(accountId);
-    if (account == null ||
-        account.id == 'total' ||
-        account.type != AccountType.cryptocurrency) {
-      debugPrint(
-        'Cannot sell cryptocurrency for "Total Balance" or non-cryptocurrency/non-existent account.',
-      );
-      return;
-    }
-
-    final ToolSummary? moneyTool = _getDefaultMoneyToolForAccount(accountId);
-    if (moneyTool == null) {
-      debugPrint(
-        'No money tool found in account "$accountId" to receive funds.',
-      );
-      return;
-    }
-
-    final ToolSummary? existingTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.cryptocurrency,
-      orElse: () => null,
-    );
-
-    if (existingTool == null || existingTool.quantity < quantity) {
-      debugPrint(
-        'Insufficient quantity of $ticker in ${account.name} to sell.',
-      );
-      // Should prevent transaction or show an error
-      return;
-    }
-
-    final double totalProceeds = (quantity * pricePerUnit) - commission;
-
-    // Update existing crypto holding
-    existingTool.quantity -= quantity;
-    existingTool.currentValue -= (quantity * pricePerUnit);
-
-    // Add proceeds to money tool
-    final double moneyToolUnitPrice =
-        moneyTool.quantity > 0
-            ? moneyTool.currentValue / moneyTool.quantity
-            : (moneyTool.ticker == 'USD' ? 90.0 : 1.0); // Fallback rate
-
-    moneyTool.currentValue += totalProceeds;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity += (totalProceeds / moneyToolUnitPrice);
-    } else {
-      debugPrint(
-        'Warning: Money tool ${moneyTool.name} has zero/negative effective unit price, cannot update quantity for crypto sale.',
-      );
-    }
-
-    // Remove tool if quantity drops to zero or below
-    if (existingTool.quantity <= 0) {
-      _tools.removeWhere(
-        (ToolSummary tool) =>
-            tool.ticker == ticker &&
-            tool.accountId == accountId &&
-            tool.type == ToolType.cryptocurrency,
-      );
-    }
-
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 }

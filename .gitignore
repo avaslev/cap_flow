@@ -10,6 +10,7 @@
 .svn/
 .vscode
 .continue
+.claude
 
 # IntelliJ related
 *.iml

@@ -9,7 +9,6 @@ import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
-import 'package:meta/meta.dart';
 import 'package:uuid/uuid.dart';
 
 // Importing the parts for event and state definitions

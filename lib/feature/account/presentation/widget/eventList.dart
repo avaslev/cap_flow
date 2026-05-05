@@ -5,9 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
-import 'package:investflow/feature/event/data/event.dart';
-import 'package:investflow/feature/event/logic/eventBloc.dart';
-import 'package:investflow/feature/event/logic/eventState.dart';
 import 'package:investflow/widgets/itemAvatar.dart';
 import 'package:investflow/widgets/itemValue.dart';
 
@@ -60,9 +57,6 @@ class EventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String accountName = accountData.getAccountById(event.accountId)?.name ?? "Unknown";
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
     return Card(
       child: ListTile(
         leading: ItemAvatar(type: event.eventType),
