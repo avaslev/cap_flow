@@ -95,7 +95,9 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           operationType: operationType,
           investmentType: investmentType,
           accountId: accountId,
-        ));
+        )) {
+    emit(state.copyWith(suggestions: getSuggestions()));
+  }
 
   List<String> getSuggestions() {
     List<String> suggestions;
@@ -104,41 +106,28 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           .getToolsForAccount(accountId)
           .where((tool) =>
               tool.type == investmentType && tool.ticker != null)
-          .map<String>((tool) => tool.ticker!)
+          .map<String>((tool) => '${tool.ticker} - ${tool.name}')
           .toList();
     } else {
-      suggestions = accountData.allInvestmentOptions.keys
-          .where((String ticker) {
-        if (investmentType == ToolType.stocks) {
-          return [
-            'AAPL',
-            'TSLA',
-            'NVDA',
-            'GOOG',
-            'MSFT',
-            'AMZN',
-            'FB',
-            'JPM',
-            'XOM',
-            'V',
-            'PG',
-            'KO',
-            'NFLX',
-            'DIS',
-            'BA',
-            'GS',
-            'SBER',
-            'GAZP',
-            'LKOH',
-            'YNDX'
-          ].contains(ticker);
-        } else if (investmentType == ToolType.bonds) {
-          return ['GOV', 'CORP'].contains(ticker);
-        } else if (investmentType == ToolType.cryptocurrency) {
-          return ['BTC', 'ETH', 'XRP', 'LTC'].contains(ticker);
-        }
-        return false;
-      })
+      // For buy operations, return all available options for the investment type
+      final List<String> validTickers;
+      if (investmentType == ToolType.stocks) {
+        validTickers = [
+          'AAPL', 'TSLA', 'NVDA', 'GOOG', 'MSFT', 'AMZN', 'FB',
+          'JPM', 'XOM', 'V', 'PG', 'KO', 'NFLX', 'DIS', 'BA',
+          'GS', 'SBER', 'GAZP', 'LKOH', 'YNDX'
+        ];
+      } else if (investmentType == ToolType.bonds) {
+        validTickers = ['GOV', 'CORP'];
+      } else if (investmentType == ToolType.cryptocurrency) {
+        validTickers = ['BTC', 'ETH', 'XRP', 'LTC'];
+      } else {
+        validTickers = [];
+      }
+
+      suggestions = accountData.allInvestmentOptions.entries
+          .where((entry) => validTickers.contains(entry.key))
+          .map((entry) => '${entry.key} - ${entry.value}')
           .toList();
     }
     suggestions.sort();
@@ -146,9 +135,24 @@ class InvestmentCubit extends Cubit<InvestmentState> {
   }
 
   void tickerChanged(String ticker) {
-    final upper = ticker.toUpperCase();
-    final name = accountData.allInvestmentOptions[upper] ?? '';
-    emit(state.copyWith(selectedTicker: upper, selectedName: name.isNotEmpty ? name : null));
+    // Handle "TICKER - Name" format from suggestions
+    String upper;
+    String? name;
+    if (ticker.contains(' - ')) {
+      final parts = ticker.split(' - ');
+      upper = parts[0].toUpperCase();
+      name = parts.length > 1 ? parts[1] : null;
+    } else {
+      upper = ticker.toUpperCase();
+      name = accountData.allInvestmentOptions[upper];
+    }
+    // Refresh suggestions when ticker is cleared
+    final suggestions = ticker.isEmpty ? getSuggestions() : state.suggestions;
+    emit(state.copyWith(
+      selectedTicker: upper,
+      selectedName: name ?? (name?.isNotEmpty == true ? name : null),
+      suggestions: suggestions,
+    ));
   }
 
   void nameChanged(String name) {

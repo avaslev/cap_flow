@@ -113,6 +113,11 @@ class _InvestmentFormContent extends StatelessWidget {
         tickerPrefixIcon = Icons.currency_exchange;
     }
 
+    // Create a controller in the enclosing scope that onSelected can access
+    final tickerController = TextEditingController(
+      text: context.read<InvestmentCubit>().state.selectedTicker ?? '',
+    );
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -121,6 +126,15 @@ class _InvestmentFormContent extends StatelessWidget {
       ),
       child: BlocBuilder<InvestmentCubit, InvestmentState>(
         builder: (context, state) {
+          // Update controller when state changes externally
+          final newText = state.selectedTicker ?? '';
+          if (tickerController.text != newText) {
+            tickerController.text = newText;
+            tickerController.selection = TextSelection.fromPosition(
+              TextPosition(offset: newText.length),
+            );
+          }
+
           return Form(
             child: SingleChildScrollView(
               child: Column(
@@ -147,20 +161,17 @@ class _InvestmentFormContent extends StatelessWidget {
                       final lowerCaseQuery =
                           textEditingValue.text.toLowerCase();
                       return state.suggestions.where((option) {
-                        return option.toLowerCase().contains(lowerCaseQuery) ||
-                            (context
-                                        .read<InvestmentCubit>()
-                                        .state
-                                        .suggestions
-                                        .toString()
-                                        .toLowerCase()
-                                        .contains(lowerCaseQuery));
+                        return option.toLowerCase().contains(lowerCaseQuery);
                       });
                     },
                     onSelected: (selection) {
+                      // Extract only the ticker from "TICKER - Name" format
+                      final ticker = selection.contains(' - ')
+                          ? selection.split(' - ').first
+                          : selection;
                       context
                           .read<InvestmentCubit>()
-                          .tickerChanged(selection);
+                          .tickerChanged(ticker);
                     },
                     fieldViewBuilder: (
                       context,
@@ -169,7 +180,7 @@ class _InvestmentFormContent extends StatelessWidget {
                       onFieldSubmitted,
                     ) {
                       return TextFormField(
-                        controller: fieldTextEditingController,
+                        controller: tickerController,
                         focusNode: fieldFocusNode,
                         decoration: InputDecoration(
                           labelText:
@@ -180,11 +191,18 @@ class _InvestmentFormContent extends StatelessWidget {
                           prefixIcon: Icon(tickerPrefixIcon,
                               color: colorScheme.onSurfaceVariant),
                         ),
-                        textCapitalization: TextCapitalization.characters,
                         onChanged: (value) {
+                          final upper = value.toUpperCase();
+                          if (upper != value) {
+                            fieldTextEditingController.text = upper;
+                            fieldTextEditingController.selection =
+                                TextSelection.fromPosition(
+                              TextPosition(offset: upper.length),
+                            );
+                          }
                           context
                               .read<InvestmentCubit>()
-                              .tickerChanged(value);
+                              .tickerChanged(upper);
                         },
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -197,6 +215,7 @@ class _InvestmentFormContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
+                    key: ValueKey('name_${state.selectedName ?? ''}'),
                     initialValue: state.selectedName ?? '',
                     decoration: InputDecoration(
                       labelText: 'Название $investmentTypeName',
