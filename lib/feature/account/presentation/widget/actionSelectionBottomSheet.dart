@@ -251,37 +251,6 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                         investmentType: ToolType.stocks,
                       )),
                   ),
-                  // New: ETF Actions
-                  ListTile(
-                    leading: Icon(
-                      Icons.add_chart,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    title: Text(
-                      "Купить ETF (Buy ETF)",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.buy,
-                        investmentType: ToolType.etf,
-                      )),
-                  ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.trending_down,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    title: Text(
-                      "Продать ETF (Sell ETF)",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.sell,
-                        investmentType: ToolType.etf,
-                      )),
-                  ),
                   // New: Bond Actions
                   ListTile(
                     leading: Icon(

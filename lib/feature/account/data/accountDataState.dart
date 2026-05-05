@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Enum for different types of financial accounts.
 enum AccountType {
   general, // Represents checking, savings, general bank accounts
-  brokerage, // Represents investment accounts (stocks, bonds, ETFs)
+  brokerage, // Represents investment accounts (stocks, bonds)
   cryptocurrency, // Represents crypto wallets/exchanges
 }
 
@@ -64,7 +64,6 @@ enum ToolType {
   credit,
   stocks,
   bonds,
-  etf,
   cryptocurrency,
   other,
 }
@@ -145,7 +144,7 @@ class AccountData {
   String? _deletableAccountId; // New state for delete mode
   String? _targetDisplayAccount;
 
-  /// Dummy data for stock/ETF suggestions and names
+  /// Dummy data for stock suggestions and names
   static const Map<String, String> _allInvestmentOptions = <String, String>{
     'AAPL': 'Apple Inc. Stock',
     'TSLA': 'Tesla Inc. Stock',
@@ -167,11 +166,6 @@ class AccountData {
     'GAZP': 'Gazprom Stock',
     'LKOH': 'Lukoil Stock',
     'YNDX': 'Yandex N.V. Stock',
-    'SPY': 'S&P 500 ETF',
-    'QQQ': 'Invesco QQQ Trust',
-    'DIA': 'SPDR Dow Jones Industrial Average ETF',
-    'GLD': 'SPDR Gold Shares ETF',
-    'ARKK': 'ARK Innovation ETF',
     'GOV': 'Russian Federal Bonds', // Example bond ticker
     'CORP': 'Corporate Bonds A', // Example corporate bond ticker
     'BTC': 'Bitcoin', // New: Cryptocurrency

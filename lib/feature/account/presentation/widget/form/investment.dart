@@ -63,8 +63,6 @@ class AddInvestmentOperationForm extends StatelessWidget {
     switch (type) {
       case ToolType.stocks:
         return 'акций';
-      case ToolType.etf:
-        return 'ETF';
       case ToolType.bonds:
         return 'облигаций';
       case ToolType.cryptocurrency:
@@ -104,9 +102,6 @@ class _InvestmentFormContent extends StatelessWidget {
     switch (investmentType) {
       case ToolType.stocks:
         tickerPrefixIcon = Icons.trending_up;
-        break;
-      case ToolType.etf:
-        tickerPrefixIcon = Icons.auto_graph;
         break;
       case ToolType.bonds:
         tickerPrefixIcon = Icons.receipt_long;
@@ -490,8 +485,6 @@ class _InvestmentFormContent extends StatelessWidget {
     switch (type) {
       case ToolType.stocks:
         return 'Акции';
-      case ToolType.etf:
-        return 'ETF';
       case ToolType.bonds:
         return 'Облигации';
       case ToolType.cryptocurrency:

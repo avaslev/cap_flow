@@ -132,8 +132,6 @@ class InvestmentCubit extends Cubit<InvestmentState> {
             'LKOH',
             'YNDX'
           ].contains(ticker);
-        } else if (investmentType == ToolType.etf) {
-          return ['SPY', 'QQQ', 'DIA', 'GLD', 'ARKK'].contains(ticker);
         } else if (investmentType == ToolType.bonds) {
           return ['GOV', 'CORP'].contains(ticker);
         } else if (investmentType == ToolType.cryptocurrency) {

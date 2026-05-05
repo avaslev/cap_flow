@@ -26,8 +26,6 @@ class ToolList extends StatelessWidget {
         return 'Stocks';
       case ToolType.bonds:
         return 'Bonds';
-      case ToolType.etf:
-        return 'ETFs';
       case ToolType.cryptocurrency:
         return 'Cryptocurrencies';
       case ToolType.other:
@@ -110,8 +108,6 @@ class ToolTile extends StatelessWidget {
         return Icons.trending_up;
       case ToolType.bonds:
         return Icons.receipt_long;
-      case ToolType.etf:
-        return Icons.auto_graph;
       case ToolType.cryptocurrency:
         return Icons.currency_bitcoin;
       case ToolType.other:
