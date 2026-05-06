@@ -241,7 +241,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           toolId: targetToolId,
           type: operationType == InvestmentOperationType.buy ? ActivityType.add : ActivityType.substract,
           createAt: date,
-          quantity: quantity * price + commission,
+          quantity: quantity * price,
           price: 1,
           currency: Currency.RUB,
           isTransmit: false,
@@ -273,14 +273,12 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       throw Exception('No money tool found for account $accountId');
     }
 
-    final totalCost = investmentType == ToolType.bonds
-        ? (quantity * price) + (accruedCouponIncome ?? 0.0) + commission
-        : (quantity * price) + commission;
+    final instrumentCost = quantity * price;
 
     final moneyToolUnitPrice = _getMoneyToolUnitPrice(moneyTool);
-    moneyTool.currentValue -= totalCost;
+    moneyTool.currentValue -= (instrumentCost + commission);
     if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity -= (totalCost / moneyToolUnitPrice);
+      moneyTool.quantity -= ((instrumentCost + commission) / moneyToolUnitPrice);
     }
 
     // Add Activity record for money tool change (money out)
@@ -290,13 +288,30 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         toolId: moneyTool.id,
         type: ActivityType.substract,
         createAt: date,
-        quantity: totalCost,
+        quantity: instrumentCost + commission,
         price: 1,
         currency: Currency.RUB,
         isTransmit: false,
         name: 'Buy $name (money out)',
       ),
     );
+
+    // Add separate Activity record for commission
+    if (commission > 0) {
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: moneyTool.id,
+          type: ActivityType.substract,
+          createAt: date,
+          quantity: commission,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Commission for $name',
+        ),
+      );
+    }
 
     ToolSummary? existingTool = accountData.tools.values.cast<ToolSummary?>().firstWhere(
       (ToolSummary? tool) =>
