@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
@@ -313,14 +314,12 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       );
     }
 
-    ToolSummary? existingTool = accountData.tools.values.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == investmentType,
-      orElse: () => null,
-    );
+    ToolSummary? existingTool = accountData.getToolByTickerAndAccountId(ticker, accountId);
+    // Verify type matches (getToolByTickerAndAccountId doesn't check type)
+    if (existingTool != null && existingTool.type != investmentType) {
+      existingTool = null;
+    }
+    debugPrint('[InvestmentCubit] _handleBuy: looking for ticker=$ticker, accountId=$accountId, type=$investmentType, found=${existingTool?.id}');
 
     if (existingTool != null) {
       existingTool.quantity += quantity;
@@ -365,14 +364,12 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       throw Exception('No money tool found for account $accountId');
     }
 
-    ToolSummary? existingTool = accountData.tools.values.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.ticker == ticker &&
-          tool.accountId == accountId &&
-          tool.type == investmentType,
-      orElse: () => null,
-    );
+    ToolSummary? existingTool = accountData.getToolByTickerAndAccountId(ticker, accountId);
+    // Verify type matches
+    if (existingTool != null && existingTool.type != investmentType) {
+      existingTool = null;
+    }
+    debugPrint('[InvestmentCubit] _handleSell: looking for ticker=$ticker, accountId=$accountId, type=$investmentType, found=${existingTool?.id}');
 
     if (existingTool == null || existingTool.quantity < quantity) {
       throw Exception('Insufficient quantity of $ticker to sell');

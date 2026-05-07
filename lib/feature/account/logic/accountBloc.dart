@@ -161,7 +161,9 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
 
   Future<AccountData> _refreshTools() async {
     Map<String, ToolSummary> toolMap = accountData.tools;
-    (await ToolRepository().geList()).forEach((tool) async {
+    final toolsFromDb = await ToolRepository().geList();
+    debugPrint('[_refreshTools] Found ${toolsFromDb.length} tools in DB');
+    for (final tool in toolsFromDb) {
       ToolSummary toolSummary =
           toolMap.containsKey(tool.id)
               ? toolMap[tool.id]!
@@ -177,25 +179,29 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       toolSummary.quantity = 0;
       toolSummary.currentValue = 0;
       accountData.addTool(toolSummary);
-    });
+      debugPrint('[_refreshTools] Reset tool ${tool.id} (${tool.name}), ticker=${tool.ticker}');
+    }
 
     return accountData;
   }
 
   Future<AccountData> _refreshActivities() async {
     Map<String, ToolSummary> toolMap = accountData.tools;
-    (await ActivityRepository().getActivityList()).forEach((activity) async {
+    final activities = await ActivityRepository().getActivityList();
+    debugPrint('[_refreshActivities] Found ${activities.length} activities to replay');
+    for (final activity in activities) {
       if (toolMap.containsKey(activity.toolId)) {
         double quantity =
             activity.quantity * (activity.type == ActivityType.add ? 1 : -1);
         ToolSummary toolSummary = toolMap[activity.toolId]!;
         toolSummary.currentValue += activity.price * quantity;
         toolSummary.quantity += quantity;
-
+        debugPrint('[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, qty=$quantity, newValue=${toolSummary.currentValue}, newQty=${toolSummary.quantity}');
         accountData.addTool(toolSummary);
-        debugPrint("_refreshToolsByAccount new ${toolSummary.currentValue}");
+      } else {
+        debugPrint('[_refreshActivities] SKIPPED activity ${activity.id}: toolId=${activity.toolId} not found in toolMap');
       }
-    });
+    }
 
     return accountData;
   }
