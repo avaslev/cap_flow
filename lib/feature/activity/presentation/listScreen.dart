@@ -90,7 +90,7 @@ class _DayGroup extends StatelessWidget {
 }
 
 
-// /// Widget to display a single action item.
+// Widget to display a single action item.
 class _ActivityListItem extends StatelessWidget {
   final Activity action;
 
@@ -149,7 +149,7 @@ class _ActivityListItem extends StatelessWidget {
               ),
             ),
             Text(
-              '$sign${action.quantity.toStringAsFixed(2)} ${action.currency.name}',
+              '$sign${(action.price * action.quantity).toStringAsFixed(2)} ${action.currency.name}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: sumColor,
                     fontWeight: FontWeight.bold,

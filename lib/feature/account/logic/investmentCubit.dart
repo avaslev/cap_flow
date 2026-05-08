@@ -261,7 +261,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         toolId: moneyTool.id,
         type: ActivityType.substract,
         createAt: date,
-        quantity: instrumentCost + commission,
+        quantity: instrumentCost,
         price: 1,
         currency: Currency.RUB,
         isTransmit: false,
@@ -362,8 +362,8 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     }
 
     final totalProceeds = investmentType == ToolType.bonds
-        ? (quantity * price) + (accruedCouponIncome ?? 0.0) - commission
-        : (quantity * price) - commission;
+        ? (quantity * price) + (accruedCouponIncome ?? 0.0)
+        : (quantity * price);
 
     // Add Activity record for money tool change (money in)
     await ActivityRepository().insert(
@@ -379,6 +379,23 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         name: 'Sell $name (money in)',
       ),
     );
+
+    // Add separate Activity record for commission
+    if (commission > 0) {
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: moneyTool.id,
+          type: ActivityType.substract,
+          createAt: date,
+          quantity: commission,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Commission for $name',
+        ),
+      );
+    }
 
     // Create activity to reduce the instrument position
     await ActivityRepository().insert(
