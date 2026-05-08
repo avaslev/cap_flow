@@ -286,6 +286,23 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       );
     }
 
+    // Add Activity record for НКД (accrued coupon) when buying bonds
+    if (investmentType == ToolType.bonds && accruedCouponIncome != null && accruedCouponIncome > 0) {
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: moneyTool.id,
+          type: ActivityType.substract,
+          createAt: date,
+          quantity: accruedCouponIncome,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'НКД for $name (buy)',
+        ),
+      );
+    }
+
     ToolSummary? existingTool = accountData.getToolByTickerAndAccountId(ticker, accountId);
     // Verify type matches (getToolByTickerAndAccountId doesn't check type)
     if (existingTool != null && existingTool.type != investmentType) {
@@ -361,24 +378,37 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       throw Exception('Insufficient quantity of $ticker to sell');
     }
 
-    final totalProceeds = investmentType == ToolType.bonds
-        ? (quantity * price) + (accruedCouponIncome ?? 0.0)
-        : (quantity * price);
-
-    // Add Activity record for money tool change (money in)
+    // Add Activity record for money tool change (money in from sale)
     await ActivityRepository().insert(
       Activity(
         id: Uuid().v7(),
         toolId: moneyTool.id,
         type: ActivityType.add,
         createAt: date,
-        quantity: totalProceeds,
+        quantity: quantity * price,
         price: 1,
         currency: Currency.RUB,
         isTransmit: false,
         name: 'Sell $name (money in)',
       ),
     );
+
+    // Add Activity record for НКД (accrued coupon) when selling bonds
+    if (investmentType == ToolType.bonds && accruedCouponIncome != null && accruedCouponIncome > 0) {
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: moneyTool.id,
+          type: ActivityType.add,
+          createAt: date,
+          quantity: accruedCouponIncome,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'НКД for $name (sell)',
+        ),
+      );
+    }
 
     // Add separate Activity record for commission
     if (commission > 0) {
