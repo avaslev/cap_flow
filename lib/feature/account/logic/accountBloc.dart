@@ -160,26 +160,37 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
   }
 
   Future<AccountData> _refreshTools() async {
-    Map<String, ToolSummary> toolMap = accountData.tools;
     final toolsFromDb = await ToolRepository().geList();
     debugPrint('[_refreshTools] Found ${toolsFromDb.length} tools in DB');
+
+    // Track which tool IDs we saw in DB to know what to remove
+    final seenIds = <String>{};
+
     for (final tool in toolsFromDb) {
-      ToolSummary toolSummary =
-          toolMap.containsKey(tool.id)
-              ? toolMap[tool.id]!
-              : ToolSummary(
-                id: tool.id,
-                name: tool.name,
-                quantity: 0,
-                percentageChange: 0,
-                accountId: tool.accountId,
-                type: ToolType.values.byName(tool.type),
-                currentValue: 0,
-              );
-      toolSummary.quantity = 0;
-      toolSummary.currentValue = 0;
+      seenIds.add(tool.id);
+
+      // Always create tool with zero values - activity replay will set correct values
+      final toolSummary = ToolSummary(
+        id: tool.id,
+        name: tool.name,
+        quantity: 0,
+        percentageChange: 0,
+        accountId: tool.accountId,
+        type: ToolType.values.byName(tool.type),
+        currentValue: 0,
+        ticker: tool.ticker,
+      );
       accountData.addTool(toolSummary);
-      debugPrint('[_refreshTools] Reset tool ${tool.id} (${tool.name}), ticker=${tool.ticker}');
+      debugPrint('[_refreshTools] Tool ${tool.id} (${tool.name}) reset to zero for activity replay');
+    }
+
+    // Remove tools that are no longer in DB
+    final currentIds = accountData.tools.keys.toSet();
+    final toRemove = currentIds.difference(seenIds);
+    for (final id in toRemove) {
+      final tool = accountData.tools[id];
+      accountData.tools.remove(id);
+      debugPrint('[_refreshTools] Removed tool ${id} (${tool?.name}) - no longer in DB');
     }
 
     return accountData;
@@ -187,16 +198,28 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
 
   Future<AccountData> _refreshActivities() async {
     Map<String, ToolSummary> toolMap = accountData.tools;
+    // Reset all tool values to zero before replaying activities
+    for (final tool in toolMap.values) {
+      tool.quantity = 0;
+      tool.currentValue = 0;
+      tool.percentageChange = 0;
+    }
     final activities = await ActivityRepository().getActivityList();
     debugPrint('[_refreshActivities] Found ${activities.length} activities to replay');
     for (final activity in activities) {
       if (toolMap.containsKey(activity.toolId)) {
-        double quantity =
+        final toolSummary = toolMap[activity.toolId]!;
+        final double quantityChange =
             activity.quantity * (activity.type == ActivityType.add ? 1 : -1);
-        ToolSummary toolSummary = toolMap[activity.toolId]!;
-        toolSummary.currentValue += activity.price * quantity;
-        toolSummary.quantity += quantity;
-        debugPrint('[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, qty=$quantity, newValue=${toolSummary.currentValue}, newQty=${toolSummary.quantity}');
+        final double valueChange = activity.price * quantityChange;
+
+        // Update the tool with the activity's effect
+        toolSummary.quantity += quantityChange;
+        toolSummary.currentValue += valueChange;
+
+        debugPrint('[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, ' +
+            'qtyChange=${quantityChange.toStringAsFixed(2)}, valueChange=${valueChange.toStringAsFixed(2)}, ' +
+            'newQty=${toolSummary.quantity.toStringAsFixed(2)}, newValue=${toolSummary.currentValue.toStringAsFixed(2)}');
         accountData.addTool(toolSummary);
       } else {
         debugPrint('[_refreshActivities] SKIPPED activity ${activity.id}: toolId=${activity.toolId} not found in toolMap');

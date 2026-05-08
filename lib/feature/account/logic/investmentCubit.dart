@@ -201,13 +201,6 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     return moneyTools.isNotEmpty ? moneyTools.first : null;
   }
 
-  double _getMoneyToolUnitPrice(ToolSummary moneyTool) {
-    if (moneyTool.quantity > 0) {
-      return moneyTool.currentValue / moneyTool.quantity;
-    }
-    return moneyTool.ticker == 'USD' ? 90.0 : 1.0;
-  }
-
   Future<void> submit() async {
     emit(state.copyWith(formStatus: InvestmentFormStatus.loading));
 
@@ -229,26 +222,11 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     }
 
     try {
-      final String targetToolId;
       if (operationType == InvestmentOperationType.buy) {
-        targetToolId = await _handleBuy(ticker, name, quantity, price, commission, faceValue, accruedCouponIncome, date);
+        await _handleBuy(ticker, name, quantity, price, commission, faceValue, accruedCouponIncome, date);
       } else {
-        targetToolId = await _handleSell(ticker, name, quantity, price, commission, accruedCouponIncome, date);
+        await _handleSell(ticker, name, quantity, price, commission, accruedCouponIncome, date);
       }
-
-      await ActivityRepository().insert(
-        Activity(
-          id: Uuid().v7(),
-          toolId: targetToolId,
-          type: operationType == InvestmentOperationType.buy ? ActivityType.add : ActivityType.substract,
-          createAt: date,
-          quantity: quantity * price,
-          price: 1,
-          currency: Currency.RUB,
-          isTransmit: false,
-          name: '${operationType == InvestmentOperationType.buy ? "Buy" : "Sell"} $name',
-        ),
-      );
 
       emit(state.copyWith(formStatus: InvestmentFormStatus.success));
     } catch (e) {
@@ -275,12 +253,6 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     }
 
     final instrumentCost = quantity * price;
-
-    final moneyToolUnitPrice = _getMoneyToolUnitPrice(moneyTool);
-    moneyTool.currentValue -= (instrumentCost + commission);
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity -= ((instrumentCost + commission) / moneyToolUnitPrice);
-    }
 
     // Add Activity record for money tool change (money out)
     await ActivityRepository().insert(
@@ -322,23 +294,23 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     debugPrint('[InvestmentCubit] _handleBuy: looking for ticker=$ticker, accountId=$accountId, type=$investmentType, found=${existingTool?.id}');
 
     if (existingTool != null) {
-      existingTool.quantity += quantity;
-      existingTool.currentValue += (quantity * price);
+      // Create activity to increase the instrument position
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: existingTool.id,
+          type: ActivityType.add,
+          createAt: date,
+          quantity: quantity,
+          price: price,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Buy $name',
+        ),
+      );
       return existingTool.id;
     } else {
       final String newToolId = Uuid().v7();
-      final newTool = ToolSummary(
-        id: newToolId,
-        name: name,
-        quantity: quantity,
-        percentageChange: 0.0,
-        accountId: accountId,
-        type: investmentType,
-        currentValue: quantity * price,
-        ticker: ticker,
-        faceValue: investmentType == ToolType.bonds ? faceValue : null,
-      );
-      accountData.addTool(newTool);
       await ToolRepository().insert(Tool(
         id: newToolId,
         name: name,
@@ -346,6 +318,20 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         type: investmentType.name,
         ticker: ticker,
       ));
+      // Create activity to set the initial position
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: newToolId,
+          type: ActivityType.add,
+          createAt: date,
+          quantity: quantity,
+          price: price,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Buy $name',
+        ),
+      );
       return newToolId;
     }
   }
@@ -379,12 +365,6 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         ? (quantity * price) + (accruedCouponIncome ?? 0.0) - commission
         : (quantity * price) - commission;
 
-    final moneyToolUnitPrice = _getMoneyToolUnitPrice(moneyTool);
-    moneyTool.currentValue += totalProceeds;
-    if (moneyToolUnitPrice > 0) {
-      moneyTool.quantity += (totalProceeds / moneyToolUnitPrice);
-    }
-
     // Add Activity record for money tool change (money in)
     await ActivityRepository().insert(
       Activity(
@@ -400,8 +380,23 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       ),
     );
 
-    if (existingTool.quantity <= 0) {
-      accountData.tools.remove(existingTool.id);
+    // Create activity to reduce the instrument position
+    await ActivityRepository().insert(
+      Activity(
+        id: Uuid().v7(),
+        toolId: existingTool.id,
+        type: ActivityType.substract,
+        createAt: date,
+        quantity: quantity,
+        price: price,
+        currency: Currency.RUB,
+        isTransmit: false,
+        name: 'Sell $name',
+      ),
+    );
+
+    // If selling all, mark tool for deletion after activity replay
+    if (existingTool.quantity - quantity <= 0) {
       await ToolRepository().delete(existingTool.id);
     }
 
