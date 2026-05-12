@@ -6,6 +6,7 @@ import 'package:investflow/core/scaffold.dart';
 import 'package:investflow/core/theme/appTheme.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/accountsScreen.dart';
+import 'package:investflow/feature/account/presentation/widget/toolDetailScreen.dart';
 import 'package:investflow/feature/activity/logic/bloc.dart';
 import 'package:investflow/feature/activity/presentation/detailScreen.dart';
 import 'package:investflow/feature/activity/presentation/listScreen.dart';
@@ -295,6 +296,23 @@ class _InvestAppState extends State<InvestApp> {
                         child: BlocProvider(
                           create: (context) => ReportBloc(),
                           child: ReportScreen(accountId: accountId),
+                        ),
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: '/:accountId/tools/:toolId',
+                    pageBuilder: (context, state) {
+                      final String accountId = state.pathParameters['accountId']!;
+                      final String toolId = state.pathParameters['toolId']!;
+                      return FadeTransitionPage<dynamic>(
+                        key: state.pageKey,
+                        child: BlocProvider(
+                          create: (context) => AccountsBloc(),
+                          child: ToolDetailScreen(
+                            accountId: accountId,
+                            toolId: toolId,
+                          ),
                         ),
                       );
                     },

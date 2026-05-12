@@ -1,6 +1,7 @@
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 /// A widget to display a list of financial tools.
@@ -78,7 +79,7 @@ class ToolList extends StatelessWidget {
               ),
             ),
             ...toolsInGroup
-                .map<Widget>((ToolSummary tool) => ToolTile(tool: tool))
+                .map<Widget>((ToolSummary tool) => ToolTile(tool: tool, accountId: accountId))
                 .toList(),
           ],
         );
@@ -90,10 +91,12 @@ class ToolList extends StatelessWidget {
 /// A widget to display a single financial tool/asset.
 class ToolTile extends StatelessWidget {
   final ToolSummary tool;
+  final String accountId;
 
   const ToolTile({
     Key? key,
     required this.tool,
+    required this.accountId,
   }) : super(key: key);
 
   IconData _getToolIcon(ToolType type) {
@@ -141,7 +144,12 @@ class ToolTile extends StatelessWidget {
     final Color positiveChangeColor = colorScheme.primary.withOpacity(0.8);
     final Color negativeChangeColor = colorScheme.error;
 
-    return Card(
+    return InkWell(
+      onTap: () {
+        context.go('/accounts/$accountId/tools/${tool.id}');
+      },
+      borderRadius: BorderRadius.circular(12.0),
+      child: Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -261,7 +269,7 @@ class ToolTile extends StatelessWidget {
                             : colorScheme.error,
                       ),
                 ),
-                if (tool.percentageChange != 0) ...<Widget>[
+                if (tool.percentageChange != 0) ...[
                   const SizedBox(height: 4),
                   Text(
                     '${tool.percentageChange >= 0 ? '+' : ''}${tool.percentageChange.toStringAsFixed(2)}% ${tool.type == ToolType.deposit ? '(APY)' : ''}',
@@ -279,6 +287,7 @@ class ToolTile extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
