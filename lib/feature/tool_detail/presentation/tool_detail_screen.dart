@@ -137,49 +137,45 @@ class ToolDetailScreen extends StatelessWidget {
         ),
 
         // Tab bar or direct content for money
-        if (tool.type == 'MONEY') {
-          // For money tools, show performance directly without tabs
-          Expanded(
-            child: _buildPerformanceTab(tool, context),
-          ),
-        } else {
-          // For other tools, show tabs
-          DefaultTabController(
-            length: tabs.length,
-            child: Expanded(
-              child: Column(
-                children: [
-                  TabBar(
-                    tabs: tabs,
-                    isScrollable: true,
-                    labelColor: Theme.of(context).primaryColor,
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: Theme.of(context).primaryColor,
+        tool.type == 'MONEY'
+            ? Expanded(
+                child: _buildPerformanceTab(tool, context),
+              )
+            : DefaultTabController(
+                length: tabs.length,
+                child: Expanded(
+                  child: Column(
+                    children: [
+                      TabBar(
+                        tabs: tabs,
+                        isScrollable: true,
+                        labelColor: Theme.of(context).primaryColor,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: Theme.of(context).primaryColor,
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: TabBarView(
+                          children: tabs.map((tab) {
+                            switch (tab.text) {
+                              case 'Overview':
+                                return _buildOverviewTab(tool, context);
+                              case 'Performance':
+                                return _buildPerformanceTab(tool, context);
+                              case 'Transactions':
+                                return _buildTransactionsTab(tool, context);
+                              case 'Details':
+                                return _buildDetailsTab(tool, context);
+                              default:
+                                return const Center(child: Text('Tab not implemented'));
+                            }
+                          }).toList(),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: TabBarView(
-                      children: tabs.map((tab) {
-                        switch (tab.text) {
-                          case 'Overview':
-                            return _buildOverviewTab(tool, context);
-                          case 'Performance':
-                            return _buildPerformanceTab(tool, context);
-                          case 'Transactions':
-                            return _buildTransactionsTab(tool, context);
-                          case 'Details':
-                            return _buildDetailsTab(tool, context);
-                          default:
-                            return const Center(child: Text('Tab not implemented'));
-                        }
-                      }).toList(),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        },
       ],
     );
   }
@@ -191,6 +187,7 @@ class ToolDetailScreen extends StatelessWidget {
           const Tab(text: 'Performance'),
         ];
       case 'STOCK':
+      case 'STOCKS':
         return [
           const Tab(text: 'Overview'),
           const Tab(text: 'Performance'),
@@ -210,7 +207,7 @@ class ToolDetailScreen extends StatelessWidget {
   Widget _buildOverviewTab(ToolDetailDisplay tool, BuildContext context) {
     if (tool.type == 'MONEY') {
       return MoneyAssetTab(tool: tool);
-    } else if (tool.type == 'STOCK') {
+    } else if (tool.type == 'STOCK' || tool.type == 'STOCKS') {
       return StockAssetTab(tool: tool);
     } else if (tool.type == 'BOND') {
       return BondAssetTab(tool: tool);
@@ -417,6 +414,7 @@ class ToolDetailScreen extends StatelessWidget {
       case 'MONEY':
         return 'Cash';
       case 'STOCK':
+      case 'STOCKS':
         return 'Stock';
       case 'BOND':
         return 'Bond';
@@ -430,6 +428,7 @@ class ToolDetailScreen extends StatelessWidget {
       case 'MONEY':
         return Colors.blue;
       case 'STOCK':
+      case 'STOCKS':
         return Colors.green;
       case 'BOND':
         return Colors.orange;
