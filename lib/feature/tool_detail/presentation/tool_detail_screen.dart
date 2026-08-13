@@ -194,6 +194,7 @@ class ToolDetailScreen extends StatelessWidget {
           const Tab(text: 'Transactions'),
         ];
       case 'BOND':
+      case 'BONDS':
         return [
           const Tab(text: 'Overview'),
           const Tab(text: 'Details'),
@@ -209,7 +210,7 @@ class ToolDetailScreen extends StatelessWidget {
       return MoneyAssetTab(tool: tool);
     } else if (tool.type == 'STOCK' || tool.type == 'STOCKS') {
       return StockAssetTab(tool: tool);
-    } else if (tool.type == 'BOND') {
+    } else if (tool.type == 'BOND' || tool.type == 'BONDS') {
       return BondAssetTab(tool: tool);
     }
     return _buildGenericOverview(tool, context);
@@ -417,6 +418,7 @@ class ToolDetailScreen extends StatelessWidget {
       case 'STOCKS':
         return 'Stock';
       case 'BOND':
+      case 'BONDS':
         return 'Bond';
       default:
         return type;
@@ -431,6 +433,7 @@ class ToolDetailScreen extends StatelessWidget {
       case 'STOCKS':
         return Colors.green;
       case 'BOND':
+      case 'BONDS':
         return Colors.orange;
       default:
         return Colors.grey;
