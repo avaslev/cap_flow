@@ -1,5 +1,7 @@
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/data/models/tool.dart';
+import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 
 /// Repository for tool detail operations.
@@ -8,59 +10,64 @@ import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 /// maintaining isolation from other modules.
 class ToolDetailRepository {
   final ToolRepository _repo = ToolRepository();
+  final ActivityRepository _activityRepo = ActivityRepository();
 
   /// Gets a tool by its ID and converts it to display format.
   Future<ToolDetailDisplay> get(String toolId) async {
-    // For now, return mock data for testing
-    if (toolId.startsWith('money')) {
-      return ToolDetailDisplay(
-        id: toolId,
-        name: 'Main Checking Account',
-        quantity: 10000.0,
-        percentageChange: 0.0,
-        accountId: 'acc123',
-        type: 'MONEY',
-        currentValue: 10000.0,
-        ticker: 'USD',
-        startDate: DateTime(2024, 1, 1),
-        endDate: DateTime(2025, 12, 31),
-      );
-    } else if (toolId.startsWith('stock')) {
-      return ToolDetailDisplay(
-        id: toolId,
-        name: 'Apple Inc.',
-        quantity: 100.0,
-        percentageChange: 2.5,
-        accountId: 'acc123',
-        type: 'STOCK',
-        currentValue: 180.0,
-        ticker: 'AAPL',
-      );
-    } else if (toolId.startsWith('bond')) {
-      return ToolDetailDisplay(
-        id: toolId,
-        name: 'US Treasury Bond',
-        quantity: 5.0,
-        percentageChange: 0.8,
-        accountId: 'acc123',
-        type: 'BOND',
-        currentValue: 5250.0,
-        faceValue: 1000.0,
-        interestRate: 0.03,
-        startDate: DateTime(2024, 1, 1),
-        endDate: DateTime(2025, 6, 15),
-        paymentDayOfMonth: 15,
-      );
-    }
-
+    // Fetch the tool from the database
     final tool = await _repo.get(toolId);
 
-    // Note: The Tool model doesn't contain all fields needed for ToolDetailDisplay.
-    // Fields like quantity and currentValue need to be calculated from activities.
-    // This is a limitation of the current architecture where event replay is
-    // handled at a higher level (AccountData level).
+    // Fetch all activities for this tool to calculate quantity and currentValue
+    final activities = await _activityRepo.getActivityListByTool(toolId);
 
-    return ToolDetailDisplay.fromTool(tool);
+    // Calculate total quantity and current value by replaying activities
+    double totalQuantity = 0.0;
+    double currentValue = 0.0;
+
+    for (final activity in activities) {
+      final quantityChange = activity.quantity *
+          (activity.type == ActivityType.add ? 1 : -1);
+      final valueChange = activity.price * quantityChange;
+
+      totalQuantity += quantityChange;
+      currentValue += valueChange;
+    }
+
+    // For stocks and bonds, calculate percentage change based on last price
+    double percentageChange = 0.0;
+    if (tool.type == 'STOCK' && activities.isNotEmpty) {
+      // Get the last activity for price comparison
+      final sortedActivities = List<Activity>.from(activities)..sort(
+        (a, b) => b.createAt.compareTo(a.createAt),
+      );
+      final latestActivity = sortedActivities.first;
+
+      // Calculate percentage change from initial to current value
+      if (totalQuantity > 0 && latestActivity.price > 0) {
+        final avgPrice = currentValue / totalQuantity;
+        final initialPrice = latestActivity.price; // Simplified - using latest price as reference
+        percentageChange = ((avgPrice - initialPrice) / initialPrice) * 100;
+      }
+    } else if (tool.type == 'BOND' && totalQuantity > 0) {
+      // For bonds, calculate yield based on current value vs face value
+      percentageChange = ((currentValue / totalQuantity) - (tool.faceValue ?? 0)) / (tool.faceValue ?? 0) * 100;
+    }
+
+    return ToolDetailDisplay(
+      id: tool.id,
+      name: tool.name,
+      quantity: totalQuantity,
+      percentageChange: percentageChange,
+      accountId: tool.accountId,
+      type: tool.type.toUpperCase(),
+      currentValue: currentValue,
+      ticker: tool.ticker,
+      startDate: tool.startDate,
+      endDate: tool.endDate,
+      interestRate: tool.interestRate,
+      faceValue: tool.faceValue,
+      paymentDayOfMonth: tool.paymentDayOfMonth,
+    );
   }
 
   /// Gets a tool by its ID as a plain Tool object.

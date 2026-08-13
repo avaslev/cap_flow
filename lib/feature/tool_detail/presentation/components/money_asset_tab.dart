@@ -22,172 +22,33 @@ class MoneyAssetTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Balance cards
-            Row(
-              children: [
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Available',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '\$${tool.currentValue.toStringAsFixed(2)}',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Total Balance',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '\$${(tool.currentValue * 1.05).toStringAsFixed(2)}',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '+${(5).toStringAsFixed(1)}%',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Quick actions
-            Text(
-              'Quick Actions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildActionCard(
-              context,
-              icon: Icons.account_balance,
-              title: 'Pay Bills',
-              subtitle: 'Schedule and pay bills',
-              onTap: () => _showBillsDialog(context),
-            ),
-            const SizedBox(height: 12),
-            _buildActionCard(
-              context,
-              icon: Icons.transfer_within_a_station,
-              title: 'Transfer Money',
-              subtitle: 'Send to accounts or people',
-              onTap: () => _showTransferDialog(context),
-            ),
-            const SizedBox(height: 12),
-            _buildActionCard(
-              context,
-              icon: Icons.credit_card,
-              title: 'Pay with Card',
-              subtitle: 'Use debit card',
-              onTap: () => _showCardDialog(context),
-            ),
-            const SizedBox(height: 12),
-            _buildActionCard(
-              context,
-              icon: Icons.qr_code_scanner,
-              title: 'Scan QR',
-              subtitle: 'Pay with QR code',
-              onTap: () => _showQRDialog(context),
-            ),
-            const SizedBox(height: 12),
-            _buildActionCard(
-              context,
-              icon: Icons.history,
-              title: 'Transaction History',
-              subtitle: 'View all transactions',
-              onTap: () => _showHistory(context),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Quick stats
-            Text(
-              'Quick Stats',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(child: _buildStatCard('Monthly Income', '\$2,500', context)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildStatCard('Monthly Expenses', '\$3,200', context)),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Information section
-            Text(
-              'Account Information',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
+            // Balance card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoRow('Account ID', tool.accountId, context),
-                    _buildInfoRow('Type', 'Checking Account', context),
-                    _buildInfoRow('Currency', tool.ticker ?? 'USD', context),
-                    _buildInfoRow('Account Number', '****1234', context),
-                    _buildInfoRow('Routing Number', '021000021', context),
-                    _buildInfoRow('Opened', '${tool.startDate?.toLocal()}'.split(' ')[0] ?? 'N/A', context),
-                    _buildInfoRow('Status', 'Active', context),
+                    Text(
+                      'Balance',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${tool.currentValue.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ],
+
+                      ],
         ),
       ),
     );

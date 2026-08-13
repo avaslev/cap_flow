@@ -136,42 +136,50 @@ class ToolDetailScreen extends StatelessWidget {
           ),
         ),
 
-        // Tab bar
-        DefaultTabController(
-          length: tabs.length,
-          child: Expanded(
-            child: Column(
-              children: [
-                TabBar(
-                  tabs: tabs,
-                  isScrollable: true,
-                  labelColor: Theme.of(context).primaryColor,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: Theme.of(context).primaryColor,
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: TabBarView(
-                    children: tabs.map((tab) {
-                      switch (tab.text) {
-                        case 'Overview':
-                          return _buildOverviewTab(tool, context);
-                        case 'Performance':
-                          return _buildPerformanceTab(tool, context);
-                        case 'Transactions':
-                          return _buildTransactionsTab(tool, context);
-                        case 'Details':
-                          return _buildDetailsTab(tool, context);
-                        default:
-                          return const Center(child: Text('Tab not implemented'));
-                      }
-                    }).toList(),
+        // Tab bar or direct content for money
+        if (tool.type == 'MONEY') {
+          // For money tools, show performance directly without tabs
+          Expanded(
+            child: _buildPerformanceTab(tool, context),
+          ),
+        } else {
+          // For other tools, show tabs
+          DefaultTabController(
+            length: tabs.length,
+            child: Expanded(
+              child: Column(
+                children: [
+                  TabBar(
+                    tabs: tabs,
+                    isScrollable: true,
+                    labelColor: Theme.of(context).primaryColor,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Theme.of(context).primaryColor,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: TabBarView(
+                      children: tabs.map((tab) {
+                        switch (tab.text) {
+                          case 'Overview':
+                            return _buildOverviewTab(tool, context);
+                          case 'Performance':
+                            return _buildPerformanceTab(tool, context);
+                          case 'Transactions':
+                            return _buildTransactionsTab(tool, context);
+                          case 'Details':
+                            return _buildDetailsTab(tool, context);
+                          default:
+                            return const Center(child: Text('Tab not implemented'));
+                        }
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        },
       ],
     );
   }
@@ -180,7 +188,6 @@ class ToolDetailScreen extends StatelessWidget {
     switch (tool.type) {
       case 'MONEY':
         return [
-          const Tab(text: 'Overview'),
           const Tab(text: 'Performance'),
         ];
       case 'STOCK':
