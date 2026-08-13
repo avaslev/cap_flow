@@ -6,7 +6,7 @@ import 'package:investflow/core/scaffold.dart';
 import 'package:investflow/core/theme/appTheme.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/accountsScreen.dart';
-import 'package:investflow/feature/tool_detail/presentation/toolDetailScreen.dart';
+import 'package:investflow/feature/tool_detail/presentation/tool_detail_screen.dart';
 import 'package:investflow/feature/activity/logic/bloc.dart';
 import 'package:investflow/feature/activity/presentation/detailScreen.dart';
 import 'package:investflow/feature/activity/presentation/listScreen.dart';

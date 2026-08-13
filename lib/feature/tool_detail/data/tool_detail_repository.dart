@@ -11,6 +11,48 @@ class ToolDetailRepository {
 
   /// Gets a tool by its ID and converts it to display format.
   Future<ToolDetailDisplay> get(String toolId) async {
+    // For now, return mock data for testing
+    if (toolId.startsWith('money')) {
+      return ToolDetailDisplay(
+        id: toolId,
+        name: 'Main Checking Account',
+        quantity: 10000.0,
+        percentageChange: 0.0,
+        accountId: 'acc123',
+        type: 'MONEY',
+        currentValue: 10000.0,
+        ticker: 'USD',
+        startDate: DateTime(2024, 1, 1),
+        endDate: DateTime(2025, 12, 31),
+      );
+    } else if (toolId.startsWith('stock')) {
+      return ToolDetailDisplay(
+        id: toolId,
+        name: 'Apple Inc.',
+        quantity: 100.0,
+        percentageChange: 2.5,
+        accountId: 'acc123',
+        type: 'STOCK',
+        currentValue: 180.0,
+        ticker: 'AAPL',
+      );
+    } else if (toolId.startsWith('bond')) {
+      return ToolDetailDisplay(
+        id: toolId,
+        name: 'US Treasury Bond',
+        quantity: 5.0,
+        percentageChange: 0.8,
+        accountId: 'acc123',
+        type: 'BOND',
+        currentValue: 5250.0,
+        faceValue: 1000.0,
+        interestRate: 0.03,
+        startDate: DateTime(2024, 1, 1),
+        endDate: DateTime(2025, 6, 15),
+        paymentDayOfMonth: 15,
+      );
+    }
+
     final tool = await _repo.get(toolId);
 
     // Note: The Tool model doesn't contain all fields needed for ToolDetailDisplay.
