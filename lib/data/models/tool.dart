@@ -40,7 +40,7 @@ class Tool {
       'type': type,
       'ticker': ticker,
       'startDate': startDate?.millisecondsSinceEpoch,
-      'endDate': endDate?.microsecondsSinceEpoch,
+      'endDate': endDate?.millisecondsSinceEpoch,
       'payType': payType,
       'interestRate': interestRate,
       'paymentDayOfMonth': paymentDayOfMonth,

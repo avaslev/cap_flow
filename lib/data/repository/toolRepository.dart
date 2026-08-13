@@ -11,11 +11,6 @@ class ToolRepository {
 
   Future<Tool> get(String id) async {
     Database db = await DatabaseHelper.instance.db;
-    print((await db.query(
-      'tools',
-      where: 'id = ?',
-      whereArgs: [id]
-    )).first);
     return Tool.fromMap((await db.query(
       'tools',
       where: 'id = ?',
@@ -38,5 +33,15 @@ class ToolRepository {
   Future<void> delete(String id) async {
     Database db = await DatabaseHelper.instance.db;
     await db.delete('tools', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> update(Tool tool) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.update(
+      'tools',
+      tool.toMap(),
+      where: 'id = ?',
+      whereArgs: [tool.id],
+    );
   }
 }
