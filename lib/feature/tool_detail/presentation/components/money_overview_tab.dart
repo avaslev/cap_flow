@@ -22,7 +22,7 @@ class MoneyOverviewTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Balance card
+            // Balance card only
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -45,53 +45,6 @@ class MoneyOverviewTab extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Quick actions
-            Text(
-              'Quick Actions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionCard(
-                    context,
-                    icon: Icons.send,
-                    title: 'Send',
-                    subtitle: 'Transfer money',
-                    onTap: () => _showTransferDialog(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildActionCard(
-                    context,
-                    icon: Icons.money_off,
-                    title: 'Withdraw',
-                    subtitle: 'Cash out',
-                    onTap: () => _showWithdrawDialog(context),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Expanded(
-              child: _buildActionCard(
-                context,
-                icon: Icons.payment,
-                title: 'Pay Bills',
-                subtitle: 'Pay your bills',
-                onTap: () => _showBillsDialog(context),
               ),
             ),
           ],

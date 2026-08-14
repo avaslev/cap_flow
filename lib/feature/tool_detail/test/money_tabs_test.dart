@@ -39,11 +39,14 @@ void main() {
       // Check if the balance is displayed
       expect(find.text('\$10,000.00'), findsOneWidget);
 
-      // Check if quick actions are present
-      expect(find.text('Quick Actions'), findsOneWidget);
-      expect(find.text('Send'), findsOneWidget);
-      expect(find.text('Withdraw'), findsOneWidget);
-      expect(find.text('Pay Bills'), findsOneWidget);
+      // Check if balance label is displayed
+      expect(find.text('Current Balance'), findsOneWidget);
+
+      // Quick actions should NOT be present in overview tab
+      expect(find.text('Quick Actions'), findsNothing);
+      expect(find.text('Send'), findsNothing);
+      expect(find.text('Withdraw'), findsNothing);
+      expect(find.text('Pay Bills'), findsNothing);
     });
 
     testWidgets('MoneyPerformanceTab displays correctly', (WidgetTester tester) async {

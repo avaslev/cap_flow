@@ -21,38 +21,7 @@ class MoneyPerformanceTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // Balance over time chart placeholder
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Text(
-                    'Balance History',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Chart would be displayed here',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Performance metrics
+          // Performance metrics only
           Text(
             'Performance Metrics',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(

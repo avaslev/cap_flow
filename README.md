@@ -1,20 +1,55 @@
-# Navigation and Routing
-A sample that shows how to use [go_router](https://pub.dev/packages/go_router)
-API to handle common navigation scenarios.
+# InvestFlow
 
-## Goals
-- Demonstrate common navigation scenarios:
-  - Parsing path parameters (`/user/:id`)
-  - Sign in (redirection)
-  - Nested navigation using ShellRoute
-- Demonstrate how [deep linking](https://docs.flutter.dev/ui/navigation/deep-linking#get-started) is configured on iOS and Android
-- Demonstrate how to use the Link widget from `package:url_Launcher` with the
-  Router API.
+Flutter-приложение для учёта личных финансов и инвестиций. Позволяет вести счета, отслеживать финансовые инструменты (деньги, депозиты, акции, облигации, кредиты), фиксировать операции и строить отчёты.
 
-## Developmet 
+## Возможности
 
-https://stackoverflow.com/questions/62857688/how-to-make-flutter-work-on-wsl2-using-hosts-emulator
+- Управление счетами с настройками отображения и исключением из общего итога
+- Финансовые инструменты: наличные/деньги, депозиты, акции, облигации, кредиты
+- Ввод операций (покупка/продажа/пополнение) с учётом валюты (RUB, USD)
+- Отслеживание событий по инструментам
+- Отчёты и аналитика (графики на `fl_chart`)
+- Автономная работа: все данные хранятся локально в SQLite
 
-## Links
+## Технологии
 
-https://github.com/fluttergems/awesome-open-source-flutter-apps
+| Компонент | Технология |
+|---|---|
+| Фреймворк | Flutter (Material 3) |
+| Состояние | flutter_bloc ^9.1.1 |
+| Навигация | go_router ^15.0.0, adaptive_navigation |
+| База данных | sqflite (SQLite, локально) |
+| Графики | fl_chart ^1.1.1 |
+| Идентификаторы | UUID v7 |
+
+Поддерживаемые платформы: Windows, Linux, macOS, Web, Android, iOS.
+
+## Быстрый старт
+
+```bash
+flutter pub get
+flutter run
+```
+
+При запуске автоматически инициализируется локальная база данных и применяются миграции.
+
+## Структура проекта
+
+```
+lib/
+├── core/       # Приложение, БД, тема, утилиты
+├── data/       # Модели и репозитории (данные)
+├── feature/    # Фичи: account, activity, event, report, tool_detail
+├── widgets/    # Переиспользуемые виджеты
+└── main.dart   # Точка входа
+```
+
+Подробное описание архитектуры и соглашений по коду — в [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Архитектура
+
+- **Feature-based** структура: каждая фича содержит свои `data`, `logic` (BLoC/Cubit) и `presentation`
+- **BLoC** как основной паттерн управления состоянием
+- **Repository pattern** для доступа к данным
+- **Local-first**: без бэкенда, всё в локальной SQLite
+- **Event replay**: при изменении данных значения инструментов пересчитываются переигровкой операций из БД
