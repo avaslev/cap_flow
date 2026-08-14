@@ -4,7 +4,8 @@ import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
-import 'package:investflow/feature/tool_detail/presentation/components/money_asset_tab.dart';
+import 'package:investflow/feature/tool_detail/presentation/components/money_overview_tab.dart';
+import 'package:investflow/feature/tool_detail/presentation/components/money_performance_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/stock_asset_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/bond_asset_tab.dart';
 
@@ -136,46 +137,42 @@ class ToolDetailScreen extends StatelessWidget {
           ),
         ),
 
-        // Tab bar or direct content for money
-        tool.type == 'MONEY'
-            ? Expanded(
-                child: _buildPerformanceTab(tool, context),
-              )
-            : DefaultTabController(
-                length: tabs.length,
-                child: Expanded(
-                  child: Column(
-                    children: [
-                      TabBar(
-                        tabs: tabs,
-                        isScrollable: true,
-                        labelColor: Theme.of(context).primaryColor,
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: TabBarView(
-                          children: tabs.map((tab) {
-                            switch (tab.text) {
-                              case 'Overview':
-                                return _buildOverviewTab(tool, context);
-                              case 'Performance':
-                                return _buildPerformanceTab(tool, context);
-                              case 'Transactions':
-                                return _buildTransactionsTab(tool, context);
-                              case 'Details':
-                                return _buildDetailsTab(tool, context);
-                              default:
-                                return const Center(child: Text('Tab not implemented'));
-                            }
-                          }).toList(),
-                        ),
-                      ),
-                    ],
+        // Always use TabBar for consistency across all asset types
+        DefaultTabController(
+          length: tabs.length,
+          child: Expanded(
+            child: Column(
+              children: [
+                TabBar(
+                  tabs: tabs,
+                  isScrollable: true,
+                  labelColor: Theme.of(context).primaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: TabBarView(
+                    children: tabs.map((tab) {
+                      switch (tab.text) {
+                        case 'Overview':
+                          return _buildOverviewTab(tool, context);
+                        case 'Performance':
+                          return _buildPerformanceTab(tool, context);
+                        case 'Transactions':
+                          return _buildTransactionsTab(tool, context);
+                        case 'Details':
+                          return _buildDetailsTab(tool, context);
+                        default:
+                          return const Center(child: Text('Tab not implemented'));
+                      }
+                    }).toList(),
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -184,6 +181,7 @@ class ToolDetailScreen extends StatelessWidget {
     switch (tool.type) {
       case 'MONEY':
         return [
+          const Tab(text: 'Overview'),
           const Tab(text: 'Performance'),
         ];
       case 'STOCK':
@@ -207,7 +205,7 @@ class ToolDetailScreen extends StatelessWidget {
 
   Widget _buildOverviewTab(ToolDetailDisplay tool, BuildContext context) {
     if (tool.type == 'MONEY') {
-      return MoneyAssetTab(tool: tool);
+      return MoneyOverviewTab(tool: tool);
     } else if (tool.type == 'STOCK' || tool.type == 'STOCKS') {
       return StockAssetTab(tool: tool);
     } else if (tool.type == 'BOND' || tool.type == 'BONDS') {
@@ -242,6 +240,9 @@ class ToolDetailScreen extends StatelessWidget {
   }
 
   Widget _buildPerformanceTab(ToolDetailDisplay tool, BuildContext context) {
+    if (tool.type == 'MONEY') {
+      return MoneyPerformanceTab(tool: tool);
+    }
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
