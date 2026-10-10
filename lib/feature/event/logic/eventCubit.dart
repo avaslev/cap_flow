@@ -113,7 +113,17 @@ class FinancialEventCubit extends Cubit<FinancialEventEditState> {
         await _repo.add(event.toScheduledTransaction(state.accountId, totalExecutions, 0));
       } else {
         final st = await _repo.getById(state.event.id);
-        await _repo.update(state.event.toScheduledTransaction(state.accountId, st.totalExecutions, st.executedCount));
+        // The form date represents the next execution; keep the original
+        // first-occurrence date as the recurrence anchor.
+        await _repo.update(
+          state.event
+              .toScheduledTransaction(
+                state.accountId,
+                st.totalExecutions,
+                st.executedCount,
+              )
+              .copyWith(date: st.date),
+        );
       }
 
       emit(state.copyWith(formStatus: FormStatus.success));

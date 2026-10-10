@@ -18,6 +18,7 @@ class FinancialEventLoaded extends FinancialEventState {
   final List<Wallet> wallets;
   final List<String> categories;
   final String accountId;
+
   const FinancialEventLoaded(this.events, this.wallets, this.categories, this.accountId);
 }
 

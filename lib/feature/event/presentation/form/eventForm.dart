@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:investflow/core/utils/calculateNextOccurrence.dart';
 import 'package:investflow/feature/event/data/event.dart';
 import 'package:investflow/feature/event/data/wallet.dart';
 import 'package:investflow/feature/event/logic/eventBloc.dart';
+import 'package:investflow/feature/event/logic/eventEvent.dart';
 import 'package:investflow/feature/event/logic/eventCubit.dart';
 import 'package:investflow/feature/event/logic/eventState.dart';
 
@@ -29,25 +31,25 @@ class FinancialEventForm extends StatelessWidget {
         listener: (BuildContext context, FinancialEventEditState state) {
           if (state.formStatus == FormStatus.success) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Event added successfully!')),
+              const SnackBar(content: Text('Событие сохранено')),
             );
             Navigator.pop(context);
           } else if (state.formStatus == FormStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to add event')),
+              const SnackBar(content: Text('Не удалось сохранить событие')),
             );
           } else if (state.formStatus == FormStatus.validationError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Please check your input. ${state.errorMessage}'),
+                content: Text('Проверьте заполнение полей. ${state.errorMessage ?? ''}'),
               ),
             );
           }
         },
         child: _FinancialEventFormContent(
-          scrollController:
-              ModalRoute.of(context)?.settings.arguments as ScrollController?,
-        ), // ✅ Передаем scrollController
+          scrollController: scrollController,
+          isEditing: event != null,
+        ),
       ),
     );
   }
@@ -56,17 +58,123 @@ class FinancialEventForm extends StatelessWidget {
 /// The actual content of the Add Activity form, built using `BlocBuilder`.
 class _FinancialEventFormContent extends StatefulWidget {
   final ScrollController? scrollController;
+  final bool isEditing;
 
-  const _FinancialEventFormContent({this.scrollController});
+  const _FinancialEventFormContent({
+    this.scrollController,
+    this.isEditing = false,
+  });
 
   @override
   State<_FinancialEventFormContent> createState() =>
-      _FinancialEventFormmContentState();
+      _FinancialEventFormContentState();
 }
 
-class _FinancialEventFormmContentState
+class _FinancialEventFormContentState
     extends State<_FinancialEventFormContent> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final FinancialEvent _originalEvent;
+
+  @override
+  void initState() {
+    super.initState();
+    _originalEvent = context.read<FinancialEventCubit>().state.event;
+    // Default wallet for new events — once, instead of a side effect in build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final FinancialEventEditState state = context
+          .read<FinancialEventCubit>()
+          .state;
+      if (state.event.walletId.isEmpty) {
+        final FinancialEventLoaded? blocState =
+            context.read<FinancialEventBloc>().state
+                as FinancialEventLoaded?;
+        if (blocState != null && blocState.wallets.isNotEmpty) {
+          context
+              .read<FinancialEventCubit>()
+              .walletChanged(blocState.wallets.first.id);
+        }
+      }
+    });
+  }
+
+  /// True when the user changed anything compared to the original event.
+  bool _hasUnsavedChanges(FinancialEventEditState state) {
+    final FinancialEvent original = _originalEvent;
+    final FinancialEvent current = state.event;
+    if (original.id.isEmpty) {
+      // New event: any meaningful input counts as unsaved progress.
+      return current.name.isNotEmpty ||
+          current.amount > 0 ||
+          current.category.isNotEmpty ||
+          (current.comment != null && current.comment!.isNotEmpty) ||
+          current.walletId.isNotEmpty ||
+          current.destinationWalletId != null ||
+          current.recurrenceType != RecurrenceType.none;
+    }
+    return current.name != original.name ||
+        current.amount != original.amount ||
+        current.type != original.type ||
+        current.category != original.category ||
+        current.comment != original.comment ||
+        current.date != original.date ||
+        current.walletId != original.walletId ||
+        current.destinationWalletId != original.destinationWalletId ||
+        current.recurrenceType != original.recurrenceType ||
+        current.recurrenceEndDate != original.recurrenceEndDate ||
+        current.recurrenceDayOfMonth != original.recurrenceDayOfMonth;
+  }
+
+  /// Asks the user before discarding unsaved input.
+  Future<void> _confirmDiscard() async {
+    final FinancialEventEditState state = context
+        .read<FinancialEventCubit>()
+        .state;
+    if (!_hasUnsavedChanges(state)) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final bool? discard = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Закрыть без сохранения?'),
+          content: const Text(
+            'Вы изменили данные события. Закрыть без сохранения?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Продолжить редактирование'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Закрыть'),
+            ),
+          ],
+        );
+      },
+    );
+    if (discard == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  VoidCallback _buildSavePressed(
+    BuildContext context,
+    FinancialEventEditState editState,
+    GlobalKey<FormState> formKey,
+  ) {
+    return () {
+      if (formKey.currentState!.validate()) {
+        context.read<FinancialEventCubit>().submit();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Проверьте заполнение полей.')),
+        );
+      }
+    };
+  }
 
   Future<void> _selectRecurrenceEndDate(
     BuildContext context,
@@ -99,10 +207,16 @@ class _FinancialEventFormmContentState
     final FinancialEventLoaded eventsState =
         context.watch<FinancialEventBloc>().state as FinancialEventLoaded;
 
-    return SingleChildScrollView(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        _confirmDiscard();
+      },
+      child: SingleChildScrollView(
+        controller: widget.scrollController,
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -121,7 +235,9 @@ class _FinancialEventFormmContentState
           Padding(
             padding: const EdgeInsets.only(bottom: 24.0),
             child: Text(
-              "Event",
+              widget.isEditing
+                  ? 'Редактирование события'
+                  : 'Новое событие',
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                 fontWeight: FontWeight.bold,
                 color: colorScheme.onSurface,
@@ -131,29 +247,14 @@ class _FinancialEventFormmContentState
 
           BlocBuilder<FinancialEventCubit, FinancialEventEditState>(
             builder: (BuildContext context, FinancialEventEditState editState) {
-              if (editState.event.walletId.isEmpty) {
-                context.read<FinancialEventCubit>().walletChanged(
-                  eventsState.wallets.first.id,
-                );
-              }
-
               return Form(
                 key: _formKey,
-                child: SingleChildScrollView(
-                  child: BlocBuilder<
-                    FinancialEventCubit,
-                    FinancialEventEditState
-                  >(
-                    builder: (
-                      BuildContext context,
-                      FinancialEventEditState editState,
-                    ) {
-                      if (editState.event.walletId.isEmpty) {
-                        context.read<FinancialEventCubit>().walletChanged(
-                          eventsState.wallets.first.id,
-                        );
-                      }
-                      return Column(
+                child: BlocBuilder<FinancialEventCubit, FinancialEventEditState>(
+                  builder: (
+                    BuildContext context,
+                    FinancialEventEditState editState,
+                  ) {
+                    return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
@@ -181,7 +282,7 @@ class _FinancialEventFormmContentState
                                     ? editState.event.amount.toString()
                                     : '',
                             decoration: const InputDecoration(
-                              labelText: 'Сумма',
+                              labelText: 'Сумма (RUB)',
                               prefixIcon: Icon(Icons.attach_money),
                               errorText: null,
                             ),
@@ -207,65 +308,52 @@ class _FinancialEventFormmContentState
                             },
                           ),
                           const SizedBox(height: 16.0),
-                          DropdownButtonFormField<FinancialEventType>(
-                            initialValue: editState.event.type,
-                            decoration: const InputDecoration(
-                              labelText: 'Тип события',
-                            ),
-                            items:
+                          SegmentedButton<FinancialEventType>(
+                            segments:
                                 FinancialEventType.values
                                     .where(
                                       (FinancialEventType type) =>
                                           (eventsState.wallets.length > 1) ||
                                           type != FinancialEventType.transfer,
                                     )
-                                    .map<DropdownMenuItem<FinancialEventType>>((
-                                      FinancialEventType type,
-                                    ) {
-                                      return DropdownMenuItem<
-                                        FinancialEventType
-                                      >(
-                                        value: type,
-                                        child: Row(
-                                          children: <Widget>[
-                                            Icon(type.icon, color: type.color),
-                                            const SizedBox(width: 10),
-                                            Text(type.displayName),
-                                          ],
-                                        ),
-                                      );
-                                    })
+                                    .map(
+                                      (FinancialEventType type) =>
+                                          ButtonSegment<FinancialEventType>(
+                                            value: type,
+                                            icon: Icon(type.icon),
+                                            label: Text(type.displayName),
+                                          ),
+                                    )
                                     .toList(),
-                            onChanged: (FinancialEventType? newValue) {
-                              if (newValue != null) {
-                                setState(() {
+                            selected: <FinancialEventType>{
+                              editState.event.type,
+                            },
+                            showSelectedIcon: false,
+                            onSelectionChanged: (
+                              Set<FinancialEventType> selection,
+                            ) {
+                              final FinancialEventType newValue =
+                                  selection.first;
+                              setState(() {
+                                context
+                                    .read<FinancialEventCubit>()
+                                    .typeChanged(newValue);
+                                // Reset destination wallet if type is not transfer
+                                if (newValue != FinancialEventType.transfer) {
                                   context
                                       .read<FinancialEventCubit>()
-                                      .typeChanged(newValue);
-                                  // Reset destination wallet if type is not transfer
-                                  if (newValue != FinancialEventType.transfer) {
-                                    context
-                                        .read<FinancialEventCubit>()
-                                        .destinationWalletChanged(null);
-                                  } else {
-                                    context
-                                        .read<FinancialEventCubit>()
-                                        .destinationWalletChanged(
-                                          (eventsState.wallets.firstWhere(
-                                            (Wallet w) =>
-                                                w.id !=
-                                                editState.event.walletId,
-                                          )).id,
-                                        );
-                                  }
-                                });
-                              }
-                            },
-                            validator: (FinancialEventType? value) {
-                              if (value == null) {
-                                return 'Пожалуйста, выберите тип';
-                              }
-                              return null;
+                                      .destinationWalletChanged(null);
+                                } else {
+                                  context
+                                      .read<FinancialEventCubit>()
+                                      .destinationWalletChanged(
+                                        (eventsState.wallets.firstWhere(
+                                          (Wallet w) =>
+                                              w.id != editState.event.walletId,
+                                        )).id,
+                                      );
+                                }
+                              });
                             },
                           ),
                           const SizedBox(height: 16.0),
@@ -453,23 +541,7 @@ class _FinancialEventFormmContentState
                             ),
                           ],
                           const SizedBox(height: 16),
-                          TextFormField(
-                            controller: TextEditingController(
-                              text: DateFormat(
-                                'yyyy-MM-dd',
-                              ).format(editState.event.date),
-                            ),
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              labelText: 'Дата события',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.calendar_today,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
+                          InkWell(
                             onTap: () async {
                               final DateTime? picked = await showDatePicker(
                                 context: context,
@@ -482,8 +554,36 @@ class _FinancialEventFormmContentState
                                 context.read<FinancialEventCubit>().dateChanged(
                                   picked,
                                 );
+                                if (picked.isBefore(DateTime.now()) &&
+                                    !widget.isEditing &&
+                                    mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Внимание: выбрана прошедшая дата.',
+                                      ),
+                                    ),
+                                  );
+                                }
                               }
                             },
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Дата события',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.calendar_today,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              child: Text(
+                                DateFormat(
+                                  'dd.MM.yyyy',
+                                ).format(editState.event.date),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16.0),
                           DropdownButtonFormField<RecurrenceType>(
@@ -549,7 +649,37 @@ class _FinancialEventFormmContentState
 
                           if (editState.event.recurrenceType !=
                               RecurrenceType.none) ...<Widget>[
-                            const SizedBox(height: 16.0),
+                            const SizedBox(height: 8.0),
+                            Builder(
+                              builder: (BuildContext context) {
+                                final DateTime? preview =
+                                    calculateNextOccurrence(
+                                      initialDate: editState.event.date,
+                                      recurrenceType:
+                                          editState.event.recurrenceType.name,
+                                      recurrenceEndDate:
+                                          editState.event.recurrenceEndDate,
+                                      recurrenceDayOfMonth:
+                                          editState.event.recurrenceDayOfMonth,
+                                      now: DateTime.now(),
+                                    );
+                                return Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    preview == null
+                                        ? 'Повторение завершено'
+                                        : 'Следующее: ${DateFormat('dd.MM.yyyy').format(preview)}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8.0),
                             InkWell(
                               onTap:
                                   () => _selectRecurrenceEndDate(
@@ -624,65 +754,138 @@ class _FinancialEventFormmContentState
                             ),
                           ],
                           const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed:
-                                editState.formStatus == FormStatus.loading
-                                    ? null
-                                    : () {
-                                      if (_formKey.currentState!.validate()) {
-                                        context
-                                            .read<FinancialEventCubit>()
-                                            .submit();
-                                      } else {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Please correct the highlighted errors.',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                            icon:
-                                editState.formStatus == FormStatus.loading
-                                    ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: colorScheme.onPrimary,
-                                        strokeWidth: 2,
+                          Row(
+                            children: <Widget>[
+                              if (widget.isEditing) ...<Widget>[
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed:
+                                        editState.formStatus ==
+                                            FormStatus.loading
+                                        ? null
+                                        : () async {
+                                            final bool? confirmed =
+                                                await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (
+                                                    BuildContext dialogContext,
+                                                  ) {
+                                                    return AlertDialog(
+                                                      title: const Text(
+                                                        'Удаление события',
+                                                      ),
+                                                      content: const Text(
+                                                        'Удалить это событие навсегда?',
+                                                      ),
+                                                      actions: <Widget>[
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                dialogContext,
+                                                              ).pop(false),
+                                                          child: const Text(
+                                                            'Отмена',
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                dialogContext,
+                                                              ).pop(true),
+                                                          child: const Text(
+                                                            'Удалить',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                            if (confirmed == true &&
+                                                context.mounted) {
+                                              context
+                                                  .read<FinancialEventBloc>()
+                                                  .add(
+                                                    DeleteFinancialEvent(
+                                                      editState.event.id,
+                                                    ),
+                                                  );
+                                              Navigator.pop(context);
+                                            }
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          colorScheme.errorContainer,
+                                      foregroundColor:
+                                          colorScheme.onErrorContainer,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
                                       ),
-                                    )
-                                    : Icon(
-                                      Icons.add_circle_outline,
-                                      color: colorScheme.onPrimary,
-                                      size: 20,
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        50,
+                                      ),
                                     ),
-                            label: Text(
-                              editState.formStatus == FormStatus.loading
-                                  ? "Saving..."
-                                  : "Save",
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelLarge!.copyWith(
-                                color: colorScheme.onPrimary,
-                                fontWeight: FontWeight.w600,
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: Text(
+                                      'Удалить',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge!
+                                          .copyWith(
+                                            color: colorScheme.onErrorContainer,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                              ],
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _buildSavePressed(context, editState, _formKey),
+                                  icon: editState.formStatus == FormStatus.loading
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: colorScheme.onPrimary,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.add_circle_outline,
+                                          color: colorScheme.onPrimary,
+                                          size: 20,
+                                        ),
+                                  label: Text(
+                                    editState.formStatus == FormStatus.loading
+                                        ? 'Сохранение...'
+                                        : widget.isEditing
+                                            ? 'Сохранить'
+                                            : 'Добавить',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge!
+                                        .copyWith(
+                                          color: colorScheme.onPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                           const SizedBox(height: 8),
                         ],
                       );
                     },
                   ),
-                ),
               );
             },
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
