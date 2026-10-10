@@ -32,13 +32,17 @@ class ActivityState {
   });
 
   /// Factory constructor to create an initial state for the form.
-  factory ActivityState.initial(List<ToolSummary> initialMoneyTools, ActivityStateType activityType, Event? event) {
+  ///
+  /// [commentOverride] — готовый текст комментария (название события + счёт),
+  /// сформированный вызывающей стороной; если не задан, используется
+  /// описание события.
+  factory ActivityState.initial(List<ToolSummary> initialMoneyTools, ActivityStateType activityType, Event? event, {String? commentOverride}) {
     List<ToolSummary> _initialMoneyTools = initialMoneyTools.where((tool) => null == event ? true : event.toolId == tool.id).toList();
     return ActivityState(
-      amount: event?.amount.toString() ?? '', 
-      category: event?.name ?? '',             
-      comment: event?.description ?? '',        
-      selectedDate: event?.date ?? DateTime.now(), 
+      amount: event?.amount.toString() ?? '',
+      category: event?.category ?? '',
+      comment: commentOverride ?? event?.description ?? '',
+      selectedDate: event?.date ?? DateTime.now(),
       selectedMoneyToolId: _initialMoneyTools.isNotEmpty ? _initialMoneyTools.first.id : null,
       availableMoneyTools: _initialMoneyTools,
       activityType: activityType,

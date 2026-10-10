@@ -7,23 +7,44 @@ import 'package:investflow/feature/account/presentation/widget/actionSelectionBo
 import 'package:investflow/feature/account/presentation/widget/addAccountForm.dart';
 import 'package:investflow/feature/account/presentation/widget/eventList.dart';
 import 'package:investflow/feature/account/presentation/widget/toolList.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Screen displaying the list of transactions, grouped by day.
-class AccountListScreen extends StatelessWidget {
+class AccountListScreen extends StatefulWidget {
   const AccountListScreen({super.key});
+
+  @override
+  State<AccountListScreen> createState() => _AccountListScreenState();
+}
+
+class _AccountListScreenState extends State<AccountListScreen> {
+  late final PageController _pageController = PageController(
+    initialPage: 0,
+    viewportFraction: 0.9, // Adjust to show a portion of next/prev cards
+  );
+
+  double? _dragStartPixels;
+
+  /// Accumulated horizontal delta of the current drag (sign: left = negative).
+  double _dragTotalDelta = 0;
+
+  /// True while the user is swiping (or the resulting settle animation is
+  /// running). Prevents the auto-sync in build() from fighting the drag.
+  bool _isUserSwiping = false;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final AccountsBloc accountBloc = BlocProvider.of<AccountsBloc>(context);
     accountBloc.add(AccountsTransitionEvent());
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    late PageController _pageController;
-    _pageController = PageController(
-      initialPage: 0,
-      viewportFraction: 0.9, // Adjust to show a portion of next/prev cards
-    );
 
     return Scaffold(
       backgroundColor: colorScheme.background,
@@ -55,9 +76,7 @@ class AccountListScreen extends StatelessWidget {
       body: BlocBuilder<AccountsBloc, AccountsState>(
         builder: (context, state) {
           if (state is! AccountsDataState) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
+            return const Center(child: CircularProgressIndicator());
           }
           // Find initial page index based on activeAccountId
           int currentPageIndex = state.accountData.accounts.indexWhere(
@@ -66,8 +85,11 @@ class AccountListScreen extends StatelessWidget {
           if (currentPageIndex == -1) {
             currentPageIndex = 0; // Default to first account if not found
           }
-          // Only animate if the active account changed and PageController is ready
+          // Only animate if the active account changed externally (not while
+          // the user is swiping — otherwise the auto-sync fights the drag
+          // and the carousel jitters).
           if (_pageController.hasClients &&
+              !_isUserSwiping &&
               _pageController.page!.round() != currentPageIndex) {
             _pageController.animateToPage(
               currentPageIndex,
@@ -77,214 +99,254 @@ class AccountListScreen extends StatelessWidget {
           }
 
           return GestureDetector(
+            // Absorb hits in empty areas so screen-wide swipes work
+            behavior: HitTestBehavior.opaque,
             // Tap anywhere on the body to exit delete mode
             onTap: () {
               accountBloc.add(DisableEditModeAccountCardEvent(null));
             },
-            // Add horizontal drag gesture to change active account
-            onHorizontalDragEnd: (DragEndDetails details) {
-              // If in delete mode, a swipe should just clear delete mode
-              // if (accountData.deletableAccountId != null) {
-              //   accountData.clearDeletableAccount();
-              //   return;
-              // }
-
-              // Ensure there's a valid velocity
-              if (details.primaryVelocity == null) return;
-
-              // final int currentIndex = _pageController.page?.round() ?? 0;
-              // final int numAccounts = accountData.accounts.length;
-
-              // Swipe left (negative velocity) to go to the next account
-              if (details.primaryVelocity! < 0) {
-                // if (currentIndex < numAccounts - 1) {
-                //   _pageController.nextPage(
-                //     duration: const Duration(milliseconds: 300),
-                //     curve: Curves.easeInOut,
-                //   );
-                // }
-              }
-              // Swipe right (positive velocity) to go to the previous account
-              else if (details.primaryVelocity! > 0) {
-                // if (currentIndex > 0) {
-                //   _pageController.previousPage(
-                //     duration: const Duration(milliseconds: 300),
-                //     curve: Curves.easeInOut,
-                //   );
-                // }
+            // Horizontal drag anywhere on the screen moves the account carousel.
+            // Inside the PageView area the PageView itself wins the gesture arena;
+            // everywhere else this handler drives the same PageController.
+            onHorizontalDragStart: (DragStartDetails details) {
+              _isUserSwiping = true;
+              if (_pageController.hasClients) {
+                _dragStartPixels = _pageController.position.pixels;
               }
             },
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                children: <Widget>[
-                  Container(
-                    margin: const EdgeInsets.only(top: 16.0),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8.0,
-                    ), // Horizontal padding handled by PageView's itemBuilder
-                    width: MediaQuery.of(context).size.width,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(0),
-                    ),
-                    child: PageView.builder(
-                      controller: _pageController,
-                      onPageChanged:
-                          (int page) => accountBloc.add(
-                            ChangePageAccountsEvent(page.round()),
-                          ),
-                      itemCount: state.accountData.accounts.length,
-                      itemBuilder: (context, int index) {
-                        final AccountSummary account =
-                            state.accountData.accounts[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                          ), // Spacing between cards
-                          child: ConstrainedBox(
-                            // Limit the maximum width
-                            constraints: const BoxConstraints(maxWidth: 400.0),
-                            child: AccountCard(
-                              account: account,
-                              isDeletable: state.accountData.isAccountDeletable(
-                                account.id,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  if (state.accountData.activeAccountId != 'total' &&
-                      state.accountData.deletableAccountId ==
-                          null) // Show buttons if not 'total' account AND not in delete mode
-                    Padding(
+            onHorizontalDragUpdate: (DragUpdateDetails details) {
+              _dragTotalDelta += details.delta.dx;
+              if (_dragStartPixels == null || !_pageController.hasClients) {
+                return;
+              }
+              final double maxExtent = _pageController.position.maxScrollExtent;
+              const double minExtent = 0.0;
+              final double target = (_dragStartPixels! - _dragTotalDelta)
+                  .clamp(minExtent, maxExtent);
+              _pageController.jumpTo(target);
+            },
+            onHorizontalDragCancel: () {
+              _dragStartPixels = null;
+              _isUserSwiping = false;
+            },
+            onHorizontalDragEnd: (DragEndDetails details) {
+              _dragStartPixels = null;
+              if (!_pageController.hasClients) {
+                _isUserSwiping = false;
+                return;
+              }
+              final double? page = _pageController.page;
+              if (page == null) {
+                _isUserSwiping = false;
+                return;
+              }
+              final int accountsCount = state.accountData.accounts.length;
+              int targetPage = page.round();
+              final double velocity = details.primaryVelocity ?? 0;
+              // Fast swipe left -> next account, right -> previous
+              if (velocity < -kMinFlingVelocity) {
+                targetPage = page.floor() + 1;
+              } else if (velocity > kMinFlingVelocity) {
+                targetPage = page.ceil() - 1;
+              }
+              if (targetPage < 0) targetPage = 0;
+              if (targetPage > accountsCount - 1) {
+                targetPage = accountsCount - 1;
+              }
+              _pageController
+                  .animateToPage(
+                    targetPage,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  )
+                  .whenComplete(() {
+                    _isUserSwiping = false;
+                  });
+            },
+            child: SizedBox.expand(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: <Widget>[
+                    Container(
+                      margin: const EdgeInsets.only(top: 16.0),
                       padding: const EdgeInsets.symmetric(
-                        vertical: 24,
-                        horizontal: 16,
+                        vertical: 8.0,
+                      ), // Horizontal padding handled by PageView's itemBuilder
+                      width: MediaQuery.of(context).size.width,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        borderRadius: BorderRadius.circular(0),
                       ),
-                      child: Row(
-                        children: <Widget>[
-                          Expanded(
+                      child: NotificationListener<ScrollNotification>(
+                        // PageView drags that start on the card itself win the
+                        // gesture arena and never reach our GestureDetector —
+                        // mark swiping via scroll notifications instead.
+                        onNotification: (ScrollNotification notification) {
+                          if (notification.depth == 0) {
+                            if (notification is ScrollStartNotification) {
+                              _isUserSwiping = true;
+                            } else if (notification is ScrollEndNotification) {
+                              _isUserSwiping = false;
+                            }
+                          }
+                          return false;
+                        },
+                        child: PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (int page) =>
+                              accountBloc.add(
+                                ChangePageAccountsEvent(page.round()),
+                              ),
+                          itemCount: state.accountData.accounts.length,
+                          itemBuilder: (context, int index) {
+                            final AccountSummary account =
+                                state.accountData.accounts[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ), // Spacing between cards
+                              child: ConstrainedBox(
+                                // Limit the maximum width
+                                constraints: const BoxConstraints(
+                                  maxWidth: 400.0,
+                                ),
+                                child: AccountCard(
+                                  account: account,
+                                  isDeletable: state.accountData
+                                      .isAccountDeletable(account.id),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    if (state.accountData.activeAccountId != 'total' &&
+                        state.accountData.deletableAccountId ==
+                            null) // Show buttons if not 'total' account AND not in delete mode
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 24,
+                          horizontal: 16,
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'View Events (Not Implemented)',
-                                    ),
-                                  ),
-                                );
                                 GoRouter.of(context).go('/accounts/${state.accountData.activeAccountId}/events');
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.primary,
-                                foregroundColor: colorScheme.onPrimary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  minimumSize: const Size(double.infinity, 48),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                minimumSize: const Size(double.infinity, 48),
-                              ),
-                              icon: Icon(
-                                Icons.history, // Icon for events/history
-                                size: 20,
-                                color: colorScheme.onPrimary,
-                              ),
-                              label: Text(
-                                "События", // "Events" in Russian
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelLarge!.copyWith(
+                                icon: Icon(
+                                  Icons.history, // Icon for events/history
+                                  size: 20,
                                   color: colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w600,
+                                ),
+                                label: Text(
+                                  "События", // "Events" in Russian
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelLarge!.copyWith(
+                                    color: colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16), // Spacing between buttons
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                _showActionBottomSheet(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.secondary,
-                                foregroundColor: colorScheme.onSecondary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
+                            const SizedBox(
+                              width: 16,
+                            ), // Spacing between buttons
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  _showActionBottomSheet(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.secondary,
+                                  foregroundColor: colorScheme.onSecondary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  minimumSize: const Size(double.infinity, 48),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                minimumSize: const Size(double.infinity, 48),
-                              ),
-                              icon: Icon(
-                                Icons.add_circle, // Icon for add action
-                                size: 20,
-                                color: colorScheme.onSecondary,
-                              ),
-                              label: Text(
-                                "Добавить", // "Add" in Russian
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelLarge!.copyWith(
+                                icon: Icon(
+                                  Icons.add_circle, // Icon for add action
+                                  size: 20,
                                   color: colorScheme.onSecondary,
-                                  fontWeight: FontWeight.w600,
+                                ),
+                                label: Text(
+                                  "Добавить", // "Add" in Russian
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelLarge!.copyWith(
+                                    color: colorScheme.onSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    // Conditional display for Tools and Events sections
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        // Financial Tools Section (Displayed for all accounts *except* 'total')
+                        if (state.accountData.activeAccountId !=
+                            'total') ...<Widget>[
+                          ToolList(
+                            accountData: state.accountData,
+                            accountId: state.accountData.activeAccountId,
                           ),
                         ],
-                      ),
-                    ),
-                  // Conditional display for Tools and Events sections
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      // Financial Tools Section (Displayed for all accounts *except* 'total')
-                      if (state.accountData.activeAccountId !=
-                          'total') ...<Widget>[
-                        ToolList(
-                          accountData: state.accountData,
-                          accountId: state.accountData.activeAccountId,
-                        ),
-                      ],
-                      // Recent Events Section (Displayed *only* for 'total' account)
-                      if (state.accountData.activeAccountId ==
-                          'total') ...<Widget>[
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: 24,
-                            left: 16,
-                            right: 16,
-                            bottom: 8,
-                          ),
-                          child: Text(
-                            "Последние события", // "Recent Events"
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge!.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurface,
+                        // Recent Events Section (Displayed *only* for 'total' account)
+                        if (state.accountData.activeAccountId ==
+                            'total') ...<Widget>[
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: 24,
+                              left: 16,
+                              right: 16,
+                              bottom: 8,
+                            ),
+                            child: Text(
+                              "Последние события", // "Recent Events"
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge!.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
                           ),
-                        ),
-                        EventList(
-                          accountData: state.accountData,
-                          maxEvents: 50, // As per original code, total gets 5
-                        ),
+                          EventList(
+                            accountData: state.accountData,
+                            maxEvents: 50, // As per original code, total gets 5
+                          ),
+                        ],
+                        const SizedBox(height: 24),
                       ],
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );

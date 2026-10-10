@@ -29,12 +29,28 @@ class ActivityForm extends StatelessWidget {
           null == event ? accountData.activeAccountId : event!.accountId,
         );
 
+    // Prefill comment with the event name and account name, e.g.
+    // "Зарплата, Основной счёт". The original event description (if any)
+    // is kept at the end.
+    final Event? prefillEvent = event;
+    String? initialComment;
+    if (null != prefillEvent) {
+      final String? accountName =
+          accountData.getAccountById(prefillEvent.accountId)?.name;
+      initialComment = <String>[
+        prefillEvent.name,
+        if (accountName != null && accountName.isNotEmpty) accountName,
+        if (prefillEvent.description.isNotEmpty) prefillEvent.description,
+      ].join(', ');
+    }
+
     return BlocProvider<ActivityCubit>(
       create:
           (BuildContext context) => ActivityCubit(
             initialMoneyTools: initialMoneyTools,
             activityType: activityStateType,
             event: event,
+            initialComment: initialComment,
           ),
       child: BlocListener<ActivityCubit, ActivityState>(
         listener: (BuildContext context, ActivityState state) {

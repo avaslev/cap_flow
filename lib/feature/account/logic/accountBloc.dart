@@ -29,12 +29,13 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       (await _eventRepo.getExecutableEvents(DateTime(now.year, now.month, now.day + 20,
       now.hour, now.minute, now.second, now.millisecond, now.microsecond))).forEach((ScheduledTransaction transaction) {
         accountData.addEvent(
-          transaction.id, 
-          transaction.type,  
-          '${transaction.name}, ${accountData.getAccountById(transaction.accountId)?.name}', 
+          transaction.id,
+          transaction.type,
+          transaction.name,
           transaction.comment ?? '',
-          transaction.accountId, 
-          transaction.walletId, 
+          transaction.category,
+          transaction.accountId,
+          transaction.walletId,
           transaction.amount,
           transaction.nextExecutionDate,
         );

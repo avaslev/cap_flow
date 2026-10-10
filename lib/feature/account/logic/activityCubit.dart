@@ -16,7 +16,15 @@ class ActivityCubit extends Cubit<ActivityState> {
     required List<ToolSummary> initialMoneyTools,
     required ActivityStateType activityType,
     Event? event,
-  })  : super(ActivityState.initial(initialMoneyTools, activityType, event));
+    String? initialComment,
+  })  : super(
+          ActivityState.initial(
+            initialMoneyTools,
+            activityType,
+            event,
+            commentOverride: initialComment,
+          ),
+        );
 
   /// Updates the amount in the state.
   void amountChanged(String value) {

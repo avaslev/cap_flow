@@ -40,6 +40,7 @@ class Event {
   final String eventType;
   final String name;
   final String description;
+  final String category;
   final double amount;
   final String accountId; // To link events to specific accounts
   final String toolId; // To link events to specific accounts
@@ -50,6 +51,7 @@ class Event {
     required this.eventType,
     required this.name,
     required this.description,
+    required this.category,
     required this.amount,
     required this.accountId,
     required this.toolId,
@@ -388,6 +390,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     String eventType,
     String name,
     String description,
+    String category,
     String accountId,
     String toolId,
     double amount,
@@ -399,6 +402,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
           eventType: eventType,
           name: name,
           description: description,
+          category: category,
           amount: amount,
           accountId: accountId,
           toolId: toolId,
