@@ -3,6 +3,7 @@ import 'package:investflow/data/models/account.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
 import 'package:investflow/data/models/tool.dart';
+import 'package:investflow/data/models/tools/typed_tool_mapper.dart';
 import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
@@ -171,16 +172,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       seenIds.add(tool.id);
 
       // Always create tool with zero values - activity replay will set correct values
-      final toolSummary = ToolSummary(
-        id: tool.id,
-        name: tool.name,
-        quantity: 0,
-        percentageChange: 0,
-        accountId: tool.accountId,
-        type: ToolType.values.byName(tool.type),
-        currentValue: 0,
-        ticker: tool.ticker,
-      );
+      final toolSummary = ToolSummary.fromTyped(typedToolFromDb(tool));
       accountData.addTool(toolSummary);
       debugPrint('[_refreshTools] Tool ${tool.id} (${tool.name}) reset to zero for activity replay');
     }

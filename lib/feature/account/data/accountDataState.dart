@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:investflow/data/models/tools/typed_tool.dart';
+
+export 'package:investflow/data/models/tools/tool_kind.dart';
 
 /// Enum for different types of financial accounts.
 enum AccountType {
@@ -59,30 +63,6 @@ class Event {
   });
 }
 
-/// Enum for different types of financial tools/assets.
-enum ToolType {
-  money,
-  deposit,
-  credit,
-  stocks,
-  bonds,
-  cryptocurrency,
-  other,
-}
-
-/// Enum for different types of deposit payout.
-enum PayoutType {
-  atEndOfTerm, // в конце срока
-  monthly, // ежемесячная выплата
-  monthlyToWithdrawalAccount, // ежемесячная выплата на счет списания
-}
-
-/// Enum for different types of credit payment.
-enum CreditPaymentType {
-  annuity, // аннуитетный (fixed payment amount over time)
-  differentiated, // дифференцированный (decreasing payment amount over time)
-}
-
 /// Enum for investment operation type (buy or sell).
 enum InvestmentOperationType { buy, sell }
 
@@ -135,6 +115,70 @@ class ToolSummary {
     this.creditPaymentType,
     this.faceValue, // Initialize faceValue
   });
+
+  /// Builds a view-model summary from a typed domain tool. Replayed values
+  /// (quantity/currentValue) are passed separately — they come from the
+  /// activity replay, not from the DB row.
+  factory ToolSummary.fromTyped(
+    TypedTool tool, {
+    double quantity = 0,
+    double currentValue = 0,
+    double percentageChange = 0,
+  }) {
+    return switch (tool) {
+      DepositTool t => ToolSummary(
+          id: t.id,
+          name: t.name,
+          quantity: quantity,
+          percentageChange: percentageChange,
+          accountId: t.accountId,
+          type: t.kind,
+          currentValue: currentValue,
+          ticker: t.ticker,
+          startDate: t.startDate,
+          endDate: t.endDate,
+          payoutType: t.payoutType,
+          withdrawalToolId: t.withdrawalToolId,
+          interestRate: t.interestRate,
+        ),
+      CreditTool t => ToolSummary(
+          id: t.id,
+          name: t.name,
+          quantity: quantity,
+          percentageChange: percentageChange,
+          accountId: t.accountId,
+          type: t.kind,
+          currentValue: currentValue,
+          ticker: t.ticker,
+          interestRate: t.interestRate,
+          loanStartDate: t.loanStartDate,
+          loanTermMonths: t.termMonths,
+          paymentDayOfMonth: t.paymentDayOfMonth,
+          creditPaymentType: t.paymentType,
+        ),
+      SecurityTool t => ToolSummary(
+          id: t.id,
+          name: t.name,
+          quantity: quantity,
+          percentageChange: percentageChange,
+          accountId: t.accountId,
+          type: t.kind,
+          currentValue: currentValue,
+          ticker: t.ticker,
+          faceValue: t.faceValue,
+        ),
+      TypedTool t => ToolSummary(
+          id: t.id,
+          name: t.name,
+          quantity: quantity,
+          percentageChange: percentageChange,
+          accountId: t.accountId,
+          type: t.kind,
+          currentValue: currentValue,
+          ticker: t.ticker,
+        ),
+    };
+  }
 }
 
 /// Manages the state of account summaries, events, and tools.

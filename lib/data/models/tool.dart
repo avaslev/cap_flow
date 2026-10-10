@@ -18,6 +18,9 @@ class Tool {
   // New Bond specific fields
   final double? faceValue; // Nominal value of the bond
 
+  // New Credit specific fields
+  final int? termMonths; // Loan term in months
+
   Tool({
     required this.id,
     required this.name,
@@ -30,6 +33,7 @@ class Tool {
     this.interestRate,
     this.paymentDayOfMonth,
     this.faceValue,
+    this.termMonths,
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +49,7 @@ class Tool {
       'interestRate': interestRate,
       'paymentDayOfMonth': paymentDayOfMonth,
       'faceValue': faceValue,
+      'termMonths': termMonths,
     };
   }
 
@@ -58,6 +63,7 @@ class Tool {
     // Nullable string fields can be directly cast with `as String?`.
     final String? ticker = map['ticker'] as String?;
     final String? payType = map['payType'] as String?;
+    final int? termMonths = map['termMonths'] as int?;
 
     // DateTimes are stored as int (milliseconds or microseconds since epoch).
     // Check if the value is an int before converting.
@@ -99,6 +105,7 @@ class Tool {
       interestRate: interestRate,
       paymentDayOfMonth: paymentDayOfMonth,
       faceValue: faceValue,
+      termMonths: termMonths,
     );
   }
 }
