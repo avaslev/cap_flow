@@ -145,6 +145,31 @@ Each repository provides:
 - Domain-specific methods (e.g., `getExecutableEvents`)
 - Clean API for business logic
 
+## Tools (Typed Instruments)
+
+An account holds any number of tools of any kind (`ToolType`: money, deposit,
+credit, stocks, bonds, cryptocurrency, other) — multiple deposits/credits per
+account are allowed.
+
+Domain models: `lib/data/models/tools/`
+- `typed_tool.dart` — sealed hierarchy `TypedTool` (Money/Deposit/Credit/Stock/Bond/Crypto/Other)
+- `tool_kind.dart` — `ToolType/PayoutType/CreditPaymentType` enums
+- `typed_tool_mapper.dart` — DB row ↔ typed model mapping (unknown kind → ArgumentError)
+
+Strategies: `lib/feature/tools/domain/`
+- `tool_valuation.dart` — value per kind: deposit = principal + daily accrued
+  interest; credit = outstanding body (stored as a negative liability);
+  money = quantity; securities = quantity × price; other = manual estimate
+- `credit_schedule.dart` — annuity/differentiated: payment, interest/principal split
+- `tool_operations.dart` — operations allowed per kind
+
+Aggregation: account balance = Σ tool values (`AccountData._toolAccountValue`);
+Total = Σ accounts with `excludeFromTotal=false`. Tool values are replayed from
+`activities` (the DB row keeps metadata only). Executing a scheduled event
+advances `next_execution_date`; the planner `Event.date` equals it.
+
+Typing plan and its status: see `REFACTORING_PLAN.md`.
+
 ## Navigation
 
 ### GoRouter Configuration
