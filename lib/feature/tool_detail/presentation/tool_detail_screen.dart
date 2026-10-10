@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:investflow/feature/tools/domain/credit_schedule.dart';
+import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
@@ -156,13 +161,17 @@ class ToolDetailScreen extends StatelessWidget {
                     children: tabs.map((tab) {
                       switch (tab.text) {
                         case 'Overview':
+                        case 'Обзор':
                           return _buildOverviewTab(tool, context);
                         case 'Performance':
                           return _buildPerformanceTab(tool, context);
                         case 'Transactions':
                           return _buildTransactionsTab(tool, context);
                         case 'Details':
+                        case 'Детали':
                           return _buildDetailsTab(tool, context);
+                        case 'График платежей':
+                          return _buildCreditScheduleTab(tool, context);
                         default:
                           return const Center(child: Text('Tab not implemented'));
                       }
@@ -198,8 +207,20 @@ class ToolDetailScreen extends StatelessWidget {
           const Tab(text: 'Details'),
           const Tab(text: 'Performance'),
         ];
+      case 'DEPOSIT':
+        return [
+          const Tab(text: 'Обзор'),
+          const Tab(text: 'Детали'),
+        ];
+      case 'CREDIT':
+        return [
+          const Tab(text: 'Обзор'),
+          const Tab(text: 'График платежей'),
+        ];
+      case 'OTHER':
+        return [const Tab(text: 'Обзор')];
       default:
-        return [const Tab(text: 'Overview')];
+        return [const Tab(text: 'Обзор')];
     }
   }
 
@@ -210,8 +231,216 @@ class ToolDetailScreen extends StatelessWidget {
       return StockAssetTab(tool: tool);
     } else if (tool.type == 'BOND' || tool.type == 'BONDS') {
       return BondAssetTab(tool: tool);
+    } else if (tool.type == 'DEPOSIT') {
+      return _buildDepositOverview(tool, context);
+    } else if (tool.type == 'CREDIT') {
+      return _buildCreditOverview(tool, context);
     }
     return _buildGenericOverview(tool, context);
+  }
+
+  Widget _buildDepositOverview(ToolDetailDisplay tool, BuildContext context) {
+    final DateTime now = DateTime.now();
+    final DateTime start = tool.startDate ?? now;
+    final DateTime? end = tool.endDate;
+    final double accrued = depositValue(
+      principal: tool.currentValue,
+      annualRate: tool.interestRate ?? 0,
+      startDate: start,
+      endDate: end,
+      asOf: now,
+    );
+    final double accruedOnly = accrued - tool.currentValue;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Депозит',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            'Текущая стоимость с процентами',
+            formatCurrency(accrued),
+            context,
+          ),
+          _buildInfoRow(
+            'Накоплено процентов',
+            formatCurrency(accruedOnly),
+            context,
+          ),
+          _buildInfoRow(
+            'Ставка',
+            '${(tool.interestRate ?? 0).toStringAsFixed(2)}%',
+            context,
+          ),
+          if (tool.startDate != null)
+            _buildInfoRow(
+              'Начало',
+              DateFormat('dd.MM.yyyy').format(tool.startDate!),
+              context,
+            ),
+          if (tool.endDate != null)
+            _buildInfoRow(
+              'Конец срока',
+              DateFormat('dd.MM.yyyy').format(tool.endDate!),
+              context,
+            ),
+          if (tool.payoutType != null)
+            _buildInfoRow('Выплата процентов', _payoutTypeName(PayoutType.values.byName(tool.payoutType!)), context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditOverview(ToolDetailDisplay tool, BuildContext context) {
+    final double debt = tool.currentValue.abs();
+    final CreditPaymentType? paymentType = tool.creditPaymentType == null
+        ? null
+        : CreditPaymentType.values.byName(tool.creditPaymentType!);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Кредит',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow('Текущий долг', formatCurrency(debt), context),
+          _buildInfoRow(
+            'Ставка',
+            '${(tool.interestRate ?? 0).toStringAsFixed(2)}%',
+            context,
+          ),
+          if (tool.loanStartDate != null)
+            _buildInfoRow(
+              'Начало кредита',
+              DateFormat('dd.MM.yyyy').format(tool.loanStartDate!),
+              context,
+            ),
+          if (tool.loanTermMonths != null)
+            _buildInfoRow('Срок', '${tool.loanTermMonths} мес.', context),
+          if (tool.paymentDayOfMonth != null)
+            _buildInfoRow(
+              'День платежа',
+              '${tool.paymentDayOfMonth}',
+              context,
+            ),
+          if (paymentType != null)
+            _buildInfoRow(
+              'Тип платежей',
+              paymentType == CreditPaymentType.annuity
+                  ? 'Аннуитетный'
+                  : 'Дифференцированный',
+              context,
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _payoutTypeName(PayoutType type) {
+    return switch (type) {
+      PayoutType.atEndOfTerm => 'В конце срока',
+      PayoutType.monthly => 'Ежемесячно',
+      PayoutType.monthlyToWithdrawalAccount => 'Ежемесячно на счёт списания',
+    };
+  }
+
+  Widget _buildCreditScheduleTab(
+    ToolDetailDisplay tool,
+    BuildContext context,
+  ) {
+    final CreditPaymentType paymentType =
+        tool.creditPaymentType == null
+            ? CreditPaymentType.annuity
+            : CreditPaymentType.values.byName(tool.creditPaymentType!);
+    final int term = tool.loanTermMonths ?? 0;
+    final double debt = tool.currentValue.abs();
+    final double rate = tool.interestRate ?? 0;
+    final List<DataRow> rows = <DataRow>[
+      for (int n = 1; n <= term; n++)
+        DataRow(
+          cells: <DataCell>[
+            DataCell(Text('$n')),
+            DataCell(
+              Text(
+                formatCurrency(
+                  creditPaymentSplit(
+                    paymentType: paymentType,
+                    loanAmount: debt,
+                    annualRate: rate,
+                    termMonths: term,
+                    paymentNumber: n,
+                  ).payment,
+                ),
+              ),
+            ),
+            DataCell(
+              Text(
+                formatCurrency(
+                  creditPaymentSplit(
+                    paymentType: paymentType,
+                    loanAmount: debt,
+                    annualRate: rate,
+                    termMonths: term,
+                    paymentNumber: n,
+                  ).interest,
+                ),
+              ),
+            ),
+            DataCell(
+              Text(
+                formatCurrency(
+                  creditPaymentSplit(
+                    paymentType: paymentType,
+                    loanAmount: debt,
+                    annualRate: rate,
+                    termMonths: term,
+                    paymentNumber: n,
+                  ).principal,
+                ),
+              ),
+            ),
+          ],
+        ),
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'График платежей',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const <DataColumn>[
+                DataColumn(label: Text('№')),
+                DataColumn(label: Text('Платёж')),
+                DataColumn(label: Text('Проценты')),
+                DataColumn(label: Text('Тело')),
+              ],
+              rows: rows,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildGenericOverview(ToolDetailDisplay tool, BuildContext context) {

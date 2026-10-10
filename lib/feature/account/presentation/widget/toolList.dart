@@ -18,19 +18,19 @@ class ToolList extends StatelessWidget {
   String _getToolTypeDisplayName(ToolType type) {
     switch (type) {
       case ToolType.money:
-        return 'Cash & Currencies';
+        return 'Деньги и валюты';
       case ToolType.deposit:
-        return 'Deposits';
+        return 'Депозиты';
       case ToolType.credit:
-        return 'Credits & Loans';
+        return 'Кредиты';
       case ToolType.stocks:
-        return 'Stocks';
+        return 'Акции';
       case ToolType.bonds:
-        return 'Bonds';
+        return 'Облигации';
       case ToolType.cryptocurrency:
-        return 'Cryptocurrencies';
+        return 'Криптовалюта';
       case ToolType.other:
-        return 'Other Assets';
+        return 'Прочее';
     }
   }
 
