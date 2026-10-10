@@ -61,6 +61,8 @@ Map<int, String> migrationScripts = {
     executed_count          INTEGER NOT NULL            -- сколько уже выполнено
 )''',
   5: '''ALTER TABLE tools ADD COLUMN termMonths INTEGER''',
+  6: '''ALTER TABLE activities ADD COLUMN interestAmount NUMERIC''',
+  7: '''ALTER TABLE activities ADD COLUMN principalAmount NUMERIC''',
 };
 
 class DatabaseHelper {

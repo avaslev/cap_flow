@@ -13,6 +13,8 @@ class Activity {
   final String? name;
   final String? comment;
   final String? eventId; // Новое свойство
+  final double? interestAmount; // кредит: процентная часть платежа
+  final double? principalAmount; // кредит: часть платежа, гасящая тело
 
   Activity({
     required this.id,
@@ -23,6 +25,8 @@ class Activity {
     required this.price,
     required this.currency,
     required this.isTransmit,
+    this.interestAmount,
+    this.principalAmount,
     this.name,
     this.comment,
     this.eventId, // Добавлено в конструктор
@@ -40,7 +44,9 @@ class Activity {
       'is_transmit': isTransmit ? 1 : 0,
       'name': name,
       'comment': comment,
-      'event_id': eventId // Добавлено в метод toMap
+      'event_id': eventId, // Добавлено в метод toMap
+      'interest_amount': interestAmount,
+      'principal_amount': principalAmount,
     };
   }
 
@@ -56,7 +62,9 @@ class Activity {
       isTransmit: map['is_transmit'].toString() == '1',
       name: map['name']?.toString(),
       comment: map['comment']?.toString(),
-      eventId: map['event_id']?.toString() // Добавлено в метод fromMap
+      eventId: map['event_id']?.toString(), // Добавлено в метод fromMap
+      interestAmount: (map['interest_amount'] as num?)?.toDouble(),
+      principalAmount: (map['principal_amount'] as num?)?.toDouble(),
     );
   }
 }
