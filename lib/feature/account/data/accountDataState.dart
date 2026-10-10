@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:investflow/data/models/tools/typed_tool.dart';
+import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 
 export 'package:investflow/data/models/tools/tool_kind.dart';
 
@@ -115,6 +116,35 @@ class ToolSummary {
     this.creditPaymentType,
     this.faceValue, // Initialize faceValue
   });
+
+  /// Copies the mutable replayed fields. Metadata (dates, rates, payout
+  /// types) is immutable here — edits go through the typed domain model.
+  ToolSummary copyWith({
+    double? quantity,
+    double? currentValue,
+    double? percentageChange,
+  }) {
+    return ToolSummary(
+      id: id,
+      name: name,
+      quantity: quantity ?? this.quantity,
+      percentageChange: percentageChange ?? this.percentageChange,
+      accountId: accountId,
+      type: type,
+      currentValue: currentValue ?? this.currentValue,
+      ticker: ticker,
+      startDate: startDate,
+      endDate: endDate,
+      payoutType: payoutType,
+      withdrawalToolId: withdrawalToolId,
+      interestRate: interestRate,
+      loanStartDate: loanStartDate,
+      loanTermMonths: loanTermMonths,
+      paymentDayOfMonth: paymentDayOfMonth,
+      creditPaymentType: creditPaymentType,
+      faceValue: faceValue,
+    );
+  }
 
   /// Builds a view-model summary from a typed domain tool. Replayed values
   /// (quantity/currentValue) are passed separately — they come from the
@@ -252,6 +282,26 @@ class AccountData {
   Map<String,ToolSummary> get tools =>
       {for (var item in _tools) item.id : item};
 
+  /// Signed value of a tool for account/total aggregation, per kind.
+  ///
+  /// - money/securities/other: replayed value as-is;
+  /// - deposit: replayed principal plus interest accrued by day (only when
+  ///   the start date is known, otherwise the replayed value);
+  /// - credit: stored as a negative liability, subtracted from the balance
+  ///   naturally by the sum.
+  double _toolAccountValue(ToolSummary tool) {
+    if (tool.type == ToolType.deposit && tool.startDate != null) {
+      return depositValue(
+        principal: tool.currentValue,
+        annualRate: tool.interestRate ?? 0,
+        startDate: tool.startDate!,
+        endDate: tool.endDate,
+        asOf: DateTime.now(),
+      );
+    }
+    return tool.currentValue;
+  }
+
   /// Calculates and updates the balance, daily change amount, and daily change percentage for the 'total' account.
   void _updateTotalBalance() {
     double totalBalance = 0.0;
@@ -264,7 +314,8 @@ class AccountData {
             .where((ToolSummary tool) => tool.accountId == acc.id)
             .fold(
               0.0,
-              (double sum, ToolSummary tool) => sum + tool.currentValue,
+              (double sum, ToolSummary tool) =>
+                  sum + _toolAccountValue(tool),
             );
 
         // Update account's balance to reflect sum of its tools
@@ -532,29 +583,25 @@ List<ToolSummary> getToolsForAccount(String accountId) {
       // Allowing to go negative for demonstration, in a real app this would trigger an an error message
     }
 
-    // Deduct from source tool and account
-    fromTool.currentValue -= (amount + commission);
-    if (fromToolUnitPrice > 0) {
-      fromTool.quantity -= (amount + commission) / fromToolUnitPrice;
-    } else {
-      debugPrint(
-        'Warning: Source tool ${fromTool.name} has zero/negative effective unit price, cannot update quantity for transfer outflow.',
-      );
-    }
-    // fromAccount.balance -= (amount + commission); // Account balance is updated by _updateTotalBalance
+    // Immutable update: replace summaries instead of mutating fields.
+    final int fromIndex = _tools.indexOf(fromTool);
+    _tools[fromIndex] = fromTool.copyWith(
+      currentValue: fromTool.currentValue - (amount + commission),
+      quantity: fromToolUnitPrice > 0
+          ? fromTool.quantity - (amount + commission) / fromToolUnitPrice
+          : fromTool.quantity,
+    );
 
-    // Add to destination tool and account
-    toTool.currentValue += amount;
-    if (toToolUnitPrice > 0) {
-      toTool.quantity += amount / toToolUnitPrice;
-    } else {
-      debugPrint(
-        'Warning: Destination tool ${toTool.name} has zero/negative effective unit price, cannot update quantity for transfer inflow.',
-      );
-    }
-    // toAccount.balance += amount; // Account balance is updated by _updateTotalBalance
+    final int toIndex = _tools.indexOf(toTool);
+    _tools[toIndex] = toTool.copyWith(
+      currentValue: toTool.currentValue + amount,
+      quantity: toToolUnitPrice > 0
+          ? toTool.quantity + amount / toToolUnitPrice
+          : toTool.quantity,
+    );
 
-    _updateTotalBalance(); // This will recalculate account balances based on tool values
+    // Account balances are updated by _updateTotalBalance.
+    _updateTotalBalance();
   }
 
   /// Deletes an account and associated events/tools.

@@ -272,6 +272,63 @@ void main() {
     });
   });
 
+  group('Liabilities (M4: typed tools)', () {
+    test('credit stored as negative liability reduces account and total', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a'), _account('b')]);
+      data.addTool(_moneyTool('a-cash', 'a', quantity: 100, currentValue: 100));
+      data.addTool(_moneyTool('b-cash', 'b', quantity: 50, currentValue: 50));
+      // Credits are stored as negative liabilities (addCredit convention).
+      data.addTool(
+        ToolSummary(
+          id: 'a-credit',
+          name: 'a-credit',
+          quantity: 1,
+          percentageChange: -12,
+          accountId: 'a',
+          type: ToolType.credit,
+          currentValue: -30000,
+          interestRate: 20,
+        ),
+      );
+
+      // a = 100 - 30000; total = a + b.
+      expect(data.getAccountById('a')!.balance, -29900.0);
+      expect(data.getAccountById('total')!.balance, -29850.0);
+
+      // Money-to-money transfer between own accounts keeps the total.
+      data.makeToolTransfer(
+        fromToolName: 'b-cash',
+        fromAccountId: 'b',
+        toToolName: 'a-cash',
+        toAccountId: 'a',
+        amount: 10,
+        date: DateTime(2026, 10, 10),
+      );
+      expect(data.getAccountById('a')!.balance, -29890.0);
+      expect(data.getAccountById('total')!.balance, -29850.0);
+    });
+
+    test('deposit without start date keeps replayed value (no accrual)', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.addTool(
+        ToolSummary(
+          id: 'a-dep',
+          name: 'a-dep',
+          quantity: 1,
+          percentageChange: 0,
+          accountId: 'a',
+          type: ToolType.deposit,
+          currentValue: 500,
+        ),
+      );
+      // No startDate → no accrual strategy, replayed value as-is.
+      expect(data.getAccountById('a')!.balance, 500.0);
+      expect(data.getAccountById('total')!.balance, 500.0);
+    });
+  });
+
   group('Tool lookups', () {
     test('getMoneyToolsForAccount returns only money tools', () {
       final AccountData data = AccountData();
