@@ -7,4 +7,3 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
-include: package:bookstore/flutter.yaml
