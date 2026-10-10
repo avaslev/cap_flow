@@ -1,7 +1,7 @@
 name: investflow
 description: Budget app
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
-version: 1.0.0+1
+version: 1.0.3+4
 
 environment:
   sdk: ^3.7.0-0
@@ -30,6 +30,21 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.24.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: "launcher_icon"
+  adaptive_icon_background: "assets/icon/bg.png"
+  adaptive_icon_foreground: "assets/icon/fg.png"
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+  windows:
+    generate: true
+  macos:
+    generate: true
 
 flutter:
   uses-material-design: true
