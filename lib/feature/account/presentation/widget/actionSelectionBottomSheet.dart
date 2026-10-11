@@ -3,6 +3,7 @@ import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
 import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
+import 'package:investflow/feature/account/presentation/widget/form/deposit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -129,15 +130,9 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                         context: context,
                         isScrollControlled: true,
                         builder: (BuildContext context) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                            ),
-                            child: Center(
-                              child: Text(
-                                'AddDepositForm for $activeAccountId',
-                              ),
-                            ),
+                          return DepositForm(
+                            accountData: accountData,
+                            accountId: activeAccountId,
                           );
                         },
                         shape: const RoundedRectangleBorder(
@@ -146,7 +141,10 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                           ),
                         ),
                         clipBehavior: Clip.antiAliasWithSaveLayer,
-                      );
+                      ).then((_) {
+                        // Refresh so the new deposit shows up immediately.
+                        accountBloc.add(AccountsTransitionEvent());
+                      });
                     },
                   ),
                 if (isGeneralAccount) // Only show for general accounts

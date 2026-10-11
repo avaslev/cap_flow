@@ -1,0 +1,355 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:investflow/data/models/tool.dart';
+import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/repository/toolRepository.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:uuid/uuid.dart';
+
+/// Modal bottom sheet for opening a deposit: principal is deducted from a
+/// money tool of the account and a deposit tool is created.
+class DepositForm extends StatefulWidget {
+  final AccountData accountData;
+  final String accountId;
+
+  const DepositForm({
+    super.key,
+    required this.accountData,
+    required this.accountId,
+  });
+
+  @override
+  State<DepositForm> createState() => _DepositFormState();
+}
+
+class _DepositFormState extends State<DepositForm> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _rateController = TextEditingController();
+
+  late final List<ToolSummary> _moneyTools = widget.accountData
+      .getMoneyToolsForAccount(widget.accountId);
+  late String _selectedMoneyToolId = _moneyTools.isNotEmpty
+      ? _moneyTools.first.id
+      : '';
+  PayoutType _payoutType = PayoutType.atEndOfTerm;
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now().add(const Duration(days: 365));
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _amountController.dispose();
+    _rateController.dispose();
+    super.dispose();
+  }
+
+  ToolSummary? get _selectedMoneyTool {
+    for (final ToolSummary t in _moneyTools) {
+      if (t.id == _selectedMoneyToolId) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _pickDate({required bool isStart}) async {
+    final DateTime initial = isStart ? _startDate : _endDate;
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isStart) {
+        _startDate = picked;
+        if (_endDate.isBefore(_startDate)) {
+          _endDate = _startDate.add(const Duration(days: 365));
+        }
+      } else {
+        _endDate = picked;
+      }
+    });
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    final ToolSummary? moneyTool = _selectedMoneyTool;
+    if (moneyTool == null || _saving) return;
+
+    final String name = _nameController.text.trim();
+    final double principal = double.parse(_amountController.text.replaceAll(',', '.'));
+    final double rate = double.tryParse(_rateController.text.replaceAll(',', '.')) ?? 0;
+
+    setState(() => _saving = true);
+    try {
+      final String depositId = const Uuid().v7();
+
+      final Tool depositTool = Tool(
+        id: depositId,
+        accountId: widget.accountId,
+        name: name,
+        type: ToolType.deposit.name,
+        startDate: _startDate,
+        endDate: _endDate,
+        payType: _payoutType.name,
+        interestRate: rate,
+      );
+      await ToolRepository().insert(depositTool);
+
+      // Money leaves the source cash tool (replay keeps it consistent).
+      await ActivityRepository().insert(
+        Activity(
+          id: const Uuid().v7(),
+          toolId: moneyTool.id,
+          type: ActivityType.substract,
+          createAt: _startDate,
+          quantity: principal,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Открытие депозита «$name»',
+        ),
+      );
+      // Principal lands on the deposit tool.
+      await ActivityRepository().insert(
+        Activity(
+          id: const Uuid().v7(),
+          toolId: depositTool.id,
+          type: ActivityType.add,
+          createAt: _startDate,
+          quantity: 1,
+          price: principal,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Открытие депозита',
+        ),
+      );
+
+      // Immediate in-memory state (a full refresh happens on sheet close).
+      widget.accountData.addDeposit(
+        accountId: widget.accountId,
+        name: name,
+        toolId: depositId,
+        quantity: principal,
+        annualYield: rate,
+        startDate: _startDate,
+        endDate: _endDate,
+        payoutType: _payoutType,
+        withdrawalToolName: moneyTool.name,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Депозит «$name» открыт')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось открыть депозит: $e')),
+        );
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    if (_moneyTools.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(Icons.account_balance_wallet_outlined, size: 48),
+            const SizedBox(height: 12),
+            const Text(
+              'На счёте нет денежного тула — открывать депозит некуда.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Понятно'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)),
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'Открыть депозит',
+                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Название депозита',
+                    prefixIcon: Icon(Icons.savings),
+                  ),
+                  validator: (String? v) =>
+                      v == null || v.trim().isEmpty ? 'Введите название' : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _selectedMoneyToolId,
+                  decoration: const InputDecoration(
+                    labelText: 'Списать с (деньги)',
+                    prefixIcon: Icon(Icons.account_balance_wallet),
+                  ),
+                  items: _moneyTools
+                      .map(
+                        (ToolSummary t) => DropdownMenuItem<String>(
+                          value: t.id,
+                          child: Text(
+                            '${t.name} (${t.quantity.toStringAsFixed(2)})',
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (String? v) =>
+                      setState(() => _selectedMoneyToolId = v ?? ''),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Сумма (RUB)',
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  validator: (String? v) {
+                    final double? amount = double.tryParse(v ?? '');
+                    if (amount == null || amount <= 0) {
+                      return 'Введите положительную сумму';
+                    }
+                    final ToolSummary? moneyTool = _selectedMoneyTool;
+                    if (moneyTool != null && amount > moneyTool.quantity) {
+                      return 'Недостаточно средств: ${moneyTool.quantity.toStringAsFixed(2)}';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _rateController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Ставка, % годовых',
+                    prefixIcon: Icon(Icons.percent),
+                  ),
+                  validator: (String? v) {
+                    final double? rate = double.tryParse(v ?? '');
+                    if (rate == null || rate < 0) {
+                      return 'Введите корректную ставку';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () => _pickDate(isStart: true),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Дата начала',
+                      prefixIcon: Icon(Icons.calendar_today),
+                    ),
+                    child: Text(DateFormat('dd.MM.yyyy').format(_startDate)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () => _pickDate(isStart: false),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Дата конца срока',
+                      prefixIcon: Icon(Icons.event),
+                    ),
+                    child: Text(DateFormat('dd.MM.yyyy').format(_endDate)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<PayoutType>(
+                  value: _payoutType,
+                  decoration: const InputDecoration(
+                    labelText: 'Выплата процентов',
+                    prefixIcon: Icon(Icons.payments),
+                  ),
+                  items: PayoutType.values
+                      .map(
+                        (PayoutType t) => DropdownMenuItem<PayoutType>(
+                          value: t,
+                          child: Text(switch (t) {
+                            PayoutType.atEndOfTerm => 'В конце срока',
+                            PayoutType.monthly => 'Ежемесячно (капитализация)',
+                            PayoutType.monthlyToWithdrawalAccount =>
+                              'Ежемесячно на счёт списания',
+                          }),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (PayoutType? v) =>
+                      setState(() => _payoutType = v ?? PayoutType.atEndOfTerm),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _submit,
+                  icon: _saving
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.onPrimary,
+                          ),
+                        )
+                      : const Icon(Icons.savings),
+                  label: Text(_saving ? 'Открытие...' : 'Открыть депозит'),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

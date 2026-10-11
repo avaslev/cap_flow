@@ -9,6 +9,7 @@ import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
+import 'package:investflow/feature/tool_detail/data/tool_detail_repository.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/money_overview_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/money_performance_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/stock_asset_tab.dart';
@@ -37,6 +38,21 @@ class ToolDetailScreen extends StatelessWidget {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
+          actions: <Widget>[
+            BlocBuilder<ToolDetailBloc, ToolDetailState>(
+              builder: (BuildContext context, ToolDetailState state) {
+                if (state is! ToolDetailLoaded || state.tool.type != 'DEPOSIT') {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Закрыть депозит',
+                  onPressed: () =>
+                      _confirmCloseDeposit(context, state.tool),
+                );
+              },
+            ),
+          ],
           elevation: 0,
         ),
         body: BlocBuilder<ToolDetailBloc, ToolDetailState>(
@@ -184,6 +200,62 @@ class ToolDetailScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmCloseDeposit(
+    BuildContext context,
+    ToolDetailDisplay tool,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Закрытие депозита'),
+          content: Text(
+            'Депозит «${tool.name}» будет закрыт, а вся сумма с процентами '
+            'переведена в деньги счёта. Продолжить?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Закрыть депозит'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    try {
+      final double payout =
+          await ToolDetailRepository().closeDepositAndTransferToMoney(
+        depositToolId: tool.id,
+        depositName: tool.name,
+        accountId: tool.accountId,
+        principal: tool.currentValue,
+        interestRate: tool.interestRate ?? 0,
+        startDate: tool.startDate ?? DateTime.now(),
+        endDate: tool.endDate,
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Депозит закрыт: ${formatCurrency(payout)} зачислено в деньги счёта',
+          ),
+        ),
+      );
+      navigator.pop();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Не удалось закрыть депозит: $e')),
+      );
+    }
   }
 
   List<Tab> _getTabsForToolType(ToolDetailDisplay tool) {

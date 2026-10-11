@@ -90,6 +90,22 @@ void main() {
       expect(data.getAccountById('total')!.balance, 350.0);
     });
 
+    test('removeTool actually removes (refresh cleanup path)', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.addTool(_moneyTool('t1', 'a', currentValue: 100));
+      data.addTool(_moneyTool('t2', 'a', currentValue: 200));
+      // Refresh cleanup: t1 was deleted from DB.
+      expect(data.removeTool('t1'), isTrue);
+      expect(data.tools.containsKey('t1'), isFalse);
+      expect(data.removeTool('t1'), isFalse); // already gone
+      // Next recalc (triggered by any addTool in the refresh flow)
+      // drops the removed tool from the balance.
+      data.addTool(_moneyTool('t3', 'a', currentValue: 50));
+      expect(data.getAccountById('a')!.balance, 250.0);
+      expect(data.getAccountById('total')!.balance, 250.0);
+    });
+
     test('addTool upserts by id', () {
       final AccountData data = AccountData();
       data.addAccounts([_account('a')]);

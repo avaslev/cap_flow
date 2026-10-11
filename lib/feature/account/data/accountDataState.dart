@@ -637,6 +637,14 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     // Notify for accounts list change
   }
 
+  /// Removes a tool by id from the in-memory list.
+  /// Returns true when the tool was found and removed.
+  bool removeTool(String id) {
+    final int initialLength = _tools.length;
+    _tools.removeWhere((ToolSummary tool) => tool.id == id);
+    return _tools.length != initialLength;
+  }
+
   /// Adds a tool.
   void addTool(ToolSummary newTool) {
     _tools.isNotEmpty
@@ -677,6 +685,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   void addDeposit({
     required String accountId,
     required String name,
+    required String toolId, // must match the DB row id to survive refreshes
     required double quantity, // Principal amount
     required double annualYield, // Percentage
     required DateTime startDate,
@@ -725,7 +734,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     // Add the new deposit tool
     _tools.add(
       ToolSummary(
-        id: name,
+        id: toolId,
         name: name,
         quantity: quantity, // Principal amount of deposit
         percentageChange: annualYield, // Annual yield for the deposit

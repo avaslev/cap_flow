@@ -181,8 +181,10 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
     final currentIds = accountData.tools.keys.toSet();
     final toRemove = currentIds.difference(seenIds);
     for (final id in toRemove) {
-      final tool = accountData.tools[id];
-      accountData.tools.remove(id);
+      final ToolSummary? tool = accountData.tools[id];
+      // accountData.tools is a copy — use the real removal, otherwise the
+      // deleted tool stays in the list forever (e.g. after deposit closure).
+      accountData.removeTool(id);
       debugPrint('[_refreshTools] Removed tool ${id} (${tool?.name}) - no longer in DB');
     }
 

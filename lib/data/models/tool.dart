@@ -74,7 +74,7 @@ class Tool {
 
     final DateTime? endDate =
         (map['endDate'] is int)
-            ? DateTime.fromMicrosecondsSinceEpoch(map['endDate'] as int)
+            ? DateTime.fromMillisecondsSinceEpoch(map['endDate'] as int)
             : null;
 
     // Double fields can be stored as int or double (num).

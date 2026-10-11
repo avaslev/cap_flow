@@ -2,7 +2,10 @@ import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
+import 'package:uuid/uuid.dart';
 
 /// Repository for tool detail operations.
 ///
@@ -78,5 +81,70 @@ class ToolDetailRepository {
   /// Gets tool type as a string for use in display.
   String getToolTypeString(String type) {
     return type;
+  }
+
+  /// Closes a deposit: transfers the full payout (principal + accrued
+  /// interest) to the first money tool of the account, then removes the
+  /// deposit tool together with its activity history.
+  ///
+  /// Returns the transferred amount. Throws if the account has no money tool.
+  Future<double> closeDepositAndTransferToMoney({
+    required String depositToolId,
+    required String depositName,
+    required String accountId,
+    required double principal,
+    required double interestRate,
+    required DateTime startDate,
+    DateTime? endDate,
+  }) async {
+    final List<Tool> accountTools = await _repo.geListByAccount(accountId);
+    final List<Tool> moneyTools = accountTools
+        .where((Tool t) => t.type == ToolType.money.name)
+        .toList();
+    if (moneyTools.isEmpty) {
+      throw Exception('На счёте нет денежного тула для зачисления.');
+    }
+    final Tool money = moneyTools.first;
+
+    final double payout = depositValue(
+      principal: principal,
+      annualRate: interestRate,
+      startDate: startDate,
+      endDate: endDate,
+      asOf: DateTime.now(),
+    );
+    final DateTime now = DateTime.now();
+    final String closeName = 'Закрытие депозита «$depositName»';
+
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: money.id,
+        type: ActivityType.add,
+        createAt: now,
+        quantity: payout,
+        price: 1,
+        currency: Currency.RUB,
+        isTransmit: false,
+        name: closeName,
+      ),
+    );
+    // Zero out the deposit before deleting it (keeps replay consistent).
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: depositToolId,
+        type: ActivityType.substract,
+        createAt: now,
+        quantity: 1,
+        price: payout,
+        currency: Currency.RUB,
+        isTransmit: false,
+        name: closeName,
+      ),
+    );
+    await _activityRepo.deleteByTool(depositToolId);
+    await _repo.delete(depositToolId);
+    return payout;
   }
 }

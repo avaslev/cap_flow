@@ -45,8 +45,8 @@ class Activity {
       'name': name,
       'comment': comment,
       'event_id': eventId, // Добавлено в метод toMap
-      'interest_amount': interestAmount,
-      'principal_amount': principalAmount,
+      'interestAmount': interestAmount,
+      'principalAmount': principalAmount,
     };
   }
 
@@ -63,8 +63,8 @@ class Activity {
       name: map['name']?.toString(),
       comment: map['comment']?.toString(),
       eventId: map['event_id']?.toString(), // Добавлено в метод fromMap
-      interestAmount: (map['interest_amount'] as num?)?.toDouble(),
-      principalAmount: (map['principal_amount'] as num?)?.toDouble(),
+      interestAmount: (map['interestAmount'] as num?)?.toDouble(),
+      principalAmount: (map['principalAmount'] as num?)?.toDouble(),
     );
   }
 }
