@@ -4,6 +4,7 @@
 
 import 'dart:io' show Platform;
 
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:investflow/core/db.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import 'package:window_size/window_size.dart';
 import 'core/app.dart';
 
 void main() async {
+  // Русская локаль для DateFormat (названия месяцев и т.п.).
+  await initializeDateFormatting('ru');
   setupWindow();
   await DatabaseHelper.instance.initDb();
   runApp(const InvestApp());

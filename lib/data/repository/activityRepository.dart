@@ -9,6 +9,34 @@ class ActivityRepository {
     return await db.insert('activities', action.toMap());
   }
 
+  Future<Activity> getById(String id) async {
+    Database db = await DatabaseHelper.instance.db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'activities',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) {
+      throw Exception('Активность не найдена: $id');
+    }
+    return Activity.fromMap(maps.first);
+  }
+
+  Future<void> delete(String id) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.delete('activities', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> update(Activity action) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.update(
+      'activities',
+      action.toMap(),
+      where: 'id = ?',
+      whereArgs: [action.id],
+    );
+  }
+
   Future<List<Activity>> getActivityList() async {
     Database db = await DatabaseHelper.instance.db;
     final actions = await db.query('activities');

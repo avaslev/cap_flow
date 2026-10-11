@@ -10,17 +10,6 @@ sealed class ActivityState {}
 /// Represents the default state when no specific state is set.
 final class ActivityInitial extends ActivityState {}
 
-/// State representing the counter value.
-/// Extends [ActivityInitial] and holds the current counter value.
-final class CounterState extends ActivityInitial {
-  /// The current value of the counter.
-  final int counter;
-
-  /// Constructor for [CounterState].
-  /// Requires the [counter] value to be provided.
-  CounterState({required this.counter});
-}
-
 final class ActivityListLoaded extends ActivityState {
   final List<Activity> data;
   final Map<DateTime, List<Activity>> grouped;
