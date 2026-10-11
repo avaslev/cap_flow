@@ -32,12 +32,15 @@ class ReportScreen extends StatelessWidget {
   }
 
   String formatNumber(double value) {
-    if (value >= 1000000) {
-      return (value / 1000000).toStringAsFixed(1) + 'M';
-    } else if (value >= 1000) {
-      return (value / 1000).toStringAsFixed(1) + 'K';
+    // Сокращение по модулю, знак сохраняется (кредит = отрицательное).
+    final double abs = value.abs();
+    final String sign = value < 0 ? '-' : '';
+    if (abs >= 1000000) {
+      return '$sign${(abs / 1000000).toStringAsFixed(1)}M';
+    } else if (abs >= 1000) {
+      return '$sign${(abs / 1000).toStringAsFixed(1)}K';
     }
-    return value.toStringAsFixed(0);
+    return '$sign${abs.toStringAsFixed(0)}';
   }
 
   Widget _buildSummaryCards(ReportData data) {
