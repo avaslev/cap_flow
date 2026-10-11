@@ -144,6 +144,9 @@ class ToolDetailRepository {
         name: closeName,
       ),
     );
+    // Mark closed instead of deleting: history stays, lists hide the tool.
+    final Tool depositRow = await _repo.get(depositToolId);
+    await _repo.update(depositRow.copyWith(isClosed: true));
     return payout;
   }
 

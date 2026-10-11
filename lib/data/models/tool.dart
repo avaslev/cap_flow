@@ -40,6 +40,36 @@ class Tool {
     this.isClosed = false,
   });
 
+  Tool copyWith({
+    String? name,
+    String? type,
+    String? ticker,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? payType,
+    double? interestRate,
+    int? paymentDayOfMonth,
+    double? faceValue,
+    int? termMonths,
+    bool? isClosed,
+  }) {
+    return Tool(
+      id: id,
+      accountId: accountId,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      ticker: ticker ?? this.ticker,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      payType: payType ?? this.payType,
+      interestRate: interestRate ?? this.interestRate,
+      paymentDayOfMonth: paymentDayOfMonth ?? this.paymentDayOfMonth,
+      faceValue: faceValue ?? this.faceValue,
+      termMonths: termMonths ?? this.termMonths,
+      isClosed: isClosed ?? this.isClosed,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
