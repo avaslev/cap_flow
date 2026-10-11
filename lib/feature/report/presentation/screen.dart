@@ -292,8 +292,9 @@ class ReportScreen extends StatelessWidget {
           style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
         const SizedBox(height: 4),
+        // Сокращённый формат (K/M), чтобы миллионы помещались в блок.
         Text(
-          formatCurrency(value),
+          formatNumber(value),
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.w800,
