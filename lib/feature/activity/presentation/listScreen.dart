@@ -400,7 +400,7 @@ class _ActivityListItem extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        context.go('/activities/${activity.id}');
+        context.push('/activities/${activity.id}');
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

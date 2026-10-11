@@ -150,7 +150,7 @@ class ToolTile extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        context.go('/accounts/$accountId/tools/${tool.id}');
+        context.push('/accounts/$accountId/tools/${tool.id}');
       },
       borderRadius: BorderRadius.circular(12.0),
       child: Card(

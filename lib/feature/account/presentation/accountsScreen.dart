@@ -193,7 +193,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      GoRouter.of(context).go(
+                                      GoRouter.of(context).push(
                                         '/accounts/${state.accountData.activeAccountId}/events',
                                       );
                                     },
