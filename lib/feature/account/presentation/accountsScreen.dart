@@ -222,6 +222,21 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                   toolCounts: state.accountData.toolCountsFor(
                                     account.id,
                                   ),
+                                  canMoveUp: index > 1,
+                                  canMoveDown: index <
+                                      state.accountData.accounts.length - 1,
+                                  onMoveUp: () => accountBloc.add(
+                                    MoveAccountEvent(
+                                      account.id,
+                                      up: true,
+                                    ),
+                                  ),
+                                  onMoveDown: () => accountBloc.add(
+                                    MoveAccountEvent(
+                                      account.id,
+                                      up: false,
+                                    ),
+                                  ),
                                 ),
                               ),
                             );

@@ -20,8 +20,14 @@ class AccountRepository {
 
   Future<List<Account>> geList() async {
     Database db = await DatabaseHelper.instance.db;
-    final actions = await db.query('accounts', orderBy: 'id');
+    // total (sortOrder 0) всегда первым, затем по sortOrder.
+    final actions = await db.query('accounts', orderBy: 'sortOrder, id');
     return actions.map((actionMap) => Account.fromMap(actionMap)).toList();
+  }
+
+  Future<void> changeSortOrder(String id, int sortOrder) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.update('accounts', {'sortOrder': sortOrder}, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> changeHideEvents(String id, bool value) async {

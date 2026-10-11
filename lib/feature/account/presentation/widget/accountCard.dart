@@ -13,12 +13,20 @@ class AccountCard extends StatelessWidget {
   final AccountSummary account;
   final bool isDeletable;
   final Map<ToolType, int> toolCounts;
+  final bool canMoveUp;
+  final bool canMoveDown;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   const AccountCard({
     super.key,
     required this.account,
     required this.isDeletable,
     required this.toolCounts,
+    this.canMoveUp = false,
+    this.canMoveDown = false,
+    this.onMoveUp,
+    this.onMoveDown,
   });
 
   IconData _toolIcon(ToolType type) {
@@ -203,6 +211,8 @@ class AccountCard extends StatelessWidget {
               ],
             ),
             // Edit controls: overlay, no layout shift.
+            // Edit controls: статусы и удаление — сверху справа,
+            // перемещение — стрелки в нижнем правом углу (overlay, без сдвига).
             if (editMode)
               Positioned(
                 top: 0,
@@ -264,6 +274,38 @@ class AccountCard extends StatelessWidget {
                   ],
                 ),
               ),
+            if (editMode)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    _editIcon(
+                      context,
+                      icon: Icons.chevron_left,
+                      tooltip: 'Переместить ближе к началу',
+                      color: canMoveUp
+                          ? textColor
+                          : textColor.withValues(alpha: 0.3),
+                      onPressed: (canMoveUp && onMoveUp != null)
+                          ? onMoveUp
+                          : null,
+                    ),
+                    _editIcon(
+                      context,
+                      icon: Icons.chevron_right,
+                      tooltip: 'Переместить дальше',
+                      color: canMoveDown
+                          ? textColor
+                          : textColor.withValues(alpha: 0.3),
+                      onPressed: (canMoveDown && onMoveDown != null)
+                          ? onMoveDown
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -275,7 +317,7 @@ class AccountCard extends StatelessWidget {
     required IconData icon,
     required String tooltip,
     required Color color,
-    required VoidCallback onPressed,
+    VoidCallback? onPressed,
   }) {
     return IconButton(
       visualDensity: VisualDensity.compact,

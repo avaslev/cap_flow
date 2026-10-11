@@ -39,32 +39,6 @@ class ToolDetailScreen extends StatelessWidget {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          actions: <Widget>[
-            BlocBuilder<ToolDetailBloc, ToolDetailState>(
-              builder: (BuildContext context, ToolDetailState state) {
-                if (state is! ToolDetailLoaded) {
-                  return const SizedBox.shrink();
-                }
-                if (state.tool.type == 'DEPOSIT') {
-                  return IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Закрыть депозит',
-                    onPressed: () =>
-                        _confirmCloseDeposit(context, state.tool),
-                  );
-                }
-                if (state.tool.type == 'CREDIT') {
-                  return IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Закрыть кредит',
-                    onPressed: () =>
-                        _confirmCloseCredit(context, state.tool),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
           elevation: 0,
         ),
         body: BlocBuilder<ToolDetailBloc, ToolDetailState>(
@@ -328,22 +302,22 @@ class ToolDetailScreen extends StatelessWidget {
     switch (tool.type) {
       case 'MONEY':
         return [
-          const Tab(text: 'Overview'),
-          const Tab(text: 'Performance'),
+          const Tab(text: 'Обзор'),
+          const Tab(text: 'Динамика'),
         ];
       case 'STOCK':
       case 'STOCKS':
         return [
-          const Tab(text: 'Overview'),
-          const Tab(text: 'Performance'),
-          const Tab(text: 'Transactions'),
+          const Tab(text: 'Обзор'),
+          const Tab(text: 'Динамика'),
+          const Tab(text: 'Операции'),
         ];
       case 'BOND':
       case 'BONDS':
         return [
-          const Tab(text: 'Overview'),
-          const Tab(text: 'Details'),
-          const Tab(text: 'Performance'),
+          const Tab(text: 'Обзор'),
+          const Tab(text: 'Детали'),
+          const Tab(text: 'Динамика'),
         ];
       case 'DEPOSIT':
         return [
@@ -362,6 +336,19 @@ class ToolDetailScreen extends StatelessWidget {
       default:
         return [const Tab(text: 'Обзор')];
     }
+  }
+
+  String _typeDisplayName(String type) {
+    return switch (type.toUpperCase()) {
+      'MONEY' => 'Деньги',
+      'DEPOSIT' => 'Депозит',
+      'CREDIT' => 'Кредит',
+      'STOCK' || 'STOCKS' => 'Акции',
+      'BOND' || 'BONDS' => 'Облигации',
+      'CRYPTOCURRENCY' => 'Криптовалюта',
+      'OTHER' => 'Прочее',
+      _ => type,
+    };
   }
 
   Widget _buildOverviewTab(ToolDetailDisplay tool, BuildContext context) {
@@ -474,7 +461,7 @@ class ToolDetailScreen extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
-                child: FilledButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: () async {
                     final double? newValue = double.tryParse(
                       valueController.text.replaceAll(',', '.'),
@@ -504,21 +491,47 @@ class ToolDetailScreen extends StatelessWidget {
                       );
                     }
                   },
-                  icon: const Icon(Icons.update),
-                  label: const Text('Переоценить'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  icon: const Icon(Icons.update, size: 20),
+                  label: Text(
+                    'Переоценить',
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onPrimary,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () => _sellOtherTool(context, tool),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colorScheme.error,
-                  side: BorderSide(color: colorScheme.error),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: const Size(48, 50),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _sellOtherTool(context, tool),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.error,
+                    foregroundColor: colorScheme.onError,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  icon: const Icon(Icons.sell_outlined, size: 20),
+                  label: Text(
+                    'Продать',
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onError,
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.sell_outlined),
-                label: const Text('Продать'),
               ),
             ],
           ),
@@ -528,6 +541,7 @@ class ToolDetailScreen extends StatelessWidget {
   }
 
   Widget _buildDepositOverview(ToolDetailDisplay tool, BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final DateTime now = DateTime.now();
     final DateTime start = tool.startDate ?? now;
     final DateTime? end = tool.endDate;
@@ -580,12 +594,34 @@ class ToolDetailScreen extends StatelessWidget {
             ),
           if (tool.payoutType != null)
             _buildInfoRow('Выплата процентов', _payoutTypeName(PayoutType.values.byName(tool.payoutType!)), context),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _confirmCloseDeposit(context, tool),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            icon: const Icon(Icons.delete_outline, size: 20),
+            label: Text(
+              'Закрыть депозит',
+              style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onError,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildCreditOverview(ToolDetailDisplay tool, BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final double debt = tool.currentValue.abs();
     final CreditPaymentType? paymentType = tool.creditPaymentType == null
         ? null
@@ -630,6 +666,27 @@ class ToolDetailScreen extends StatelessWidget {
                   : 'Дифференцированный',
               context,
             ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _confirmCloseCredit(context, tool),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            icon: const Icon(Icons.delete_outline, size: 20),
+            label: Text(
+              'Погасить кредит',
+              style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onError,
+              ),
+            ),
+          ),
         ],
       ),
     );

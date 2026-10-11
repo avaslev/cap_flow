@@ -30,6 +30,9 @@ class AccountSummary {
   double periodIncome; // >= 0
   double periodExpense; // <= 0
 
+  /// Порядок сортировки (total всегда первым, sortOrder 0 у total).
+  int sortOrder;
+
   AccountSummary({
     this.id = '',
     required this.name,
@@ -43,6 +46,7 @@ class AccountSummary {
         false, // Default to including in total balance calculation
     this.periodIncome = 0.0,
     this.periodExpense = 0.0,
+    this.sortOrder = 0,
   });
 }
 
@@ -306,6 +310,25 @@ class AccountData {
   /// Returns an unmodifiable list of all account summaries, including 'total'.
   List<AccountSummary> get accounts =>
       List<AccountSummary>.unmodifiable(_accounts);
+
+  /// Сортировка счетов: Total первым, остальные по sortOrder.
+  /// После сортировки нормализует sortOrder (1..N по текущему порядку) —
+  /// иначе перестановка 0↔0 у старых счетов ничего не меняет.
+  void sortAccounts() {
+    _accounts.sort((AccountSummary a, AccountSummary b) {
+      if (a.id == 'total') return -1;
+      if (b.id == 'total') return 1;
+      final int cmp = a.sortOrder.compareTo(b.sortOrder);
+      if (cmp != 0) return cmp;
+      return a.id.compareTo(b.id);
+    });
+    int next = 1;
+    for (final AccountSummary acc in _accounts) {
+      if (acc.id == 'total') continue;
+      acc.sortOrder = next;
+      next += 1;
+    }
+  }
 
   /// Returns an unmodifiable list of all account summaries, including 'total'.
   Map<String,ToolSummary> get tools =>

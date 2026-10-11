@@ -66,6 +66,7 @@ Map<int, String> migrationScripts = {
   8: '''ALTER TABLE tools ADD COLUMN isClosed INTEGER NOT NULL DEFAULT 0''',
   9: '''ALTER TABLE scheduled_transactions ADD COLUMN deposit_tool_id TEXT''',
   10: '''ALTER TABLE tools ADD COLUMN unit TEXT''',
+  11: '''ALTER TABLE accounts ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0''',
 };
 
 class DatabaseHelper {

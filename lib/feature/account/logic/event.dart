@@ -32,6 +32,13 @@ class AddAccountEvent extends AccountsEvent {
   AddAccountEvent(this.account);
 }
 
+class MoveAccountEvent extends AccountsEvent {
+  final String accountId;
+  final bool up;
+
+  MoveAccountEvent(this.accountId, {required this.up});
+}
+
 class ChangeAccountEvent extends AccountsEvent {
   final String accountId;
   final bool hideEvents; // New attribute to hide events for this account

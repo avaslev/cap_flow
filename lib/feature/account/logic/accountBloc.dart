@@ -9,6 +9,8 @@ import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -64,7 +66,32 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       emit(AccountsDataState(accountData));
     });
 
+    on<MoveAccountEvent>((event, emit) async {
+      final List<AccountSummary> accounts = accountData.accounts;
+      final int idx = accounts.indexWhere(
+        (AccountSummary a) => a.id == event.accountId,
+      );
+      if (idx < 0) return;
+      final int otherIdx = event.up ? idx - 1 : idx + 1;
+      // Total (index 0) всегда первый — с ним не меняемся.
+      if (otherIdx < 1 || otherIdx >= accounts.length) return;
+
+      final AccountSummary moved = accounts[idx];
+      final AccountSummary other = accounts[otherIdx];
+      final int tmp = other.sortOrder;
+      moved.sortOrder = other.sortOrder;
+      other.sortOrder = tmp;
+      await AccountRepository().changeSortOrder(moved.id, moved.sortOrder);
+      await AccountRepository().changeSortOrder(other.id, other.sortOrder);
+      accountData.sortAccounts();
+      emit(AccountsDataState(accountData));
+    });
+
     on<AddAccountEvent>((event, emit) async {
+      final int maxSortOrder = accountData.accounts
+          .where((AccountSummary a) => a.id != 'total')
+          .map((AccountSummary a) => a.sortOrder)
+          .fold(0, math.max);
       final Account account = Account(
         id: Uuid().v7(),
         name: event.account.name,
@@ -72,6 +99,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         type: event.account.type.name,
         hideEvents: event.account.hideEvents.toString(),
         excludeFromTotal: event.account.excludeFromTotal.toString(),
+        sortOrder: maxSortOrder + 1,
       );
       await AccountRepository().insert(account);
       final Tool tool = Tool(
@@ -156,9 +184,11 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       );
       accountSummary.hideEvents = bool.parse(account.hideEvents);
       accountSummary.excludeFromTotal = bool.parse(account.excludeFromTotal);
+      accountSummary.sortOrder = account.sortOrder;
       accountData.addAccount(accountSummary);
     });
 
+    accountData.sortAccounts();
     return accountData;
   }
 

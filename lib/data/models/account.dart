@@ -6,6 +6,7 @@ class Account {
   final String type;
   final String hideEvents; // New attribute to hide events for this account
   final String excludeFromTotal; // New attribute to exclude from total balance calculation
+  final int sortOrder; // Порядок сортировки счетов (total всегда первый)
 
   Account({
     required this.id,
@@ -14,6 +15,7 @@ class Account {
     required this.type,
     required this.hideEvents,
     required this.excludeFromTotal,
+    this.sortOrder = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,7 +25,8 @@ class Account {
       'colorValue': colorValue,
       'type': type,
       'hideEvents': hideEvents,
-      'excludeFromTotal': excludeFromTotal
+      'excludeFromTotal': excludeFromTotal,
+      'sortOrder': sortOrder,
     };
   }
 
