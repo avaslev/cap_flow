@@ -130,7 +130,8 @@ class ToolDetailRepository {
         quantity: payout,
         price: 1,
         currency: Currency.RUB,
-        isTransmit: false,
+        // Внутреннее перемещение (депозит → деньги), не доход.
+        isTransmit: true,
         name: closeName,
       ),
     );
@@ -143,7 +144,8 @@ class ToolDetailRepository {
         quantity: payout,
         price: 1,
         currency: Currency.RUB,
-        isTransmit: false,
+        // Внутреннее перемещение — не расход.
+        isTransmit: true,
         name: closeName,
       ),
     );

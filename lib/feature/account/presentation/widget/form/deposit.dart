@@ -226,7 +226,8 @@ class _DepositFormState extends State<DepositForm> {
           quantity: principal,
           price: 1,
           currency: Currency.RUB,
-          isTransmit: false,
+          // Внутреннее перемещение (деньги → депозит), не расход.
+          isTransmit: true,
           name: 'Открытие депозита «$name»',
         ),
       );
@@ -240,7 +241,8 @@ class _DepositFormState extends State<DepositForm> {
           quantity: 1,
           price: principal,
           currency: Currency.RUB,
-          isTransmit: false,
+          // Внутреннее перемещение — не доход.
+          isTransmit: true,
           name: 'Открытие депозита',
         ),
       );
