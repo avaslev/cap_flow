@@ -42,15 +42,26 @@ class ToolDetailScreen extends StatelessWidget {
           actions: <Widget>[
             BlocBuilder<ToolDetailBloc, ToolDetailState>(
               builder: (BuildContext context, ToolDetailState state) {
-                if (state is! ToolDetailLoaded || state.tool.type != 'DEPOSIT') {
+                if (state is! ToolDetailLoaded) {
                   return const SizedBox.shrink();
                 }
-                return IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Закрыть депозит',
-                  onPressed: () =>
-                      _confirmCloseDeposit(context, state.tool),
-                );
+                if (state.tool.type == 'DEPOSIT') {
+                  return IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Закрыть депозит',
+                    onPressed: () =>
+                        _confirmCloseDeposit(context, state.tool),
+                  );
+                }
+                if (state.tool.type == 'CREDIT') {
+                  return IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Закрыть кредит',
+                    onPressed: () =>
+                        _confirmCloseCredit(context, state.tool),
+                  );
+                }
+                return const SizedBox.shrink();
               },
             ),
           ],
@@ -256,6 +267,59 @@ class ToolDetailScreen extends StatelessWidget {
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Не удалось закрыть депозит: $e')),
+      );
+    }
+  }
+
+  Future<void> _confirmCloseCredit(
+    BuildContext context,
+    ToolDetailDisplay tool,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Закрытие кредита'),
+          content: Text(
+            'Кредит «${tool.name}» будет закрыт: остаток долга '
+            '${tool.currentValue.abs().toStringAsFixed(2)} ₽ будет списан с '
+            'денежного тула счёта. Продолжить?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Закрыть кредит'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    try {
+      final double paid =
+          await ToolDetailRepository().closeCreditAndRemoveSchedule(
+        creditToolId: tool.id,
+        creditName: tool.name,
+        accountId: tool.accountId,
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Кредит закрыт: погашено ${paid.toStringAsFixed(2)} ₽',
+          ),
+        ),
+      );
+      navigator.pop();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Не удалось закрыть кредит: $e')),
       );
     }
   }

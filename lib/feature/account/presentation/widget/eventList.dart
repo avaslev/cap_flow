@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
+import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
 import 'package:investflow/widgets/itemAvatar.dart';
 import 'package:investflow/widgets/itemValue.dart';
 
@@ -87,10 +88,25 @@ class EventTile extends StatelessWidget {
               value: accountsBloc, // Re-provide the existing AccountsBloc
             ),
           ],
-          child: switch(event.eventType) {
-            'income' => ActivityForm(accountData: accountData, activityStateType: ActivityStateType.add, event: event),
-            'expense' => ActivityForm(accountData: accountData, activityStateType: ActivityStateType.substract, event: event),
-            // 'transfer' => ActivityForm(accountData: accountData, activityStateType: ActivityStateType.substract,),
+          child: switch (event.eventType) {
+            'income' => ActivityForm(
+                accountData: accountData,
+                activityStateType: ActivityStateType.add,
+                event: event,
+              ),
+            'expense' => ActivityForm(
+                accountData: accountData,
+                activityStateType: ActivityStateType.substract,
+                event: event,
+              ),
+            // Кредитный платёж: списание с money-тула; сплит тела долга
+            // выполняет ActivityCubit по связи depositToolId.
+            'transfer' when event.depositToolId != null => ActivityForm(
+                accountData: accountData,
+                activityStateType: ActivityStateType.substract,
+                event: event,
+              ),
+            'transfer' => TransferForm(accountData: accountData),
             String() => throw UnimplementedError(),
           }
         );

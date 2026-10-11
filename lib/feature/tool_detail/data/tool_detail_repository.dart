@@ -157,6 +157,73 @@ class ToolDetailRepository {
     return payout;
   }
 
+  /// Closes a credit: the outstanding debt is paid from the first money
+  /// tool of the account, the payment schedule is removed, and the credit
+  /// tool is marked closed (history kept).
+  ///
+  /// Returns the paid outstanding amount.
+  Future<double> closeCreditAndRemoveSchedule({
+    required String creditToolId,
+    required String creditName,
+    required String accountId,
+  }) async {
+    final List<Tool> accountTools = await _repo.geListByAccount(accountId);
+    final List<Tool> moneyTools = accountTools
+        .where((Tool t) => t.type == ToolType.money.name)
+        .toList();
+    if (moneyTools.isEmpty) {
+      throw Exception('На счёте нет денежного тула для списания.');
+    }
+    final Tool money = moneyTools.first;
+
+    // Outstanding debt = |replayed credit tool value|.
+    final List<Activity> creditActivities = await _activityRepo
+        .getActivityListByTool(creditToolId);
+    double outstanding = 0;
+    for (final Activity a in creditActivities) {
+      outstanding += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
+    }
+    outstanding = outstanding.abs();
+
+    final DateTime now = DateTime.now();
+    final String closeName = 'Закрытие кредита «$creditName»';
+
+    // Pay the outstanding body from cash.
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: money.id,
+        type: ActivityType.substract,
+        createAt: now,
+        quantity: outstanding,
+        price: 1,
+        currency: Currency.RUB,
+        isTransmit: true,
+        name: closeName,
+      ),
+    );
+    // Liability goes to zero.
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: creditToolId,
+        type: ActivityType.add,
+        createAt: now,
+        quantity: outstanding,
+        price: 1,
+        currency: Currency.RUB,
+        isTransmit: true,
+        name: closeName,
+      ),
+    );
+    // Remove the payment schedule.
+    await _scheduledRepo.deleteByDepositTool(creditToolId);
+    // Mark closed.
+    final Tool row = await _repo.get(creditToolId);
+    await _repo.update(row.copyWith(isClosed: true));
+    return outstanding;
+  }
+
   /// Activities of a tool, newest first.
   Future<List<Activity>> getActivitiesForTool(String toolId) async {
     final List<Activity> list = await _activityRepo.getActivityListByTool(toolId);

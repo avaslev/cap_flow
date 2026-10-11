@@ -1,8 +1,10 @@
 import 'package:investflow/core/utils/calculateNextOccurrence.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,6 +13,7 @@ import 'package:uuid/uuid.dart';
 /// Cubit responsible for managing the state and logic of the Add Activity form.
 class ActivityCubit extends Cubit<ActivityState> {
   ScheduledTransactionRepository _eventRepo = ScheduledTransactionRepository();
+  final ToolRepository _toolRepo = ToolRepository();
 
   ActivityCubit({
     required List<ToolSummary> initialMoneyTools,
@@ -86,6 +89,41 @@ class ActivityCubit extends Cubit<ActivityState> {
       final String? comment =
           state.comment.trim().isEmpty ? null : state.comment.trim();
 
+      // K4: если событие привязано к credit-тулу — платёж по кредиту.
+      // Считаем сплит проценты/тело от текущего остатка долга.
+      double? interestAmount;
+      double? principalAmount;
+      String? linkedCreditToolId;
+      if (state.eventId != null) {
+        try {
+          final ScheduledTransaction st =
+              await _eventRepo.getById(state.eventId!);
+          if (st.depositToolId != null && st.type == 'transfer') {
+            final Tool linkedTool = await _toolRepo.get(st.depositToolId!);
+            if (linkedTool.type == ToolType.credit.name) {
+              linkedCreditToolId = linkedTool.id;
+              final List<Activity> creditActivities =
+                  await ActivityRepository()
+                      .getActivityListByTool(linkedTool.id);
+              double outstanding = 0;
+              for (final Activity a in creditActivities) {
+                outstanding += (a.type == ActivityType.add ? 1 : -1) *
+                    a.price *
+                    a.quantity;
+              }
+              outstanding = outstanding.abs();
+              final double monthlyRate =
+                  (linkedTool.interestRate ?? 0) / 100 / 12;
+              interestAmount = outstanding * monthlyRate;
+              principalAmount =
+                  (amount - interestAmount).clamp(0.0, outstanding);
+            }
+          }
+        } catch (_) {
+          // Связка не кредитная — обычная операция без сплита.
+        }
+      }
+
       // add activity ti tool
       await ActivityRepository().insert(
           Activity(
@@ -102,8 +140,27 @@ class ActivityCubit extends Cubit<ActivityState> {
             isTransmit: false,
             name: category,
             comment: comment,
+            interestAmount: interestAmount,
+            principalAmount: principalAmount,
           ),
         );
+
+      // K4: тело кредита гасится — долг (кредит-тул) уменьшается.
+      if (linkedCreditToolId != null && principalAmount != null && principalAmount > 0) {
+        await ActivityRepository().insert(
+          Activity(
+            id: Uuid().v7(),
+            toolId: linkedCreditToolId,
+            type: ActivityType.add,
+            createAt: state.selectedDate,
+            quantity: principalAmount,
+            price: 1,
+            currency: Currency.RUB,
+            isTransmit: true,
+            name: 'Погашение тела кредита',
+          ),
+        );
+      }
 
       if (state.eventId != null) {
         ScheduledTransaction st = await _eventRepo.getById(state.eventId!);
@@ -114,7 +171,7 @@ class ActivityCubit extends Cubit<ActivityState> {
             recurrenceType: st.recurrenceType, 
             recurrenceEndDate: st.recurrenceEndDate,
             recurrenceDayOfMonth: st.recurrenceDayOfMonth,
-            now: state.selectedDate)
+            now: st.nextExecutionDate)
         ));
       }
 
@@ -137,7 +194,7 @@ class ActivityCubit extends Cubit<ActivityState> {
             recurrenceType: st.recurrenceType, 
             recurrenceEndDate: st.recurrenceEndDate,
             recurrenceDayOfMonth: st.recurrenceDayOfMonth,
-            now: state.selectedDate)
+            now: st.nextExecutionDate)
         ));
       }
       emit(state.copyWith(formStatus: FormStatus.success));

@@ -49,6 +49,7 @@ class Event {
   final double amount;
   final String accountId; // To link events to specific accounts
   final String toolId; // To link events to specific accounts
+  final String? depositToolId; // Credit tool for credit payment events
   final DateTime date; // Date of the event
 
   Event({
@@ -60,6 +61,7 @@ class Event {
     required this.amount,
     required this.accountId,
     required this.toolId,
+    this.depositToolId,
     required this.date,
   });
 }
@@ -191,6 +193,7 @@ class ToolSummary {
           loanTermMonths: t.termMonths,
           paymentDayOfMonth: t.paymentDayOfMonth,
           creditPaymentType: t.paymentType,
+          isClosed: t.isClosed,
         ),
       SecurityTool t => ToolSummary(
           id: t.id,
@@ -202,6 +205,7 @@ class ToolSummary {
           currentValue: currentValue,
           ticker: t.ticker,
           faceValue: t.faceValue,
+          isClosed: t.isClosed,
         ),
       TypedTool t => ToolSummary(
           id: t.id,
@@ -212,6 +216,7 @@ class ToolSummary {
           type: t.kind,
           currentValue: currentValue,
           ticker: t.ticker,
+          isClosed: t.isClosed,
         ),
     };
   }
@@ -495,8 +500,9 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     String accountId,
     String toolId,
     double amount,
-    DateTime date,
-  ) {
+    DateTime date, {
+    String? depositToolId,
+  }) {
 
     final event = Event(
           eventId: eventId,
@@ -507,6 +513,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
           amount: amount,
           accountId: accountId,
           toolId: toolId,
+          depositToolId: depositToolId,
           date: date,
         );
 

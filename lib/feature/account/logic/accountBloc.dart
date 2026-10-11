@@ -39,6 +39,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           transaction.walletId,
           transaction.amount,
           transaction.nextExecutionDate,
+          depositToolId: transaction.depositToolId,
         );
       });
       emit(AccountsDataState(accountData));

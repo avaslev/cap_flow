@@ -3,6 +3,7 @@ import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
 import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
+import 'package:investflow/feature/account/presentation/widget/form/credit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/deposit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:flutter/material.dart';
@@ -154,7 +155,7 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                     title: Text(
-                      "Добавить кредит (Add Credit)", // New: Add Credit
+                      "Добавить кредит",
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     onTap: () {
@@ -167,8 +168,9 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                             padding: EdgeInsets.only(
                               bottom: MediaQuery.of(context).viewInsets.bottom,
                             ),
-                            child: Center(
-                              child: Text('AddCreditForm for $activeAccountId'),
+                            child: CreditForm(
+                              accountData: accountData,
+                              accountId: activeAccountId,
                             ),
                           );
                         },
@@ -178,7 +180,9 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                           ),
                         ),
                         clipBehavior: Clip.antiAliasWithSaveLayer,
-                      );
+                      ).then((_) {
+                        accountBloc.add(AccountsTransitionEvent());
+                      });
                     },
                   ),
                 if (isGeneralAccount) // Only show for general accounts

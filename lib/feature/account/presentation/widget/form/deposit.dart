@@ -105,18 +105,22 @@ class _DepositFormState extends State<DepositForm> {
         double.parse(_amountController.text.replaceAll(',', '.'));
     final double rate =
         double.tryParse(_rateController.text.replaceAll(',', '.')) ?? 0;
-    final double monthlyInterest = principal * rate / 1200;
+    final double monthlyInterest =
+        ((principal * rate / 1200) * 100).roundToDouble() / 100;
     // For «в конце срока» the payout is the FULL term interest, not a
     // monthly one: principal × rate × days/365 (via the valuation strategy).
     final double payoutAmount = _payoutType == PayoutType.atEndOfTerm
-        ? depositValue(
-              principal: principal,
-              annualRate: rate,
-              startDate: _startDate,
-              endDate: _endDate,
-              asOf: _endDate ?? DateTime.now(),
-            ) -
-            principal
+        ? ((depositValue(
+                    principal: principal,
+                    annualRate: rate,
+                    startDate: _startDate,
+                    endDate: _endDate,
+                    asOf: _endDate ?? DateTime.now(),
+                  ) -
+                  principal) *
+              100)
+            .roundToDouble() /
+            100
         : monthlyInterest;
     final String targetWalletId = switch (_payoutType) {
       PayoutType.monthly => depositId,
