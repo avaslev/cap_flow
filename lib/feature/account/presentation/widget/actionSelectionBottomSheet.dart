@@ -4,6 +4,7 @@ import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
 import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
 import 'package:investflow/feature/account/presentation/widget/form/credit.dart';
+import 'package:investflow/feature/account/presentation/widget/form/other.dart';
 import 'package:investflow/feature/account/presentation/widget/form/deposit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:flutter/material.dart';
@@ -192,7 +193,7 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                     title: Text(
-                      "Добавить инструмент (Прочее)", // Add Other Tool
+                      "Добавить прочее (актив)",
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     onTap: () {
@@ -201,15 +202,9 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                         context: context,
                         isScrollControlled: true,
                         builder: (BuildContext context) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                            ),
-                            child: Center(
-                              child: Text(
-                                'AddOtherToolForm for $activeAccountId',
-                              ),
-                            ),
+                          return OtherForm(
+                            accountData: accountData,
+                            accountId: activeAccountId,
                           );
                         },
                         shape: const RoundedRectangleBorder(
@@ -218,7 +213,9 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                           ),
                         ),
                         clipBehavior: Clip.antiAliasWithSaveLayer,
-                      );
+                      ).then((_) {
+                        accountBloc.add(AccountsTransitionEvent());
+                      });
                     },
                   ),
                 if (isBrokerageAccount) ...<Widget>[

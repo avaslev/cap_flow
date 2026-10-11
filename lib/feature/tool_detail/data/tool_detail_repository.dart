@@ -4,6 +4,7 @@ import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:uuid/uuid.dart';
 import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 import 'package:uuid/uuid.dart';
@@ -222,6 +223,106 @@ class ToolDetailRepository {
     final Tool row = await _repo.get(creditToolId);
     await _repo.update(row.copyWith(isClosed: true));
     return outstanding;
+  }
+
+  /// Переоценка тула «прочее»: стоимость доводится до [newValue] дельтой
+  /// (add/substract активити), replay даёт ровно [newValue].
+  /// Возвращает применённую дельту (со знаком).
+  Future<double> revalueOtherTool({
+    required String toolId,
+    required double newValue,
+  }) async {
+    final Tool tool = await _repo.get(toolId);
+    final List<Activity> activities = await _activityRepo.getActivityListByTool(
+      toolId,
+    );
+    double current = 0;
+    for (final Activity a in activities) {
+      current += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
+    }
+    final double delta = newValue - current;
+    if (delta == 0) return 0;
+
+    final DateTime now = DateTime.now();
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: toolId,
+        type: delta > 0 ? ActivityType.add : ActivityType.substract,
+        createAt: now,
+        quantity: 1,
+        price: delta.abs(),
+        currency: Currency.RUB,
+        isTransmit: true, // переоценка — не доход/расход
+        name: 'Переоценка «${tool.name}»',
+      ),
+    );
+    return delta;
+  }
+
+  /// Продажа актива «прочее»: деньги зачисляются на первый money-тул
+  /// счёта, актив помечается закрытым (история сохраняется).
+  /// Возвращает фактически зачисленную сумму.
+  Future<double> sellOtherTool({
+    required String toolId,
+    required String toolName,
+    required String accountId,
+    double? salePrice,
+  }) async {
+    // Текущая стоимость = replay активити тула.
+    final List<Activity> activities = await _activityRepo
+        .getActivityListByTool(toolId);
+    double current = 0;
+    for (final Activity a in activities) {
+      current += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
+    }
+    current = current.abs();
+    final double price = salePrice ?? current;
+
+    final List<Tool> accountTools = await _repo.geListByAccount(accountId);
+    final List<Tool> moneyTools = accountTools
+        .where((Tool t) => t.type == ToolType.money.name)
+        .toList();
+    if (moneyTools.isEmpty) {
+      throw Exception('На счёте нет денежного тула для зачисления.');
+    }
+    final Tool money = moneyTools.first;
+
+    final DateTime now = DateTime.now();
+    final String closeName = 'Продажа актива «$toolName»';
+
+    // Актив обнуляется...
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: toolId,
+        type: ActivityType.substract,
+        createAt: now,
+        quantity: 1,
+        price: current,
+        currency: Currency.RUB,
+        isTransmit: true,
+        name: closeName,
+      ),
+    );
+    // ...деньги зачисляются на money-тул (по цене продажи).
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: money.id,
+        type: ActivityType.add,
+        createAt: now,
+        quantity: price,
+        price: 1,
+        currency: Currency.RUB,
+        isTransmit: true,
+        name: closeName,
+      ),
+    );
+    // Актив закрывается (история сохраняется).
+    final Tool row = await _repo.get(toolId);
+    await _repo.update(row.copyWith(isClosed: true));
+    return price;
   }
 
   /// Activities of a tool, newest first.

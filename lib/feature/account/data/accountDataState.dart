@@ -214,6 +214,17 @@ class ToolSummary {
           faceValue: t.faceValue,
           isClosed: t.isClosed,
         ),
+      OtherTool t => ToolSummary(
+          id: t.id,
+          name: t.name,
+          quantity: quantity,
+          percentageChange: percentageChange,
+          accountId: t.accountId,
+          type: t.kind,
+          currentValue: currentValue,
+          ticker: t.ticker,
+          isClosed: t.isClosed,
+        ),
       TypedTool t => ToolSummary(
           id: t.id,
           name: t.name,
@@ -883,12 +894,21 @@ List<ToolSummary> getToolsForAccount(String accountId) {
 
   /// Adds a new 'other' tool to a specified account.
   /// Deducts the specified amount from a selected money tool within the same account.
+  /// Добавляет тул типа «прочее» — произвольный актив с ручной оценкой.
+  ///
+  /// - [toolId] — UUID строки в БД (обязателен, чтобы пережить refresh);
+  /// - [quantity] — информационное количество (шт, м²...);
+  /// - [amount] — общая стоимость актива (источник истины);
+  /// - [withdrawalToolName] — если указан, стоимость списывается с этого
+  ///   money-тула («покупка актива»); если null — актив «уже в собственности»,
+  ///   движение денег не пишется.
   void addOtherTool({
     required String accountId,
     required String name,
-    required double
-    amount, // Amount to be converted/used for the new tool (in RUB)
-    required String withdrawalToolName, // Name of the money tool to deduct from
+    required String toolId,
+    required double amount,
+    double quantity = 1,
+    String? withdrawalToolName,
   }) {
     final AccountSummary? account = getAccountById(accountId);
     if (account == null || account.id == 'total') {
@@ -898,59 +918,71 @@ List<ToolSummary> getToolsForAccount(String accountId) {
       return;
     }
 
-    final ToolSummary? withdrawalTool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? tool) =>
-          tool != null &&
-          tool.accountId == accountId &&
-          tool.type == ToolType.money &&
-          tool.name == withdrawalToolName,
-      orElse: () => null,
-    );
-
-    if (withdrawalTool == null) {
-      debugPrint(
-        'Withdrawal money tool "$withdrawalToolName" not found in account "$accountId".',
+    ToolSummary? withdrawalTool;
+    if (withdrawalToolName != null) {
+      withdrawalTool = _tools.cast<ToolSummary?>().firstWhere(
+        (ToolSummary? tool) =>
+            tool != null &&
+            tool.accountId == accountId &&
+            tool.type == ToolType.money &&
+            tool.name == withdrawalToolName,
+        orElse: () => null,
       );
-      return;
+      if (withdrawalTool == null) {
+        debugPrint(
+          'Withdrawal money tool "$withdrawalToolName" not found in account "$accountId".',
+        );
+        return;
+      }
+
+      final double withdrawalToolUnitPrice =
+          withdrawalTool.quantity > 0
+              ? (withdrawalTool.currentValue / withdrawalTool.quantity)
+              : 1.0;
+
+      if (withdrawalTool.currentValue < amount) {
+        debugPrint(
+          'Insufficient funds in ${withdrawalTool.name} for this other tool.',
+        );
+      }
+
+      withdrawalTool.currentValue -= amount;
+      if (withdrawalToolUnitPrice > 0) {
+        withdrawalTool.quantity -= (amount / withdrawalToolUnitPrice);
+      }
     }
 
-    // Calculate actual value being withdrawn (in RUB) based on the current effective rate of the withdrawal tool
-    final double withdrawalToolUnitPrice =
-        withdrawalTool.quantity > 0
-            ? (withdrawalTool.currentValue / withdrawalTool.quantity)
-            : (withdrawalTool.ticker == 'USD' ? 90.0 : 1.0);
-
-    if (withdrawalTool.currentValue < amount) {
-      // Compare in RUB
-      debugPrint(
-        'Insufficient funds in ${withdrawalTool.name} for this other tool.',
-      );
-      // Allowing to go negative for demonstration
-    }
-
-    // Deduct value and quantity from the withdrawal money tool
-    withdrawalTool.currentValue -= amount; // Amount is in RUB
-    if (withdrawalToolUnitPrice > 0) {
-      withdrawalTool.quantity -= (amount / withdrawalToolUnitPrice);
-    }
-
-    // Add the new 'other' tool
+    // Add the new 'other' tool (value set via the creation activity on replay).
     _tools.add(
       ToolSummary(
-        id: name,
+        id: toolId,
         name: name,
-        quantity:
-            amount /
-            withdrawalToolUnitPrice, // Quantity based on how many units of the original tool were "converted"
-        percentageChange: 0.0, // Initial change for 'other' tool
+        quantity: quantity,
+        percentageChange: 0.0,
         accountId: accountId,
         type: ToolType.other,
-        currentValue: amount, // Value in RUB
-        ticker: withdrawalTool.ticker, // Ticker from the withdrawal tool
+        currentValue: amount,
       ),
     );
 
-    _updateTotalBalance(); // Will update account balance based on new tool values
+    _updateTotalBalance();
+  }
+
+  /// Переоценка тула «прочее»: стоимость меняется на [newValue] через дельту
+  /// (replay-совместимо). Возвращает фактическую дельту (со знаком).
+  double revalueOtherTool(String toolName, double newValue) {
+    final ToolSummary? tool = _tools.cast<ToolSummary?>().firstWhere(
+      (ToolSummary? t) =>
+          t != null && t.type == ToolType.other && t.name == toolName,
+      orElse: () => null,
+    );
+    if (tool == null) {
+      return 0;
+    }
+    final double delta = newValue - tool.currentValue;
+    tool.currentValue = newValue;
+    _updateTotalBalance();
+    return delta;
   }
 
   /// Toggles the hideEvents flag for a specific account.

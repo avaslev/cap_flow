@@ -375,8 +375,156 @@ class ToolDetailScreen extends StatelessWidget {
       return _buildDepositOverview(tool, context);
     } else if (tool.type == 'CREDIT') {
       return _buildCreditOverview(tool, context);
+    } else if (tool.type == 'OTHER') {
+      return _buildOtherOverview(tool, context);
     }
     return _buildGenericOverview(tool, context);
+  }
+
+  Future<void> _sellOtherTool(
+    BuildContext context,
+    ToolDetailDisplay tool,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Продажа актива'),
+          content: Text(
+            'Актив «${tool.name}» будет продан за '
+            '${tool.currentValue.abs().toStringAsFixed(2)} ₽, деньги будут '
+            'зачислены на money-тул счёта. Продолжить?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Продать'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    try {
+      final double price =
+          await ToolDetailRepository().sellOtherTool(
+        toolId: tool.id,
+        toolName: tool.name,
+        accountId: tool.accountId,
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Актив продан: +${price.toStringAsFixed(2)} ₽ в деньги'),
+        ),
+      );
+      navigator.pop();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Не удалось продать актив: $e')),
+      );
+    }
+  }
+
+  Widget _buildOtherOverview(ToolDetailDisplay tool, BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final TextEditingController valueController = TextEditingController(
+      text: tool.currentValue.toStringAsFixed(2),
+    );
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Прочий актив',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            'Текущая стоимость',
+            formatCurrency(tool.currentValue),
+            context,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Переоценка',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: valueController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Новая стоимость (RUB)',
+              prefixIcon: Icon(Icons.attach_money),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    final double? newValue = double.tryParse(
+                      valueController.text.replaceAll(',', '.'),
+                    );
+                    if (newValue == null || newValue <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Введите положительную стоимость'),
+                        ),
+                      );
+                      return;
+                    }
+                    final double delta = await ToolDetailRepository()
+                        .revalueOtherTool(toolId: tool.id, newValue: newValue);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            delta >= 0
+                                ? 'Переоценка: +${delta.toStringAsFixed(2)} ₽'
+                                : 'Переоценка: ${delta.toStringAsFixed(2)} ₽',
+                          ),
+                        ),
+                      );
+                      context.read<ToolDetailBloc>().add(
+                        LoadToolDetail(tool.accountId, tool.id),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.update),
+                  label: const Text('Переоценить'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () => _sellOtherTool(context, tool),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.error,
+                  side: BorderSide(color: colorScheme.error),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  minimumSize: const Size(48, 50),
+                ),
+                icon: const Icon(Icons.sell_outlined),
+                label: const Text('Продать'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDepositOverview(ToolDetailDisplay tool, BuildContext context) {

@@ -345,6 +345,66 @@ void main() {
     });
   });
 
+  group('addOtherTool (M: прочее)', () {
+    test('без списания: актив добавлен, балансы не изменились', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.addTool(_moneyTool('a-cash', 'a', quantity: 100, currentValue: 100));
+
+      data.addOtherTool(
+        accountId: 'a',
+        name: 'Квартира',
+        toolId: 'ot1',
+        amount: 5000000,
+        quantity: 1,
+        withdrawalToolName: null, // «уже в собственности»
+      );
+
+      expect(data.getAccountById('a')!.balance, 5000100.0); // 100 + 5 000 000
+      expect(data.tools['ot1']!.currentValue, 5000000.0);
+      expect(data.tools['a-cash']!.currentValue, 100.0); // не тронут
+    });
+
+    test('со списанием: деньги уменьшились на стоимость актива', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.addTool(_moneyTool('a-cash', 'a', quantity: 100, currentValue: 100));
+
+      data.addOtherTool(
+        accountId: 'a',
+        name: 'Автомобиль',
+        toolId: 'ot2',
+        amount: 1500,
+        quantity: 1,
+        withdrawalToolName: 'a-cash',
+      );
+
+      expect(data.tools['a-cash']!.currentValue, -1400.0); // 100 - 1500
+      expect(data.tools['ot2']!.currentValue, 1500.0);
+      // Total = -1400 + 1500 = 100 (без изменений: внутренняя покупка).
+      expect(data.getAccountById('total')!.balance, 100.0);
+    });
+
+    test('переоценка меняет стоимость тула', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.addTool(
+        ToolSummary(
+          id: 'ot1',
+          name: 'Дача',
+          quantity: 1,
+          percentageChange: 0,
+          accountId: 'a',
+          type: ToolType.other,
+          currentValue: 500000,
+        ),
+      );
+      data.revalueOtherTool('Дача', 750000);
+      expect(data.tools['ot1']!.currentValue, 750000.0);
+      expect(data.getAccountById('a')!.balance, 750000.0);
+    });
+  });
+
   group('Tool lookups', () {
     test('getMoneyToolsForAccount returns only money tools', () {
       final AccountData data = AccountData();

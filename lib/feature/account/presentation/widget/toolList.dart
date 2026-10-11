@@ -182,32 +182,21 @@ class ToolTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: <Widget>[
-                      if (tool.ticker != null)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6.0),
-                          child: Text(
-                            tool.ticker!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall!
-                                .copyWith(
-                                  fontWeight: FontWeight.w400,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      Text(
-                        '${tool.quantity.toStringAsFixed(2)} шт.',
-                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                  if (tool.ticker != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: Text(
+                        tool.ticker!,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall!
+                            .copyWith(
+                              fontWeight: FontWeight.w400,
                               color: colorScheme.onSurfaceVariant,
                             ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
                   if (tool.type == ToolType.deposit && tool.startDate != null)
                     Text(
                       tool.endDate != null
