@@ -82,6 +82,20 @@ void main() {
       expect(typedToolFromDb(_dbTool('other')), isA<OtherTool>());
     });
 
+    test('isClosed roundtrip', () {
+      final Tool row = Tool(
+        id: 't1',
+        accountId: 'a1',
+        name: 'Old Deposit',
+        type: 'deposit',
+        isClosed: true,
+      );
+      final TypedTool tool = typedToolFromDb(row);
+      expect(tool.isClosed, isTrue);
+      final Tool back = typedToolToDb(tool);
+      expect(back.isClosed, isTrue);
+    });
+
     test('unknown type fails fast', () {
       expect(
         () => typedToolFromDb(_dbTool('gold_bar')),

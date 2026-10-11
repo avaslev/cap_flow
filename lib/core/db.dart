@@ -63,6 +63,7 @@ Map<int, String> migrationScripts = {
   5: '''ALTER TABLE tools ADD COLUMN termMonths INTEGER''',
   6: '''ALTER TABLE activities ADD COLUMN interestAmount NUMERIC''',
   7: '''ALTER TABLE activities ADD COLUMN principalAmount NUMERIC''',
+  8: '''ALTER TABLE tools ADD COLUMN isClosed INTEGER NOT NULL DEFAULT 0''',
 };
 
 class DatabaseHelper {

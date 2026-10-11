@@ -96,6 +96,9 @@ class ToolSummary {
   // New Bond specific fields
   final double? faceValue; // Nominal value of the bond
 
+  // Lifecycle: closed tools keep history in the DB but are hidden from lists.
+  final bool isClosed;
+
   ToolSummary({
     required this.id,
     required this.name,
@@ -115,6 +118,7 @@ class ToolSummary {
     this.paymentDayOfMonth,
     this.creditPaymentType,
     this.faceValue, // Initialize faceValue
+    this.isClosed = false,
   });
 
   /// Copies the mutable replayed fields. Metadata (dates, rates, payout
@@ -143,6 +147,7 @@ class ToolSummary {
       paymentDayOfMonth: paymentDayOfMonth,
       creditPaymentType: creditPaymentType,
       faceValue: faceValue,
+      isClosed: isClosed,
     );
   }
 
@@ -170,6 +175,7 @@ class ToolSummary {
           payoutType: t.payoutType,
           withdrawalToolId: t.withdrawalToolId,
           interestRate: t.interestRate,
+          isClosed: t.isClosed,
         ),
       CreditTool t => ToolSummary(
           id: t.id,

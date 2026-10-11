@@ -21,6 +21,9 @@ class Tool {
   // New Credit specific fields
   final int? termMonths; // Loan term in months
 
+  // Lifecycle: closed tools keep their history but are hidden from lists.
+  final bool isClosed;
+
   Tool({
     required this.id,
     required this.name,
@@ -34,6 +37,7 @@ class Tool {
     this.paymentDayOfMonth,
     this.faceValue,
     this.termMonths,
+    this.isClosed = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -50,6 +54,7 @@ class Tool {
       'paymentDayOfMonth': paymentDayOfMonth,
       'faceValue': faceValue,
       'termMonths': termMonths,
+      'isClosed': isClosed ? 1 : 0,
     };
   }
 
@@ -64,6 +69,7 @@ class Tool {
     final String? ticker = map['ticker'] as String?;
     final String? payType = map['payType'] as String?;
     final int? termMonths = map['termMonths'] as int?;
+    final bool isClosed = (map['isClosed'] as int? ?? 0) == 1;
 
     // DateTimes are stored as int (milliseconds or microseconds since epoch).
     // Check if the value is an int before converting.
@@ -106,6 +112,7 @@ class Tool {
       paymentDayOfMonth: paymentDayOfMonth,
       faceValue: faceValue,
       termMonths: termMonths,
+      isClosed: isClosed,
     );
   }
 }

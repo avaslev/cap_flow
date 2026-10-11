@@ -11,11 +11,16 @@ sealed class TypedTool {
   final String name;
   final String? ticker;
 
+  /// Lifecycle flag: closed tools keep their history in the DB but are
+  /// hidden from display lists.
+  final bool isClosed;
+
   const TypedTool({
     required this.id,
     required this.accountId,
     required this.name,
     this.ticker,
+    this.isClosed = false,
   });
 
   ToolType get kind;
@@ -28,6 +33,7 @@ class MoneyTool extends TypedTool {
     required super.accountId,
     required super.name,
     super.ticker,
+    super.isClosed,
   });
 
   @override
@@ -52,6 +58,7 @@ class DepositTool extends TypedTool {
     this.payoutType,
     this.withdrawalToolId,
     super.ticker,
+    super.isClosed,
   });
 
   @override
@@ -76,6 +83,7 @@ class CreditTool extends TypedTool {
     this.paymentDayOfMonth,
     this.paymentType,
     super.ticker,
+    super.isClosed,
   });
 
   @override
@@ -92,6 +100,7 @@ sealed class SecurityTool extends TypedTool {
     required super.name,
     this.faceValue,
     super.ticker,
+    super.isClosed,
   });
 }
 
@@ -102,6 +111,7 @@ class StockTool extends SecurityTool {
     required super.name,
     super.faceValue,
     super.ticker,
+    super.isClosed,
   });
 
   @override
@@ -115,6 +125,7 @@ class BondTool extends SecurityTool {
     required super.name,
     super.faceValue,
     super.ticker,
+    super.isClosed,
   });
 
   @override
@@ -127,6 +138,7 @@ class CryptoTool extends SecurityTool {
     required super.accountId,
     required super.name,
     super.ticker,
+    super.isClosed,
   });
 
   @override
@@ -140,6 +152,7 @@ class OtherTool extends TypedTool {
     required super.accountId,
     required super.name,
     super.ticker,
+    super.isClosed,
   });
 
   @override

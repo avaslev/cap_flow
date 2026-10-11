@@ -45,14 +45,21 @@ class FinancialEventBloc extends Bloc<FinancialEventEvent, FinancialEventState> 
     final list = (await _repo.getByAccount(_accountId))
         .map((item) => _mapToEvent(item))
         .toList();
-    _wallets = _wallets.length > 0 ? _wallets : (await _toolsRepo.geListByAccount(event.accountId)).map(
-      (Tool tool) => Wallet(
-        id: tool.id,
-        name: tool.name,
-        icon: Icons.account_balance_wallet,
-        color: Colors.indigo,
-      ),
-    ).toList();
+    // Deposits stay in the planner on purpose (interest events target them);
+    // closed tools are hidden.
+    _wallets = _wallets.length > 0
+        ? _wallets
+        : (await _toolsRepo.geListByAccount(event.accountId))
+            .where((Tool tool) => !tool.isClosed)
+            .map(
+              (Tool tool) => Wallet(
+                id: tool.id,
+                name: tool.name,
+                icon: Icons.account_balance_wallet,
+                color: Colors.indigo,
+              ),
+            )
+            .toList();
     _categories = _categories.length > 0 ? _categories : (await _categoriesRepo.getList(event.accountId, null));
     emit(FinancialEventLoaded(list, _wallets, _categories, _accountId));
   }

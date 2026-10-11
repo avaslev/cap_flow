@@ -36,14 +36,10 @@ class ToolList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Zero-valued deposits (closed) are hidden from the list — their
-    // history stays in the tool detail storage, but there is nothing to show.
+    // Closed tools keep history in the DB but are hidden from lists.
     final List<ToolSummary> tools = accountData
         .getToolsForAccount(accountId)
-        .where(
-          (ToolSummary tool) =>
-              !(tool.type == ToolType.deposit && tool.currentValue <= 0),
-        )
+        .where((ToolSummary tool) => !tool.isClosed)
         .toList();
 
     if (tools.isEmpty) {

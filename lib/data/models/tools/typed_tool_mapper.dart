@@ -20,6 +20,7 @@ TypedTool typedToolFromDb(Tool tool) {
         accountId: tool.accountId,
         name: tool.name,
         ticker: tool.ticker,
+        isClosed: tool.isClosed,
       );
     case ToolType.deposit:
       return DepositTool(
@@ -34,6 +35,7 @@ TypedTool typedToolFromDb(Tool tool) {
             ? null
             : PayoutType.values.byName(tool.payType!),
         withdrawalToolId: null,
+        isClosed: tool.isClosed,
       );
     case ToolType.credit:
       return CreditTool(
@@ -48,6 +50,7 @@ TypedTool typedToolFromDb(Tool tool) {
         paymentType: tool.payType == null
             ? null
             : CreditPaymentType.values.byName(tool.payType!),
+        isClosed: tool.isClosed,
       );
     case ToolType.stocks:
       return StockTool(
@@ -71,6 +74,7 @@ TypedTool typedToolFromDb(Tool tool) {
         accountId: tool.accountId,
         name: tool.name,
         ticker: tool.ticker,
+        isClosed: tool.isClosed,
       );
     case ToolType.other:
       return OtherTool(
@@ -78,6 +82,7 @@ TypedTool typedToolFromDb(Tool tool) {
         accountId: tool.accountId,
         name: tool.name,
         ticker: tool.ticker,
+        isClosed: tool.isClosed,
       );
   }
 }
@@ -94,6 +99,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         name: t.name,
         type: t.kind.name,
         ticker: t.ticker,
+        isClosed: t.isClosed,
       );
     case DepositTool t:
       return Tool(
@@ -106,6 +112,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         endDate: t.endDate,
         payType: t.payoutType?.name,
         interestRate: t.interestRate,
+        isClosed: t.isClosed,
       );
     case CreditTool t:
       return Tool(
@@ -119,6 +126,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         interestRate: t.interestRate,
         paymentDayOfMonth: t.paymentDayOfMonth,
         termMonths: t.termMonths,
+        isClosed: t.isClosed,
       );
     case StockTool t:
       return Tool(
@@ -128,6 +136,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         type: t.kind.name,
         ticker: t.ticker,
         faceValue: t.faceValue ?? faceValue,
+        isClosed: t.isClosed,
       );
     case BondTool t:
       return Tool(
@@ -137,6 +146,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         type: t.kind.name,
         ticker: t.ticker,
         faceValue: t.faceValue ?? faceValue,
+        isClosed: t.isClosed,
       );
     case CryptoTool t:
       return Tool(
@@ -145,6 +155,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         name: t.name,
         type: t.kind.name,
         ticker: t.ticker,
+        isClosed: t.isClosed,
       );
     case OtherTool t:
       return Tool(
@@ -153,6 +164,7 @@ Tool typedToolToDb(TypedTool tool, {double? faceValue}) {
         name: t.name,
         type: t.kind.name,
         ticker: t.ticker,
+        isClosed: t.isClosed,
       );
   }
 }
