@@ -1,96 +1,172 @@
-// Copyright 2021, the Flutter project authors. Please see the AUTHORS file
-// for details. All rights reserved. Use of this source code is governed by a
-// BSD-style license that can be found in the LICENSE file.
-
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:url_launcher/link.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:investflow/core/theme/theme_cubit.dart';
 
-import '../auth.dart';
-
-class SettingsScreen extends StatefulWidget {
+/// Экран настроек: каркас разделов (внешний вид, данные, о приложении).
+/// Переключение темы — рабочее (светлая/тёмная/системная, сохраняется в БД).
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: SingleChildScrollView(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: const Card(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-                child: SettingsContent(),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class SettingsContent extends StatelessWidget {
-  const SettingsContent({super.key});
-
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      ...[
-        Text('Settings', style: Theme.of(context).textTheme.headlineMedium),
-        FilledButton(
-          onPressed: () {
-            BookstoreAuth.of(context).signOut();
-          },
-          child: const Text('Sign out'),
-        ),
-        const Text('Example using the Link widget:'),
-        Link(
-          uri: Uri.parse('/books/all/book/0'),
-          builder:
-              (context, followLink) => TextButton(
-                onPressed: followLink,
-                child: const Text('/books/all/book/0'),
-              ),
-        ),
-        const Text('Example using GoRouter.of(context).go():'),
-        TextButton(
-          child: const Text('/books/all/book/0'),
-          onPressed: () {
-            GoRouter.of(context).go('/books/all/book/0');
-          },
-        ),
-      ].map((w) => Padding(padding: const EdgeInsets.all(8), child: w)),
-      const Text('Displays a dialog on the root Navigator:'),
-      TextButton(
-        onPressed:
-            () => showDialog<String>(
-              context: context,
-              builder:
-                  (context) => AlertDialog(
-                    title: const Text('Alert!'),
-                    content: const Text('The alert description goes here.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, 'Cancel'),
-                        child: const Text('Cancel'),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Настройки')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: <Widget>[
+          // ─── Внешний вид ───
+          _sectionHeader(context, 'Внешний вид'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.palette_outlined,
+                        size: 20,
+                        color: colorScheme.primary,
                       ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, 'OK'),
-                        child: const Text('OK'),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Тема',
+                        style: Theme.of(context).textTheme.titleSmall!
+                            .copyWith(fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  BlocBuilder<ThemeCubit, ThemeMode>(
+                    builder: (BuildContext context, ThemeMode themeMode) {
+                      return SegmentedButton<ThemeMode>(
+                        segments: const <ButtonSegment<ThemeMode>>[
+                          ButtonSegment<ThemeMode>(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto_outlined),
+                            label: Text('Системная'),
+                          ),
+                          ButtonSegment<ThemeMode>(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode_outlined),
+                            label: Text('Светлая'),
+                          ),
+                          ButtonSegment<ThemeMode>(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode_outlined),
+                            label: Text('Тёмная'),
+                          ),
+                        ],
+                        selected: <ThemeMode>{themeMode},
+                        onSelectionChanged: (Set<ThemeMode> selection) {
+                          context.read<ThemeCubit>().setThemeMode(
+                            selection.first,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-        child: const Text('Show Dialog'),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── Данные ───
+          _sectionHeader(context, 'Данные'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: <Widget>[
+                ListTile(
+                  leading: Icon(
+                    Icons.backup_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  title: const Text('Создать резервную копию'),
+                  subtitle: const Text('Сохранить все данные в файл'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _notImplemented(context, 'Создание копии'),
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: Icon(
+                    Icons.restore_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  title: const Text('Восстановить из копии'),
+                  subtitle: const Text('Загрузить данные из файла'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _notImplemented(context, 'Восстановление'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── О приложении ───
+          _sectionHeader(context, 'О приложении'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'InvestFlow',
+                          style: Theme.of(context).textTheme.titleSmall!
+                              .copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Версия 1.0.0',
+                          style: Theme.of(context).textTheme.bodySmall!
+                              .copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
-    ],
-  );
+    );
+  }
+
+  Widget _sectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleSmall!.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  void _notImplemented(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature — функция в разработке')),
+    );
+  }
 }

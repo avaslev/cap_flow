@@ -4,8 +4,11 @@
 
 import 'dart:io' show Platform;
 
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:investflow/core/db.dart';
+import 'package:investflow/core/theme/theme_cubit.dart';
+import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';
@@ -16,7 +19,12 @@ void main() async {
   await initializeDateFormatting('ru');
   setupWindow();
   await DatabaseHelper.instance.initDb();
-  runApp(const InvestApp());
+
+  // Тема: загружаем сохранённый режим до запуска приложения.
+  final ThemeCubit themeCubit = ThemeCubit(SettingsRepository());
+  await themeCubit.load();
+
+  runApp(InvestApp(themeCubit: themeCubit));
 }
 
 const double windowWidth = 1400;
