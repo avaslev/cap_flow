@@ -74,11 +74,13 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       if (idx < 0) return;
       final int otherIdx = event.up ? idx - 1 : idx + 1;
       // Total (index 0) всегда первый — с ним не меняемся.
-      if (otherIdx < 1 || otherIdx >= accounts.length) return;
+      if (otherIdx < 1 || otherIdx >= accounts.length) {
+        return;
+      }
 
       final AccountSummary moved = accounts[idx];
       final AccountSummary other = accounts[otherIdx];
-      final int tmp = other.sortOrder;
+      final int tmp = moved.sortOrder;
       moved.sortOrder = other.sortOrder;
       other.sortOrder = tmp;
       await AccountRepository().changeSortOrder(moved.id, moved.sortOrder);
