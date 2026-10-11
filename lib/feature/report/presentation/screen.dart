@@ -1,5 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/data/models/account.dart';
+import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/feature/report/data/model/report_data.dart';
 import 'package:investflow/feature/report/logic/bloc.dart';
@@ -278,6 +281,26 @@ class ReportScreen extends StatelessWidget {
     );
   }
 
+  Widget _yearTotal(String label, double value, Color color) {
+    return Column(
+      children: <Widget>[
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          formatCurrency(value),
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBarChart({
     required ReportData data,
     required List<MonthIncomeExpense> monthData,
@@ -285,15 +308,47 @@ class ReportScreen extends StatelessWidget {
     required List<Legend> legends,
     required Color incomeColor,
     required Color expenseColor,
+    bool showBudget = false,
+    Color? budgetColor,
+    String emptyMessage = 'Нет данных за период',
   }) {
     // ✅ Адаптивные деления по вертикали
+    final bool hasData = monthData.any(
+      (MonthIncomeExpense m) =>
+          m.income > 0 || m.expense > 0 || m.budget > 0,
+    );
+    if (!hasData) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Text(
+              emptyMessage,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
     final maxIncome = monthData
         .map((e) => e.income)
         .reduce((a, b) => a > b ? a : b);
     final maxExpense = monthData
         .map((e) => e.expense)
         .reduce((a, b) => a > b ? a : b);
-    final maxValue = (maxIncome > maxExpense ? maxIncome : maxExpense) * 1.2;
+    final maxBudget = showBudget
+        ? monthData.map((e) => e.budget).reduce((a, b) => a > b ? a : b)
+        : 0.0;
+    double maxValue =
+        (maxIncome > maxExpense ? maxIncome : maxExpense) * 1.2;
+    if (maxBudget > maxValue) maxValue = maxBudget * 1.2;
     final interval = _calculateNiceInterval(maxValue);
 
     return Container(
@@ -367,18 +422,15 @@ class ReportScreen extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 2,
+                      interval: 1,
                       reservedSize: 35,
                       getTitlesWidget: (value, meta) {
-                        final monthIndex = (value / 2).floor();
-                        if (monthIndex >= 0 && monthIndex <= 11) {
+                        final int monthIndex = value.toInt();
+                        if (monthIndex >= 0 && monthIndex < monthData.length) {
                           final displayText =
                               monthData[monthIndex].month == '01'
-                                  ? monthData[monthIndex].month +
-                                      '.' +
-                                      monthData[monthIndex].year
+                                  ? '${monthData[monthIndex].month}.${monthData[monthIndex].year}'
                                   : monthData[monthIndex].month;
-
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
@@ -391,7 +443,7 @@ class ReportScreen extends StatelessWidget {
                             ),
                           );
                         }
-                        return const SizedBox();
+                        return const SizedBox.shrink();
                       },
                     ),
                   ),
@@ -413,12 +465,12 @@ class ReportScreen extends StatelessWidget {
                 barGroups: List.generate(12, (index) {
                   final monthDataItem = monthData[index];
                   return BarChartGroupData(
-                    x: index * 2,
+                    x: index,
                     barRods: [
                       BarChartRodData(
                         toY: monthDataItem.income,
                         color: incomeColor,
-                        width: 5,
+                        width: showBudget ? 4 : 5,
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(6),
                         ),
@@ -426,11 +478,20 @@ class ReportScreen extends StatelessWidget {
                       BarChartRodData(
                         toY: monthDataItem.expense,
                         color: expenseColor,
-                        width: 5,
+                        width: showBudget ? 4 : 5,
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(6),
                         ),
                       ),
+                      if (showBudget)
+                        BarChartRodData(
+                          toY: monthDataItem.budget,
+                          color: budgetColor ?? Colors.orange,
+                          width: showBudget ? 4 : 5,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(6),
+                          ),
+                        ),
                     ],
                   );
                 }),
@@ -454,7 +515,30 @@ class ReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Отчет')),
+      appBar: AppBar(
+        title: FutureBuilder<Account>(
+          future: AccountRepository().get(accountId),
+          builder: (BuildContext context, AsyncSnapshot<Account> snapshot) {
+            final String accountName = snapshot.data?.name ?? '';
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text('Отчёт'),
+                if (accountName.isNotEmpty)
+                  Text(
+                    accountName,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(
+                        alpha: 0.85,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
       body: BlocProvider(
         create: (context) => ReportBloc()..add(LoadReportEvent(accountId)),
         child: BlocBuilder<ReportBloc, ReportState>(
@@ -465,7 +549,22 @@ class ReportScreen extends StatelessWidget {
             if (state is ReportLoaded) {
               return _buildContent(state.reportData);
             }
-            return const Center(child: Text('Ошибка загрузки'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Text('Ошибка загрузки отчёта'),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => context.read<ReportBloc>().add(
+                      LoadReportEvent(accountId),
+                    ),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Повторить'),
+                  ),
+                ],
+              ),
+            );
           },
         ),
       ),
@@ -473,11 +572,40 @@ class ReportScreen extends StatelessWidget {
   }
 
   Widget _buildContent(ReportData data) {
+    double yearIncome = 0;
+    double yearExpense = 0;
+    for (final MonthIncomeExpense m in data.incomeExpenseData) {
+      yearIncome += m.income;
+      yearExpense += m.expense;
+    }
+    double yearBudget = 0;
+    for (final MonthIncomeExpense m in data.plannedData) {
+      yearBudget += m.budget;
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                _yearTotal('Доход', yearIncome, Colors.green.shade600),
+                _yearTotal('Расход', yearExpense, Colors.red.shade600),
+                _yearTotal('Бюджет (план, переводы)', yearBudget, Colors.orange.shade700),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           _buildSummaryCards(data),
           const SizedBox(height: 24),
           _buildTotalLineChart(data),
@@ -503,9 +631,13 @@ class ReportScreen extends StatelessWidget {
             legends: [
               Legend('План доход', Colors.green.shade500.withOpacity(0.8)),
               Legend('План расход', Colors.red.shade500.withOpacity(0.8)),
+              Legend('Бюджет (переводы)', Colors.orange.shade600),
             ],
             incomeColor: Colors.green.shade500.withOpacity(0.8),
             expenseColor: Colors.red.shade500.withOpacity(0.8),
+            showBudget: true,
+            budgetColor: Colors.orange.shade600,
+            emptyMessage: 'Нет плановых событий',
           ),
         ],
       ),

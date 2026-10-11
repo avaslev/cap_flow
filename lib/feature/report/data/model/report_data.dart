@@ -97,10 +97,14 @@ class MonthIncomeExpense {
   final double income;
   final double expense;
 
+  /// Плановые переводы между счетами (сколько нужно денег в месяце).
+  final double budget;
+
   const MonthIncomeExpense({
     required this.year,
     required this.month,
     required this.income,
     required this.expense,
+    this.budget = 0.0,
   });
 }

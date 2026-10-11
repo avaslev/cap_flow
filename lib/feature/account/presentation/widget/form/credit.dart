@@ -122,6 +122,23 @@ class _CreditFormState extends State<CreditForm> {
     final int paymentDay =
         int.tryParse(_paymentDayController.text) ?? _startDate.day;
 
+    // Защита от дублей: активный кредит с тем же именем уже есть?
+    final bool duplicate = widget.accountData
+        .getToolsForAccount(widget.accountId)
+        .any((ToolSummary t) =>
+            t.type == ToolType.credit &&
+            !t.isClosed &&
+            t.name.toLowerCase() == name.toLowerCase());
+    if (duplicate) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Кредит с названием «$name» уже есть на счёте'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       final String creditToolId = const Uuid().v7();

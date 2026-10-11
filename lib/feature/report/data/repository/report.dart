@@ -1,4 +1,6 @@
 import 'package:investflow/core/db.dart';
+import 'package:investflow/core/utils/calculateNextOccurrence.dart';
+import 'package:investflow/data/models/scheduledTransaction.dart';
 import 'package:investflow/feature/report/data/model/report_data.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -206,6 +208,7 @@ class ReportRepository {
             () => {
               'income': 0.0,
               'expense': 0.0,
+              'budget': 0.0,
               'year_index': targetYear,
               'month_index': targetMonthStr,
             },
@@ -216,65 +219,108 @@ class ReportRepository {
             (row['month_index'] as String?)?.padLeft(2, '0') ?? targetMonthStr,
         income: (row['income'] as num?)?.toDouble() ?? 0.0,
         expense: (row['expense'] as num?)?.toDouble() ?? 0.0,
+        budget: (row['planned_budget'] as num?)?.toDouble() ?? 0.0,
       );
     });
   }
 
+  /// Проекция плановых транзакций на 12 месяцев вперёд:
+  /// [income, expense, budget] по каждому месяцу окна.
+  ///
+  /// - повторяющиеся серии шагают calculateNextOccurrence от
+  ///   next_execution_date до конца окна;
+  /// - плановые записи закрытых тулов (is_closed) не проецируются;
+  /// - бюджет = плановые переводы между счетами.
   Future<List<MonthIncomeExpense>> _getPlannedData(
     String accountId,
     int startTime,
     int endTime,
   ) async {
-    final accountCondition =
-        accountId == 'total' ? "acc.excludeFromTotal = 'false'" : "acc.id = ?";
+    final DateTime windowStart = DateTime.fromMillisecondsSinceEpoch(startTime);
+    final DateTime windowEnd = DateTime.fromMillisecondsSinceEpoch(endTime);
 
-    final params =
-        accountId == 'total'
-            ? [startTime, endTime]
-            : [startTime, endTime, accountId];
+    // Закрытые тула: их плановые записи не проецируем.
+    final Set<String> closedToolIds = <String>{
+      for (final row in await _database.query('tools', where: 'isClosed = 1'))
+        row['id'] as String,
+    };
 
-    final result = await _database.rawQuery('''
-      SELECT
-        strftime('%Y', datetime(st.next_execution_date/1000, 'unixepoch')) as year_index,
-        strftime('%m', datetime(st.next_execution_date/1000, 'unixepoch')) as month_index,
-        SUM(CASE WHEN st.type = 'income' THEN amount ELSE 0 END) as planned_income,
-        SUM(CASE WHEN st.type = 'expense' THEN amount ELSE 0 END) as planned_expense
-      FROM scheduled_transactions st
-      LEFT JOIN accounts acc ON acc.id = st.account_id
-      WHERE next_execution_date BETWEEN ? AND ?
-        AND $accountCondition
-        AND executed_count < total_executions
-      GROUP BY year_index, month_index
-      ORDER BY year_index, month_index
-    ''', params);
+    final String where = accountId == 'total'
+        ? "account_id IN (SELECT id FROM accounts WHERE excludeFromTotal = 'false')"
+        : 'account_id = ?';
+    final List<Object?> args = accountId == 'total' ? [] : [accountId];
+    final List<Map<String, dynamic>> rows = await _database.query(
+      'scheduled_transactions',
+      where: where,
+      whereArgs: args,
+    );
 
-    final startMonth = DateTime.fromMillisecondsSinceEpoch(startTime).month;
-    final startYear = DateTime.fromMillisecondsSinceEpoch(startTime).year;
+    // Бакеты по месяцам окна: [доход, расход, бюджет].
+    final DateTime monthStart = DateTime(windowStart.year, windowStart.month, 1);
+    final List<List<double>> buckets = List.generate(12, (_) => <double>[0, 0, 0]);
 
-    return List.generate(12, (index) {
-      final targetMonth = ((startMonth - 1 + index) % 12) + 1;
-      final targetMonthStr = targetMonth.toString().padLeft(2, '0');
+    for (final Map<String, dynamic> row in rows) {
+      final ScheduledTransaction st = ScheduledTransaction.fromMap(row);
+      if (st.depositToolId != null &&
+          closedToolIds.contains(st.depositToolId)) {
+        continue; // тул закрыт — серию не проецируем
+      }
 
-      final row = result.firstWhere(
-        (r) => (r['month_index'] as String?) == targetMonthStr,
-        orElse:
-            () => {
-              'planned_income': 0.0,
-              'planned_expense': 0.0,
-              'year_index':
-                  (startYear + ((startMonth - 1 + index) > 11 ? 1 : 0))
-                      .toString(),
-              'month_index': targetMonthStr, // ✅ НЕ null!
-            },
+      // Бессрочные повторения (без даты окончания) — без лимита;
+      // срочные — остатком total - executed.
+      final bool perpetual =
+          st.recurrenceType != 'none' && st.recurrenceEndDate == null;
+      final int maxLeft = perpetual
+          ? 400
+          : (st.totalExecutions > 0
+              ? st.totalExecutions - st.executedCount
+              : 1);
+
+      DateTime cursor = st.nextExecutionDate;
+      int made = 0;
+      while (!cursor.isAfter(windowEnd) && made < maxLeft) {
+        if (st.recurrenceEndDate != null &&
+            cursor.isAfter(st.recurrenceEndDate!)) {
+          break;
+        }
+        final DateTime day = DateTime(cursor.year, cursor.month, cursor.day);
+        final int monthIndex =
+            (day.year - monthStart.year) * 12 + day.month - monthStart.month;
+        if (monthIndex >= 0 && monthIndex < 12) {
+          final int idx = st.type == 'income' ? 0 : (st.type == 'transfer' ? 2 : 1);
+          buckets[monthIndex][idx] += st.amount;
+        }
+        made += 1;
+
+        final DateTime? next = calculateNextOccurrence(
+          initialDate: st.date,
+          recurrenceType: st.recurrenceType,
+          recurrenceEndDate: st.recurrenceEndDate,
+          recurrenceDayOfMonth: st.recurrenceDayOfMonth,
+          now: cursor,
+        );
+        if (next == null || !next.isAfter(cursor)) {
+          break;
+        }
+        cursor = next;
+      }
+    }
+
+    final List<MonthIncomeExpense> planned = <MonthIncomeExpense>[];
+    for (int i = 0; i < 12; i++) {
+      final DateTime month = DateTime(monthStart.year, monthStart.month + i, 1);
+      final List<double> bucket = buckets[i];
+      planned.add(
+        MonthIncomeExpense(
+          year: '${month.year}'.substring(2),
+          month: month.month.toString().padLeft(2, '0'),
+          income: bucket[0],
+          expense: bucket[1],
+          budget: bucket[2],
+        ),
       );
-      return MonthIncomeExpense(
-        year: (row['year_index'] as String).substring(2),
-        month:
-            (row['month_index'] as String?)?.padLeft(2, '0') ?? targetMonthStr,
-        income: (row['planned_income'] as num?)?.toDouble() ?? 0.0,
-        expense: (row['planned_expense'] as num?)?.toDouble() ?? 0.0,
-      );
-    });
+    }
+    return planned;
   }
 
   String _formatMonthForQuery(int monthIndex) {
@@ -300,6 +346,8 @@ class ReportRepository {
       validMonths++;
     }
 
+    // Guard: нет истории (первая точка 0) → процент не считаем (иначе NaN).
+    if (totalLineData[0].value.abs() < 0.001) return 0.0;
     return ((totalLineData[11].value / totalLineData[0].value) - 1) * 100;
   }
 

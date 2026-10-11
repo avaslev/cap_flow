@@ -222,8 +222,6 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                   toolCounts: state.accountData.toolCountsFor(
                                     account.id,
                                   ),
-                                  nearestEvent: state.accountData
-                                      .nearestEventFor(account.id),
                                 ),
                               ),
                             );

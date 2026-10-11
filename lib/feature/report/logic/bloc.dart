@@ -13,7 +13,13 @@ class ReportBloc extends Bloc<ReportEvent, ReportState> {
   }
   
   FutureOr<void> _load(LoadReportEvent event, Emitter<ReportState> emit) async {
-    final data = await _repository.getReportData(event.accountId);
-    emit(ReportLoaded(reportData: data));
+    // Ошибка загрузки больше не оставляет bloc в Initial (вечный спиннер).
+    emit(const ReportLoading());
+    try {
+      final data = await _repository.getReportData(event.accountId);
+      emit(ReportLoaded(reportData: data));
+    } catch (e) {
+      emit(ReportError(message: 'Не удалось загрузить отчёт: $e'));
+    }
   }
 }

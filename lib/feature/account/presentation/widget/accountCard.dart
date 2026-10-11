@@ -13,14 +13,12 @@ class AccountCard extends StatelessWidget {
   final AccountSummary account;
   final bool isDeletable;
   final Map<ToolType, int> toolCounts;
-  final Event? nearestEvent;
 
   const AccountCard({
     super.key,
     required this.account,
     required this.isDeletable,
     required this.toolCounts,
-    this.nearestEvent,
   });
 
   IconData _toolIcon(ToolType type) {
@@ -199,27 +197,7 @@ class AccountCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                    if (nearestEvent != null)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(
-                            Icons.event_available,
-                            size: 14,
-                            color: subtleTextColor,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${DateFormat('dd.MM').format(nearestEvent!.date)} · ${nearestEvent!.name}',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall!.copyWith(
-                              color: subtleTextColor,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+    
                   ],
                 ),
               ],
