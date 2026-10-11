@@ -2,6 +2,7 @@ import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
@@ -14,6 +15,8 @@ import 'package:uuid/uuid.dart';
 class ToolDetailRepository {
   final ToolRepository _repo = ToolRepository();
   final ActivityRepository _activityRepo = ActivityRepository();
+  final ScheduledTransactionRepository _scheduledRepo =
+      ScheduledTransactionRepository();
 
   /// Gets a tool by its ID and converts it to display format.
   Future<ToolDetailDisplay> get(String toolId) async {
@@ -147,6 +150,8 @@ class ToolDetailRepository {
     // Mark closed instead of deleting: history stays, lists hide the tool.
     final Tool depositRow = await _repo.get(depositToolId);
     await _repo.update(depositRow.copyWith(isClosed: true));
+    // Remove the linked interest schedule from the planner.
+    await _scheduledRepo.deleteByDepositTool(depositToolId);
     return payout;
   }
 

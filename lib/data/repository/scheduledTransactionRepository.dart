@@ -81,6 +81,16 @@ class ScheduledTransactionRepository {
     );
   }
 
+  /// Removes planner records linked to a deposit (interest schedules).
+  Future<void> deleteByDepositTool(String depositToolId) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.delete(
+      'scheduled_transactions',
+      where: 'deposit_tool_id = ?',
+      whereArgs: [depositToolId],
+    );
+  }
+
   Future<void> deleteByAccount(String accountId) async {
     Database db = await DatabaseHelper.instance.db;
     await db.delete(

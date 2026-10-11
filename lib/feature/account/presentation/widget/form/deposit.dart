@@ -1,6 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
@@ -87,6 +92,96 @@ class _DepositFormState extends State<DepositForm> {
           ? PayoutType.values
           : PayoutType.values.where((PayoutType t) => t != PayoutType.atEndOfTerm).toList();
 
+  /// Planner record for deposit interest, built from the deposit settings.
+  /// 
+  /// - Ежемесячно (капитализация) → проценты приходуют на тул депозита;
+  /// - Ежемесячно на счёт списания → на money-тул;
+  /// - В конце срока → разовое начисление на money-тул в дату окончания.
+  ScheduledTransaction _buildInterestSchedule({
+    required String depositId,
+    required String moneyToolId,
+  }) {
+    final double principal =
+        double.parse(_amountController.text.replaceAll(',', '.'));
+    final double rate =
+        double.tryParse(_rateController.text.replaceAll(',', '.')) ?? 0;
+    final double monthlyInterest = principal * rate / 1200;
+    // For «в конце срока» the payout is the FULL term interest, not a
+    // monthly one: principal × rate × days/365 (via the valuation strategy).
+    final double payoutAmount = _payoutType == PayoutType.atEndOfTerm
+        ? depositValue(
+              principal: principal,
+              annualRate: rate,
+              startDate: _startDate,
+              endDate: _endDate,
+              asOf: _endDate ?? DateTime.now(),
+            ) -
+            principal
+        : monthlyInterest;
+    final String targetWalletId = switch (_payoutType) {
+      PayoutType.monthly => depositId,
+      PayoutType.monthlyToWithdrawalAccount => moneyToolId,
+      PayoutType.atEndOfTerm => moneyToolId,
+    };
+
+    String recurrenceType;
+    DateTime firstPayout;
+    DateTime? recurrenceEndDate;
+    int? recurrenceDayOfMonth;
+    int totalExecutions = 0;
+
+    final int day = math.max(1, math.min(_startDate.day, 28));
+    if (_payoutType == PayoutType.atEndOfTerm) {
+      recurrenceType = 'none';
+      firstPayout = _endDate!;
+      totalExecutions = 1;
+    } else {
+      recurrenceType = 'monthlyOnDay';
+      recurrenceDayOfMonth = day;
+      recurrenceEndDate = _hasEndDate ? _endDate : null;
+      // First payout: one period after opening.
+      int y = _startDate.year;
+      int m = _startDate.month + 1;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+      firstPayout = DateTime(y, m, math.min(day, 28));
+      // Count payouts until the end of term.
+      if (_hasEndDate) {
+        DateTime cursor = firstPayout;
+        while (cursor.isBefore(_endDate!)) {
+          totalExecutions += 1;
+          m = cursor.month + 1;
+          y = cursor.year;
+          if (m > 12) {
+            m = 1;
+            y += 1;
+          }
+          cursor = DateTime(y, m, math.min(day, 28));
+        }
+      }
+    }
+
+    return ScheduledTransaction(
+      id: const Uuid().v7(),
+      accountId: widget.accountId,
+      name: 'Проценты по депозиту «${_nameController.text.trim()}»',
+      amount: payoutAmount,
+      type: 'income',
+      category: 'Проценты по депозиту',
+      date: _startDate,
+      walletId: targetWalletId,
+      recurrenceType: recurrenceType,
+      recurrenceEndDate: recurrenceEndDate,
+      recurrenceDayOfMonth: recurrenceDayOfMonth,
+      nextExecutionDate: firstPayout,
+      totalExecutions: totalExecutions,
+      executedCount: 0,
+      depositToolId: depositId,
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final ToolSummary? moneyTool = _selectedMoneyTool;
@@ -161,6 +256,11 @@ class _DepositFormState extends State<DepositForm> {
         endDate: _endDate,
         payoutType: _payoutType,
         withdrawalToolName: moneyTool.name,
+      );
+
+      // Auto-create the planner record: interest accrual per deposit settings.
+      await ScheduledTransactionRepository().add(
+        _buildInterestSchedule(depositId: depositId, moneyToolId: moneyTool.id),
       );
 
       if (mounted) {

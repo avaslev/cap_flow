@@ -12,6 +12,7 @@ class ScheduledTransaction {
   final String walletId;                 // исходный кошелёк
   final String? destinationWalletId;     // целевой кошелёк (для переводов)
   final String? comment;                 // необязательный комментарий
+  final String? depositToolId;           // связь с депозитом (проценты)
   final String recurrenceType;           // none | weekly | monthly | annually | monthlyOnDay
   final DateTime? recurrenceEndDate;     // дата окончания повторения
   final int? recurrenceDayOfMonth;       // день месяца для RecurrenceType.monthlyOnDay
@@ -26,6 +27,7 @@ class ScheduledTransaction {
     required this.date,
     required this.walletId,
     required this.recurrenceType,
+    this.depositToolId,
     this.destinationWalletId,
     this.comment,
     this.recurrenceEndDate,
@@ -56,6 +58,7 @@ class ScheduledTransaction {
       'next_execution_date': nextExecutionDate.millisecondsSinceEpoch,
       'total_executions': totalExecutions,
       'executed_count': executedCount,
+      'deposit_tool_id': depositToolId,
     };
   }
 
@@ -83,6 +86,7 @@ class ScheduledTransaction {
           map['next_execution_date'] as int),
       totalExecutions: map['total_executions'] as int,
       executedCount: map['executed_count'] as int,
+      depositToolId: map['deposit_tool_id']?.toString(),
     );
   }
 
@@ -116,6 +120,7 @@ class ScheduledTransaction {
     DateTime? nextExecutionDate,
     int? totalExecutions,
     int? executedCount,
+    String? depositToolId,
   }) {
     return ScheduledTransaction(
       id: id ?? this.id,
@@ -135,6 +140,7 @@ class ScheduledTransaction {
       nextExecutionDate: nextExecutionDate ?? this.nextExecutionDate,
       totalExecutions: totalExecutions ?? this.totalExecutions,
       executedCount: executedCount ?? this.executedCount,
+      depositToolId: depositToolId ?? this.depositToolId,
     );
   }
 }
