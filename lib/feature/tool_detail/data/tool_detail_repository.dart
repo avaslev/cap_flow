@@ -116,6 +116,8 @@ class ToolDetailRepository {
     final DateTime now = DateTime.now();
     final String closeName = 'Закрытие депозита «$depositName»';
 
+    // Both records stay in history (like a fully sold stock): the deposit
+    // tool remains with zero value.
     await _activityRepo.insert(
       Activity(
         id: const Uuid().v7(),
@@ -129,22 +131,27 @@ class ToolDetailRepository {
         name: closeName,
       ),
     );
-    // Zero out the deposit before deleting it (keeps replay consistent).
     await _activityRepo.insert(
       Activity(
         id: const Uuid().v7(),
         toolId: depositToolId,
         type: ActivityType.substract,
         createAt: now,
-        quantity: 1,
-        price: payout,
+        quantity: payout,
+        price: 1,
         currency: Currency.RUB,
         isTransmit: false,
         name: closeName,
       ),
     );
-    await _activityRepo.deleteByTool(depositToolId);
-    await _repo.delete(depositToolId);
     return payout;
+  }
+
+  /// Activities of a tool, newest first.
+  Future<List<Activity>> getActivitiesForTool(String toolId) async {
+    final List<Activity> list = await _activityRepo.getActivityListByTool(toolId);
+    final List<Activity> sorted = List<Activity>.from(list)
+      ..sort((Activity a, Activity b) => b.createAt.compareTo(a.createAt));
+    return sorted;
   }
 }

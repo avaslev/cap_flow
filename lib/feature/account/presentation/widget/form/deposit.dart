@@ -36,10 +36,12 @@ class _DepositFormState extends State<DepositForm> {
   late String _selectedMoneyToolId = _moneyTools.isNotEmpty
       ? _moneyTools.first.id
       : '';
-  PayoutType _payoutType = PayoutType.atEndOfTerm;
+  PayoutType _payoutType = PayoutType.monthly;
   DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now().add(const Duration(days: 365));
+  DateTime? _endDate; // null → бессрочный депозит («никогда»)
   bool _saving = false;
+
+  bool get _hasEndDate => _endDate != null;
 
   @override
   void dispose() {
@@ -59,7 +61,7 @@ class _DepositFormState extends State<DepositForm> {
   }
 
   Future<void> _pickDate({required bool isStart}) async {
-    final DateTime initial = isStart ? _startDate : _endDate;
+    final DateTime initial = isStart ? _startDate : (_endDate ?? DateTime.now().add(const Duration(days: 365)));
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -70,7 +72,7 @@ class _DepositFormState extends State<DepositForm> {
     setState(() {
       if (isStart) {
         _startDate = picked;
-        if (_endDate.isBefore(_startDate)) {
+        if (_hasEndDate && _endDate!.isBefore(_startDate)) {
           _endDate = _startDate.add(const Duration(days: 365));
         }
       } else {
@@ -78,6 +80,12 @@ class _DepositFormState extends State<DepositForm> {
       }
     });
   }
+
+  /// Payout options: «в конце срока» exists only for term deposits.
+  List<PayoutType> get _payoutOptions =>
+      _hasEndDate
+          ? PayoutType.values
+          : PayoutType.values.where((PayoutType t) => t != PayoutType.atEndOfTerm).toList();
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -87,6 +95,15 @@ class _DepositFormState extends State<DepositForm> {
     final String name = _nameController.text.trim();
     final double principal = double.parse(_amountController.text.replaceAll(',', '.'));
     final double rate = double.tryParse(_rateController.text.replaceAll(',', '.')) ?? 0;
+    if (_payoutType == PayoutType.atEndOfTerm && !_hasEndDate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Для выплаты «в конце срока» укажите дату окончания.'),
+        ),
+      );
+      setState(() => _saving = false);
+      return;
+    }
 
     setState(() => _saving = true);
     try {
@@ -295,25 +312,50 @@ class _DepositFormState extends State<DepositForm> {
                     child: Text(DateFormat('dd.MM.yyyy').format(_startDate)),
                   ),
                 ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () => _pickDate(isStart: false),
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Дата конца срока',
-                      prefixIcon: Icon(Icons.event),
-                    ),
-                    child: Text(DateFormat('dd.MM.yyyy').format(_endDate)),
+                const SizedBox(height: 4),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Указать дату окончания'),
+                  subtitle: Text(
+                    _hasEndDate ? 'Срочный депозит' : 'Бессрочный — «никогда»',
                   ),
+                  value: _hasEndDate,
+                  onChanged: (bool value) {
+                    setState(() {
+                      if (value) {
+                        _endDate = DateTime.now().add(const Duration(days: 365));
+                      } else {
+                        _endDate = null;
+                        if (_payoutType == PayoutType.atEndOfTerm) {
+                          _payoutType = PayoutType.monthly;
+                        }
+                      }
+                    });
+                  },
                 ),
+                if (_hasEndDate) ...<Widget>[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () => _pickDate(isStart: false),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Дата конца срока',
+                        prefixIcon: Icon(Icons.event),
+                      ),
+                      child: Text(DateFormat('dd.MM.yyyy').format(_endDate!)),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 DropdownButtonFormField<PayoutType>(
-                  value: _payoutType,
+                  value: _payoutOptions.contains(_payoutType)
+                      ? _payoutType
+                      : _payoutOptions.first,
                   decoration: const InputDecoration(
                     labelText: 'Выплата процентов',
                     prefixIcon: Icon(Icons.payments),
                   ),
-                  items: PayoutType.values
+                  items: _payoutOptions
                       .map(
                         (PayoutType t) => DropdownMenuItem<PayoutType>(
                           value: t,
@@ -327,7 +369,7 @@ class _DepositFormState extends State<DepositForm> {
                       )
                       .toList(),
                   onChanged: (PayoutType? v) =>
-                      setState(() => _payoutType = v ?? PayoutType.atEndOfTerm),
+                      setState(() => _payoutType = v ?? PayoutType.monthly),
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(

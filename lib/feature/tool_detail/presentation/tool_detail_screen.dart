@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:investflow/feature/tools/domain/credit_schedule.dart';
 import 'package:investflow/feature/tools/domain/tool_valuation.dart';
@@ -182,6 +183,7 @@ class ToolDetailScreen extends StatelessWidget {
                         case 'Performance':
                           return _buildPerformanceTab(tool, context);
                         case 'Transactions':
+                        case 'Операции':
                           return _buildTransactionsTab(tool, context);
                         case 'Details':
                         case 'Детали':
@@ -282,15 +284,17 @@ class ToolDetailScreen extends StatelessWidget {
       case 'DEPOSIT':
         return [
           const Tab(text: 'Обзор'),
+          const Tab(text: 'Операции'),
           const Tab(text: 'Детали'),
         ];
       case 'CREDIT':
         return [
           const Tab(text: 'Обзор'),
           const Tab(text: 'График платежей'),
+          const Tab(text: 'Операции'),
         ];
       case 'OTHER':
-        return [const Tab(text: 'Обзор')];
+        return [const Tab(text: 'Обзор'), const Tab(text: 'Операции')];
       default:
         return [const Tab(text: 'Обзор')];
     }
@@ -572,29 +576,54 @@ class ToolDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTransactionsTab(ToolDetailDisplay tool, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Text(
-            'Recent Transactions',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildTransactionItem('Buy', 100, '10 shares', context),
-                _buildTransactionItem('Sell', 50, '5 shares', context),
-                _buildTransactionItem('Dividend', 25, 'Dividend payment', context),
-                _buildTransactionItem('Buy', 150, '15 shares', context),
-              ],
-            ),
-          ),
-        ],
-      ),
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    return FutureBuilder<List<Activity>>(
+      future: ToolDetailRepository().getActivitiesForTool(tool.id),
+      builder: (
+        BuildContext context,
+        AsyncSnapshot<List<Activity>> snapshot,
+      ) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Ошибка: ${snapshot.error}'));
+        }
+        final List<Activity> activities = snapshot.data ?? <Activity>[];
+        if (activities.isEmpty) {
+          return const Center(child: Text('Операций пока нет'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: activities.length,
+          itemBuilder: (BuildContext context, int index) {
+            final Activity activity = activities[index];
+            final bool isAdd = activity.type == ActivityType.add;
+            final double value = activity.price * activity.quantity;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                isAdd ? Icons.add_circle : Icons.remove_circle,
+                color: isAdd ? colorScheme.primary : colorScheme.error,
+              ),
+              title: Text(
+                activity.name ?? (isAdd ? 'Пополнение' : 'Списание'),
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                DateFormat('dd.MM.yyyy').format(activity.createAt),
+              ),
+              trailing: Text(
+                '${isAdd ? '+' : '-'}${formatCurrency(value)}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isAdd ? colorScheme.primary : colorScheme.error,
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

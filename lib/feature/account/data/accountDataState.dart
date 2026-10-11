@@ -689,7 +689,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required double quantity, // Principal amount
     required double annualYield, // Percentage
     required DateTime startDate,
-    required DateTime endDate,
+    DateTime? endDate, // null → бессрочный депозит
     required PayoutType payoutType,
     required String withdrawalToolName, // Name of the money tool to deduct from
   }) {

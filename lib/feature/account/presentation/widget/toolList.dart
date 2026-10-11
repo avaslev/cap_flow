@@ -36,7 +36,15 @@ class ToolList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<ToolSummary> tools = accountData.getToolsForAccount(accountId);
+    // Zero-valued deposits (closed) are hidden from the list — their
+    // history stays in the tool detail storage, but there is nothing to show.
+    final List<ToolSummary> tools = accountData
+        .getToolsForAccount(accountId)
+        .where(
+          (ToolSummary tool) =>
+              !(tool.type == ToolType.deposit && tool.currentValue <= 0),
+        )
+        .toList();
 
     if (tools.isEmpty) {
       return Padding(
@@ -206,7 +214,9 @@ class ToolTile extends StatelessWidget {
                   ),
                   if (tool.type == ToolType.deposit && tool.startDate != null)
                     Text(
-                      '${DateFormat('MMM d, yyyy').format(tool.startDate!)} - ${DateFormat('MMM d, yyyy').format(tool.endDate!)}',
+                      tool.endDate != null
+                          ? '${DateFormat('MMM d, yyyy').format(tool.startDate!)} - ${DateFormat('MMM d, yyyy').format(tool.endDate!)}'
+                          : 'Бессрочный · с ${DateFormat('dd.MM.yyyy').format(tool.startDate!)}',
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
