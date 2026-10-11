@@ -99,275 +99,209 @@ class _AccountListScreenState extends State<AccountListScreen> {
             );
           }
 
-          return GestureDetector(
-            // Absorb hits in empty areas so screen-wide swipes work
-            behavior: HitTestBehavior.opaque,
-            // Tap anywhere on the body to exit delete mode
-            onTap: () {
-              accountBloc.add(DisableEditModeAccountCardEvent(null));
-            },
-            // Horizontal drag anywhere on the screen moves the account carousel.
-            // Inside the PageView area the PageView itself wins the gesture arena;
-            // everywhere else this handler drives the same PageController.
-            onHorizontalDragStart: (DragStartDetails details) {
-              _isUserSwiping = true;
-              if (_pageController.hasClients) {
-                _dragStartPixels = _pageController.position.pixels;
-              }
-            },
-            onHorizontalDragUpdate: (DragUpdateDetails details) {
-              _dragTotalDelta += details.delta.dx;
-              if (_dragStartPixels == null || !_pageController.hasClients) {
-                return;
-              }
-              final double maxExtent = _pageController.position.maxScrollExtent;
-              const double minExtent = 0.0;
-              final double target = (_dragStartPixels! - _dragTotalDelta)
-                  .clamp(minExtent, maxExtent);
-              _pageController.jumpTo(target);
-            },
-            onHorizontalDragCancel: () {
-              _dragStartPixels = null;
-              _isUserSwiping = false;
-            },
-            onHorizontalDragEnd: (DragEndDetails details) {
-              _dragStartPixels = null;
-              if (!_pageController.hasClients) {
-                _isUserSwiping = false;
-                return;
-              }
-              final double? page = _pageController.page;
-              if (page == null) {
-                _isUserSwiping = false;
-                return;
-              }
-              final int accountsCount = state.accountData.accounts.length;
-              int targetPage = page.round();
-              final double velocity = details.primaryVelocity ?? 0;
-              // Fast swipe left -> next account, right -> previous
-              if (velocity < -kMinFlingVelocity) {
-                targetPage = page.floor() + 1;
-              } else if (velocity > kMinFlingVelocity) {
-                targetPage = page.ceil() - 1;
-              }
-              if (targetPage < 0) targetPage = 0;
-              if (targetPage > accountsCount - 1) {
-                targetPage = accountsCount - 1;
-              }
-              _pageController
-                  .animateToPage(
-                    targetPage,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  )
-                  .whenComplete(() {
-                    _isUserSwiping = false;
-                  });
-            },
-            child: SizedBox.expand(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.max,
-                  children: <Widget>[
-                    Container(
-                      margin: const EdgeInsets.only(top: 16.0),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8.0,
-                      ), // Horizontal padding handled by PageView's itemBuilder
-                      width: MediaQuery.of(context).size.width,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(0),
+          // Структура: карусель счетов — фиксированная зона (вне прокрутки),
+          // контент счёта — отдельная прокручиваемая зона. Так вертикальный
+          // скролл не двигает карусель (нет дрожания), а горизонтальный свайп
+          // меняет счёт.
+          return Column(
+            children: <Widget>[
+              // Карусель: свайп влево/вправо меняет счёт.
+              Container(
+                margin: const EdgeInsets.only(top: 16.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                width: MediaQuery.of(context).size.width,
+                height: 178,
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged:
+                      (int page) => accountBloc.add(
+                        ChangePageAccountsEvent(page.round()),
                       ),
-                      child: NotificationListener<ScrollNotification>(
-                        // PageView drags that start on the card itself win the
-                        // gesture arena and never reach our GestureDetector —
-                        // mark swiping via scroll notifications instead.
-                        onNotification: (ScrollNotification notification) {
-                          if (notification.depth == 0) {
-                            if (notification is ScrollStartNotification) {
-                              _isUserSwiping = true;
-                            } else if (notification is ScrollEndNotification) {
-                              _isUserSwiping = false;
-                            }
-                          }
-                          return false;
-                        },
-                        child: PageView.builder(
-                          controller: _pageController,
-                          onPageChanged: (int page) =>
-                              accountBloc.add(
-                                ChangePageAccountsEvent(page.round()),
-                              ),
-                          itemCount: state.accountData.accounts.length,
-                          itemBuilder: (context, int index) {
-                            final AccountSummary account =
-                                state.accountData.accounts[index];
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                              ), // Spacing between cards
-                              child: ConstrainedBox(
-                                // Limit the maximum width
-                                constraints: const BoxConstraints(
-                                  maxWidth: 400.0,
-                                ),
-                                child: AccountCard(
-                                  account: account,
-                                  isDeletable: state.accountData
-                                      .isAccountDeletable(account.id),
-                                  toolCounts: state.accountData.toolCountsFor(
-                                    account.id,
-                                  ),
-                                  canMoveUp: index > 1,
-                                  canMoveDown: index <
-                                      state.accountData.accounts.length - 1,
-                                  onMoveUp: () => accountBloc.add(
-                                    MoveAccountEvent(
-                                      account.id,
-                                      up: true,
-                                    ),
-                                  ),
-                                  onMoveDown: () => accountBloc.add(
-                                    MoveAccountEvent(
-                                      account.id,
-                                      up: false,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                  itemCount: state.accountData.accounts.length,
+                  itemBuilder: (context, int index) {
+                    final AccountSummary account =
+                        state.accountData.accounts[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 400.0),
+                        child: AccountCard(
+                          account: account,
+                          isDeletable: state.accountData.isAccountDeletable(
+                            account.id,
+                          ),
+                          toolCounts: state.accountData.toolCountsFor(
+                            account.id,
+                          ),
+                          canMoveUp: index > 1,
+                          canMoveDown:
+                              index < state.accountData.accounts.length - 1,
+                          onMoveUp: () => accountBloc.add(
+                            MoveAccountEvent(account.id, up: true),
+                          ),
+                          onMoveDown: () => accountBloc.add(
+                            MoveAccountEvent(account.id, up: false),
+                          ),
                         ),
                       ),
-                    ),
-                    if (state.accountData.activeAccountId != 'total' &&
-                        state.accountData.deletableAccountId ==
-                            null) // Show buttons if not 'total' account AND not in delete mode
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 24,
-                          horizontal: 16,
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                GoRouter.of(context).go('/accounts/${state.accountData.activeAccountId}/events');
-                              },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primary,
-                                  foregroundColor: colorScheme.onPrimary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  minimumSize: const Size(double.infinity, 48),
-                                ),
-                                icon: Icon(
-                                  Icons.history, // Icon for events/history
-                                  size: 20,
-                                  color: colorScheme.onPrimary,
-                                ),
-                                label: Text(
-                                  "События", // "Events" in Russian
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelLarge!.copyWith(
-                                    color: colorScheme.onPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 16,
-                            ), // Spacing between buttons
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  _showActionBottomSheet(context);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.secondary,
-                                  foregroundColor: colorScheme.onSecondary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  minimumSize: const Size(double.infinity, 48),
-                                ),
-                                icon: Icon(
-                                  Icons.add_circle, // Icon for add action
-                                  size: 20,
-                                  color: colorScheme.onSecondary,
-                                ),
-                                label: Text(
-                                  "Добавить", // "Add" in Russian
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelLarge!.copyWith(
-                                    color: colorScheme.onSecondary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    // Conditional display for Tools and Events sections
-                    Column(
+                    );
+                  },
+                ),
+              ),
+              // Нижняя зона: вертикальный скролл; горизонтальный свайп меняет
+              // счёт только по завершении жеста (без дрожания карусели).
+              Expanded(
+                child: GestureDetector(
+                  // Absorb hits in empty areas; tap exits delete mode.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    accountBloc.add(DisableEditModeAccountCardEvent(null));
+                  },
+                  onHorizontalDragEnd: (DragEndDetails details) {
+                    if (!_pageController.hasClients) return;
+                    final double? page = _pageController.page;
+                    if (page == null) return;
+                    final int accountsCount =
+                        state.accountData.accounts.length;
+                    int targetPage = page.round();
+                    final double velocity = details.primaryVelocity ?? 0;
+                    if (velocity < -kMinFlingVelocity) {
+                      targetPage = page.floor() + 1;
+                    } else if (velocity > kMinFlingVelocity) {
+                      targetPage = page.ceil() - 1;
+                    }
+                    _pageController.animateToPage(
+                      targetPage.clamp(0, accountsCount - 1),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        // Financial Tools Section (Displayed for all accounts *except* 'total')
-                        if (state.accountData.activeAccountId !=
-                            'total') ...<Widget>[
+                        if (state.accountData.activeAccountId != 'total' &&
+                            state.accountData.deletableAccountId == null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 24,
+                              horizontal: 16,
+                            ),
+                            child: Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      GoRouter.of(context).go(
+                                        '/accounts/${state.accountData.activeAccountId}/events',
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorScheme.primary,
+                                      foregroundColor: colorScheme.onPrimary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12.0,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        48,
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.history, size: 20),
+                                    label: Text(
+                                      'События',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge!
+                                          .copyWith(
+                                            color: colorScheme.onPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      _showActionBottomSheet(context);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorScheme.secondary,
+                                      foregroundColor: colorScheme.onSecondary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12.0,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        48,
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.add_circle,
+                                      size: 20,
+                                    ),
+                                    label: Text(
+                                      'Добавить',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge!
+                                          .copyWith(
+                                            color: colorScheme.onSecondary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Total: последние события; обычный счёт: тула.
+                        if (state.accountData.activeAccountId == 'total')
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              'Последние события',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium!
+                                  .copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.onSurface,
+                                  ),
+                            ),
+                          ),
+                        if (state.accountData.activeAccountId == 'total')
+                          EventList(
+                            accountData: state.accountData,
+                            maxEvents: 50,
+                          ),
+                        if (state.accountData.activeAccountId != 'total')
                           ToolList(
                             accountData: state.accountData,
                             accountId: state.accountData.activeAccountId,
                           ),
-                        ],
-                        // Recent Events Section (Displayed *only* for 'total' account)
-                        if (state.accountData.activeAccountId ==
-                            'total') ...<Widget>[
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: 24,
-                              left: 16,
-                              right: 16,
-                              bottom: 8,
-                            ),
-                            child: Text(
-                              "Последние события", // "Recent Events"
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleLarge!.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                          EventList(
-                            accountData: state.accountData,
-                            maxEvents: 50, // As per original code, total gets 5
-                          ),
-                        ],
                         const SizedBox(height: 24),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           );
         },
       ),
