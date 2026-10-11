@@ -80,7 +80,9 @@ class _FinancialEventOverviewPageState
               Text(
                 _accountName!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onPrimary.withValues(
+                    alpha: 0.85,
+                  ),
                 ),
               ),
           ],

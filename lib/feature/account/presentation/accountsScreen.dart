@@ -9,6 +9,7 @@ import 'package:investflow/feature/account/presentation/widget/eventList.dart';
 import 'package:investflow/feature/account/presentation/widget/toolList.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Screen displaying the list of transactions, grouped by day.
@@ -218,6 +219,11 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                   account: account,
                                   isDeletable: state.accountData
                                       .isAccountDeletable(account.id),
+                                  toolCounts: state.accountData.toolCountsFor(
+                                    account.id,
+                                  ),
+                                  nearestEvent: state.accountData
+                                      .nearestEventFor(account.id),
                                 ),
                               ),
                             );

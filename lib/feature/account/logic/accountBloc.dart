@@ -200,6 +200,13 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       tool.currentValue = 0;
       tool.percentageChange = 0;
     }
+    // Reset period turnover (last 30 days) for all accounts before replay.
+    final DateTime today = DateTime.now();
+    final DateTime periodStart = today.subtract(const Duration(days: 30));
+    for (final AccountSummary acc in accountData.accounts) {
+      acc.periodIncome = 0;
+      acc.periodExpense = 0;
+    }
     final activities = await ActivityRepository().getActivityList();
     debugPrint('[_refreshActivities] Found ${activities.length} activities to replay');
     for (final activity in activities) {
@@ -212,6 +219,24 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         // Update the tool with the activity's effect
         toolSummary.quantity += quantityChange;
         toolSummary.currentValue += valueChange;
+
+        // Period turnover (30 days): real money movements of money tools only.
+        if (!activity.isTransmit && toolSummary.type == ToolType.money) {
+          final DateTime at = activity.createAt;
+          final bool inPeriod = at.isAfter(periodStart);
+          if (inPeriod) {
+            final AccountSummary? acc = accountData.getAccountById(
+              toolSummary.accountId,
+            );
+            if (acc != null) {
+              if (activity.type == ActivityType.add) {
+                acc.periodIncome += valueChange;
+              } else {
+                acc.periodExpense += valueChange;
+              }
+            }
+          }
+        }
 
         debugPrint('[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, ' +
             'qtyChange=${quantityChange.toStringAsFixed(2)}, valueChange=${valueChange.toStringAsFixed(2)}, ' +

@@ -25,6 +25,11 @@ class AccountSummary {
   bool
   excludeFromTotal; // New attribute to exclude from total balance calculation
 
+  /// Turnover for the last 30 days (real money operations, internal moves
+  /// excluded).
+  double periodIncome; // >= 0
+  double periodExpense; // <= 0
+
   AccountSummary({
     this.id = '',
     required this.name,
@@ -36,6 +41,8 @@ class AccountSummary {
     this.hideEvents = false, // Default to not hiding events
     this.excludeFromTotal =
         false, // Default to including in total balance calculation
+    this.periodIncome = 0.0,
+    this.periodExpense = 0.0,
   });
 }
 
@@ -317,6 +324,8 @@ class AccountData {
   void _updateTotalBalance() {
     double totalBalance = 0.0;
     double totalDailyChangeAmount = 0.0;
+    double totalTodayIncome = 0.0;
+    double totalTodayExpense = 0.0;
 
     for (final AccountSummary acc in _accounts) {
       if (acc.id != 'total' && !acc.excludeFromTotal) {
@@ -336,8 +345,16 @@ class AccountData {
 
         totalBalance += acc.balance;
         totalDailyChangeAmount += acc.dailyChangeAmount;
+        totalTodayIncome += acc.periodIncome;
+        totalTodayExpense += acc.periodExpense;
       }
     }
+
+    final AccountSummary totalAccount2 = _accounts.firstWhere(
+      (AccountSummary acc) => acc.id == 'total',
+    );
+    totalAccount2.periodIncome = totalTodayIncome;
+    totalAccount2.periodExpense = totalTodayExpense;
 
     final AccountSummary totalAccount = _accounts.firstWhere(
       (AccountSummary acc) => acc.id == 'total',
@@ -454,6 +471,31 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   String? get targetDisplayAccount => _targetDisplayAccount;
   void setTargetDisplayAccount(String? id) {
     _targetDisplayAccount = id;
+  }
+
+  /// Counts of open tools per kind for an account ('total' → all accounts).
+  Map<ToolType, int> toolCountsFor(String accountId) {
+    final Map<ToolType, int> counts = <ToolType, int>{};
+    for (final ToolSummary tool in _tools) {
+      if (tool.isClosed) continue;
+      if (accountId != 'total' && tool.accountId != accountId) continue;
+      counts[tool.type] = (counts[tool.type] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Nearest upcoming event for an account ('total' → across all accounts).
+  Event? nearestEventFor(String accountId) {
+    Event? nearest;
+    final DateTime now = DateTime.now();
+    for (final Event event in _events.values) {
+      if (accountId != 'total' && event.accountId != accountId) continue;
+      if (event.date.isBefore(DateTime(now.year, now.month, now.day))) continue;
+      if (nearest == null || event.date.isBefore(nearest.date)) {
+        nearest = event;
+      }
+    }
+    return nearest;
   }
 
   /// Returns the ID of the currently active account.
