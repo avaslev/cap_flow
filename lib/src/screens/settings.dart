@@ -1,11 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/theme/theme_cubit.dart';
+import 'package:investflow/data/repository/currencyRepository.dart';
 
 /// Экран настроек: каркас разделов (внешний вид, данные, о приложении).
 /// Переключение темы — рабочее (светлая/тёмная/системная, сохраняется в БД).
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  List<Map<String, Object?>> _currencies = const <Map<String, Object?>>[];
+  String? _defaultCurrency;
+  bool _loadingCurrency = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencies();
+  }
+
+  Future<void> _loadCurrencies() async {
+    final CurrencyRepository currencyRepository = CurrencyRepository();
+    final List<Map<String, Object?>> list = await currencyRepository.getList();
+    final String defaultCurrency = await currencyRepository
+        .getDefaultCurrency();
+    if (!mounted) return;
+    setState(() {
+      _currencies = list;
+      _defaultCurrency = defaultCurrency;
+      _loadingCurrency = false;
+    });
+  }
+
+  Future<void> _setDefaultCurrency(String code) async {
+    await CurrencyRepository().setDefaultCurrency(code);
+    if (mounted) {
+      setState(() => _defaultCurrency = code);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +108,47 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── Валюта ───
+          _sectionHeader(context, 'Валюта'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _loadingCurrency
+                  ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : DropdownButtonFormField<String>(
+                      value: _defaultCurrency,
+                      decoration: const InputDecoration(
+                        labelText: 'Дефолтная валюта (курс = 1)',
+                        prefixIcon: Icon(Icons.currency_exchange),
+                      ),
+                      items: _currencies
+                          .map(
+                            (Map<String, Object?> c) =>
+                                DropdownMenuItem<String>(
+                                  value: c['code'] as String,
+                                  child: Text(
+                                    '${c['code']} — ${c['name']}',
+                                  ),
+                                ),
+                          )
+                          .toList(),
+                      onChanged: (String? code) {
+                        if (code != null) {
+                          _setDefaultCurrency(code);
+                        }
+                      },
+                    ),
             ),
           ),
           const SizedBox(height: 24),

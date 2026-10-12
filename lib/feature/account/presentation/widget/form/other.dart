@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
@@ -130,6 +131,19 @@ class _OtherFormState extends State<OtherForm> {
         );
         setState(() => _saving = false);
       }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initDefaultTool();
+  }
+
+  Future<void> _initDefaultTool() async {
+    final ToolSummary? preferred = await selectDefaultMoneyTool(_moneyTools);
+    if (mounted && preferred != null) {
+      setState(() => _selectedMoneyToolId = preferred.id);
     }
   }
 

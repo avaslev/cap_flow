@@ -71,6 +71,20 @@ Map<int, String> migrationScripts = {
     key   TEXT PRIMARY KEY NOT NULL,
     value TEXT NOT NULL
 )''',
+  13: '''CREATE TABLE IF NOT EXISTS currencies (
+    code TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL
+)''',
+  14: '''INSERT INTO currencies (code, name) VALUES
+    ('RUB', 'Рубль'),
+    ('USD', 'Доллар США'),
+    ('EUR', 'Евро'),
+    ('CNY', 'Юань')''',
+  15: '''CREATE TABLE IF NOT EXISTS currency_rates (
+    code TEXT PRIMARY KEY NOT NULL,
+    rate REAL NOT NULL
+)''',
+  16: '''INSERT INTO currency_rates (code, rate) VALUES ('RUB', 1.0)''',
 };
 
 class DatabaseHelper {

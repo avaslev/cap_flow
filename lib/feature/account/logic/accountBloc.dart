@@ -7,6 +7,7 @@ import 'package:investflow/data/models/tools/typed_tool_mapper.dart';
 import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'dart:math' as math;
@@ -104,12 +105,15 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         sortOrder: maxSortOrder + 1,
       );
       await AccountRepository().insert(account);
+      // Money-тул — в дефолтной валюте из настроек.
+      final String defaultCurrency = await SettingsRepository()
+          .getDefaultCurrency();
       final Tool tool = Tool(
         id: Uuid().v7(),
         name: 'Money',
         accountId: account.id,
         type: ToolType.money.name,
-        ticker: Currency.RUB.name,
+        ticker: defaultCurrency,
       );
       await ToolRepository().insert(tool);
 

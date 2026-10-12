@@ -325,6 +325,103 @@ class ToolDetailRepository {
     return price;
   }
 
+  /// Деньги-тулы счёта (кроме исключённого).
+  Future<List<Tool>> getAccountMoneyTools(
+    String accountId, {
+    String? excludeToolId,
+  }) async {
+    final List<Tool> tools = await _repo.geListByAccount(accountId);
+    return tools
+        .where(
+          (Tool t) =>
+              t.type == ToolType.money.name && t.id != excludeToolId,
+        )
+        .toList();
+  }
+
+  /// Закрытие money-тула: весь остаток переводится на целевой money-тул
+  /// по курсу [rate] (RUB за единицу валюты), тул помечается закрытым
+  /// (история сохраняется). Возвращает переведённую сумму в RUB.
+  Future<double> closeMoneyToolAndTransfer({
+    required String toolId,
+    required String toolName,
+    required String accountId,
+    required String targetToolId,
+    required double quantityInCurrency,
+    required double rate,
+    required double rubValue,
+    required String closeName,
+  }) async {
+    final double transferred = quantityInCurrency * rate;
+
+    final DateTime now = DateTime.now();
+
+    // Исходный тул обнуляется (substract всего остатка в RUB).
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: toolId,
+        type: ActivityType.substract,
+        createAt: now,
+        quantity: 1,
+        price: quantityInCurrency * rate,
+        currency: Currency.RUB,
+        isTransmit: true,
+        name: closeName,
+      ),
+    );
+    // Целевой тул пополняется на переведённую сумму.
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: targetToolId,
+        type: ActivityType.add,
+        createAt: now,
+        quantity: 1,
+        price: transferred,
+        currency: Currency.RUB,
+        isTransmit: true,
+        name: closeName,
+      ),
+    );
+    // Курсовая прибыль/убыток — отдельной операцией (доход/расход).
+    final double profit = transferred - rubValue;
+    if (profit > 0.001) {
+      await _activityRepo.insert(
+        Activity(
+          id: const Uuid().v7(),
+          toolId: targetToolId,
+          type: ActivityType.add,
+          createAt: now,
+          quantity: 1,
+          price: profit,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Курсовая прибыль «$toolName»',
+        ),
+      );
+    } else if (profit < -0.001) {
+      await _activityRepo.insert(
+        Activity(
+          id: const Uuid().v7(),
+          toolId: targetToolId,
+          type: ActivityType.substract,
+          createAt: now,
+          quantity: 1,
+          price: -profit,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Курсовой убыток «$toolName»',
+        ),
+      );
+    }
+
+    // Тул закрывается.
+    final Tool row = await _repo.get(toolId);
+    await _repo.update(row.copyWith(isClosed: true));
+    return transferred;
+  }
+
   /// Activities of a tool, newest first.
   Future<List<Activity>> getActivitiesForTool(String toolId) async {
     final List<Activity> list = await _activityRepo.getActivityListByTool(toolId);

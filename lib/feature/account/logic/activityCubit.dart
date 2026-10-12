@@ -5,6 +5,7 @@ import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
+import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,7 +28,20 @@ class ActivityCubit extends Cubit<ActivityState> {
             event,
             commentOverride: initialComment,
           ),
-        );
+        ) {
+    _preferDefaultCurrencyTool();
+  }
+
+  /// По умолчанию выбирается тул с дефолтной валютой из настроек.
+  Future<void> _preferDefaultCurrencyTool() async {
+    if (state.eventId != null) return; // редактирование события — не трогаем
+    final ToolSummary? preferred = await selectDefaultMoneyTool(
+      state.availableMoneyTools,
+    );
+    if (preferred != null && state.selectedMoneyToolId != preferred.id) {
+      moneyToolSelected(preferred.id);
+    }
+  }
 
   /// Updates the amount in the state.
   void amountChanged(String value) {

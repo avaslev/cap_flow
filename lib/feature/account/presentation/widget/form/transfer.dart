@@ -17,7 +17,10 @@ class TransferForm extends StatelessWidget {
   Widget build(BuildContext context) {
     // We need AccountData to initialize the Cubit with initial tools and to
     // perform the actual addIncome operation.
-    final List<ToolSummary> initialMoneyTools = accountData.allMoneyTools;
+    // Закрытые тула (isClosed) не участвуют в переводах.
+    final List<ToolSummary> initialMoneyTools = accountData.allMoneyTools
+        .where((ToolSummary tool) => !tool.isClosed)
+        .toList();
 
     return BlocProvider<TransferCubit>(
       create:
@@ -33,21 +36,21 @@ class TransferForm extends StatelessWidget {
         listener: (BuildContext context, TransferState state) {
           if (state.formStatus == FormStatus.success) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Transfer added successfully!')),
+              const SnackBar(content: Text('Перевод добавлен')),
             );
             Navigator.pop(context); // Close the bottom sheet
           } else if (state.formStatus == FormStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Failed to add transfer: ${state.errorMessage ?? "Unknown error"}',
+                  'Не удалось добавить перевод: ${state.errorMessage ?? "Ошибка"}',
                 ),
               ),
             );
           } else if (state.formStatus == FormStatus.validationError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.errorMessage ?? 'Please check your input.'),
+                content: Text(state.errorMessage ?? 'Проверьте заполнение полей.'),
               ),
             );
           }
@@ -66,6 +69,36 @@ class _TransferFormContent extends StatefulWidget {
 
 class _TransferFormContentState extends State<_TransferFormContent> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _amountCtrl = TextEditingController();
+  final TextEditingController _receivedCtrl = TextEditingController();
+
+  /// «Получено» синхронизируется из состояния после кадра: пересчёт
+  /// из «Будет списано» подставляется автоматически, ручной ввод
+  /// не конфликтует (состояние равно тексту во время набора).
+  void _syncCtrls(TransferState state) {
+    if (_receivedCtrl.text != state.amountTo) {
+      final String v = state.amountTo;
+      _receivedCtrl.value = TextEditingValue(
+        text: v,
+        selection: TextSelection.collapsed(offset: v.length),
+      );
+    }
+  }
+
+  String _fmtRate(double v) {
+    String s = v.toStringAsFixed(4);
+    while (s.endsWith('0') && s.contains('.')) {
+      s = s.substring(0, s.length - 1);
+    }
+    return s.endsWith('.') ? '${s}0' : s;
+  }
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _receivedCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +114,25 @@ class _TransferFormContentState extends State<_TransferFormContent> {
         child: SingleChildScrollView(
           child: BlocBuilder<TransferCubit, TransferState>(
             builder: (BuildContext context, TransferState state) {
+              final String fromTicker = state.fromTicker ?? 'RUB';
+              final String toTicker = state.toTicker ?? 'RUB';
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _syncCtrls(state),
+              );
+              // Инфо: курс обмена из введённых сумм, в обе стороны.
+              final String rateInfo = () {
+                final double? spent = double.tryParse(state.amount);
+                final double? received = double.tryParse(state.amountTo);
+                if (spent == null ||
+                    received == null ||
+                    spent <= 0 ||
+                    received <= 0) {
+                  return '';
+                }
+                final double r = spent / received;
+                return 'Курс: ${_fmtRate(r)} $fromTicker за 1 $toTicker'
+                    ' · ${_fmtRate(received / spent)} $toTicker за 1 $fromTicker';
+              }();
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +140,7 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
-                      "Add Transfer",
+                      "Перевод",
                       style: Theme.of(
                         context,
                       ).textTheme.headlineSmall!.copyWith(
@@ -100,14 +152,11 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                   DropdownButtonFormField<String>(
                     value: state.selectedFromToolId,
                     decoration: InputDecoration(
-                      labelText: 'From',
+                      labelText: 'Откуда',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      prefixIcon: Icon(
-                        Icons.money,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      prefixIcon: Icon(Icons.money),
                     ),
                     items:
                         state.availableMoneyTools
@@ -116,10 +165,17 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                                   tool.id != state.selectedToToolId,
                             )
                             .map<DropdownMenuItem<String>>((ToolSummary tool) {
+                              final String accountName = state.accounts
+                                  .where(
+                                    (AccountSummary account) =>
+                                        account.id == tool.accountId,
+                                  )
+                                  .first
+                                  .name;
                               return DropdownMenuItem<String>(
                                 value: tool.id,
                                 child: Text(
-                                  '${state.accounts.where((AccountSummary account) => account.id == tool.accountId).first.name} (${formatCurrency(tool.currentValue)})',
+                                  '$accountName · ${tool.name} (${formatCurrency(tool.currentValue)})',
                                 ),
                               );
                             })
@@ -140,7 +196,7 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                   DropdownButtonFormField<String>(
                     value: state.selectedToToolId,
                     decoration: InputDecoration(
-                      labelText: 'To',
+                      labelText: 'Куда',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
@@ -156,10 +212,17 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                                   tool.id != state.selectedFromToolId,
                             )
                             .map<DropdownMenuItem<String>>((ToolSummary tool) {
+                              final String accountName = state.accounts
+                                  .where(
+                                    (AccountSummary account) =>
+                                        account.id == tool.accountId,
+                                  )
+                                  .first
+                                  .name;
                               return DropdownMenuItem<String>(
                                 value: tool.id,
                                 child: Text(
-                                  '${state.accounts.where((AccountSummary account) => account.id == tool.accountId).first.name} (${formatCurrency(tool.currentValue)})',
+                                  '$accountName · ${tool.name} (${formatCurrency(tool.currentValue)})',
                                 ),
                               );
                             })
@@ -207,43 +270,116 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                       }
                     },
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    initialValue: state.amount,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: false,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Amount (RUB equivalent)',
-                      hintText: 'e.g., 5000.00',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
+                  if (!state.isCrossCurrency) ...<Widget>[
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _amountCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: false,
                       ),
-                      prefixIcon: Icon(
-                        Icons.attach_money,
-                        color: colorScheme.onSurfaceVariant,
+                      decoration: InputDecoration(
+                        labelText: 'Сумма ($fromTicker)',
+                        hintText: '0.00',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.attach_money,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
+                      onChanged:
+                          (String value) =>
+                              context.read<TransferCubit>().amountChanged(value),
+                      validator: (String? value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Укажите сумму';
+                        }
+                        final double? val = double.tryParse(value);
+                        if (val == null || val <= 0) {
+                          return 'Введите положительное число';
+                        }
+                        return null;
+                      },
                     ),
-                    onChanged:
-                        (String value) =>
-                            context.read<TransferCubit>().amountChanged(value),
-                    validator: (String? value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter the amount';
-                      }
-                      final double? val = double.tryParse(value);
-                      if (val == null || val <= 0) {
-                        return 'Please enter a valid positive number';
-                      }
-                      return null;
-                    },
-                  ),
+                  ],
+                  if (state.isCrossCurrency) ...<Widget>[
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _amountCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: false,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Будет списано ($fromTicker)',
+                        hintText: '0.00',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.attach_money,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      onChanged:
+                          (String value) =>
+                              context.read<TransferCubit>().amountChanged(value),
+                      validator: (String? value) {
+                        final double? val = double.tryParse(value ?? '');
+                        if (val == null || val <= 0) {
+                          return 'Введите положительное число';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _receivedCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: false,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Получено ($toTicker)',
+                        hintText: '0.00',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.savings,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      onChanged:
+                          (String value) => context
+                              .read<TransferCubit>()
+                              .amountToChanged(value),
+                      validator: (String? value) {
+                        final double? val = double.tryParse(value ?? '');
+                        if (val == null || val <= 0) {
+                          return 'Введите положительное число';
+                        }
+                        return null;
+                      },
+                    ),
+                    if (rateInfo.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(
+                        rateInfo,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
                   const SizedBox(height: 16),
                   TextFormField(
                     initialValue: state.commission,
                     decoration: InputDecoration(
-                      labelText: 'Commission (Optional, RUB equivalent)',
+                      labelText: 'Комиссия (в валюте источника, опц.)',
                       hintText: 'e.g., 5.00',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
@@ -321,8 +457,8 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                             ),
                     label: Text(
                       state.formStatus == FormStatus.loading
-                          ? "Adding..."
-                          : "Add transfer",
+                          ? "Добавление..."
+                          : "Добавить перевод",
                       style: Theme.of(context).textTheme.labelLarge!.copyWith(
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,

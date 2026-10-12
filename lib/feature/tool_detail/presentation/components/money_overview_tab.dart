@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+
+import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 
+/// Обзор денежного инструмента: карточка баланса.
 class MoneyOverviewTab extends StatelessWidget {
   final ToolDetailDisplay tool;
 
@@ -8,212 +12,86 @@ class MoneyOverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Cash Account',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    // Для недефолтной валюты показываем баланс в валюте инструмента,
+    // а эквивалент по курсу — второй строкой.
+    return FutureBuilder<String>(
+      future: SettingsRepository().getDefaultCurrency(),
+      builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+        final String defaultCurrency = snapshot.data ?? 'RUB';
+        final bool isForeign =
+            tool.ticker != null && tool.ticker != defaultCurrency;
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              elevation: 0,
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: colorScheme.outlineVariant),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Balance card only
-            Card(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
-                  children: [
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        tool.ticker ?? 'RUB',
+                        style: TextStyle(
+                          color: colorScheme.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'Current Balance',
+                      isForeign
+                          ? 'Баланс (${tool.ticker})'
+                          : 'Текущий баланс',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '\$${tool.currentValue.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                      isForeign
+                          ? '${tool.quantity.toStringAsFixed(2)} ${tool.ticker}'
+                          : formatCurrency(tool.currentValue),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
                     ),
+                    if (isForeign) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(
+                        '≈ ${formatCurrency(tool.currentValue)}',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showTransferDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Send Money'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Recipient',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showWithdrawDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Withdraw Money'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Withdraw'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showBillsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pay Bills'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildBillItem('Electric Bill', '\$125.00', Colors.orange, context),
-            _buildBillItem('Water Bill', '\$45.00', Colors.blue, context),
-            _buildBillItem('Internet', '\$60.00', Colors.purple, context),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBillItem(String name, String amount, Color color, BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(Icons.receipt, color: color),
-      ),
-      title: Text(name),
-      subtitle: Text('Due in 3 days'),
-      trailing: Text(
-        amount,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
+        );
+      },
     );
   }
 }

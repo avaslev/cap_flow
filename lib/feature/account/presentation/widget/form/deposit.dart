@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
@@ -286,6 +288,19 @@ class _DepositFormState extends State<DepositForm> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _initDefaultTool();
+  }
+
+  Future<void> _initDefaultTool() async {
+    final ToolSummary? preferred = await selectDefaultMoneyTool(_moneyTools);
+    if (mounted && preferred != null) {
+      setState(() => _selectedMoneyToolId = preferred.id);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     if (_moneyTools.isEmpty) {
@@ -357,7 +372,7 @@ class _DepositFormState extends State<DepositForm> {
                         (ToolSummary t) => DropdownMenuItem<String>(
                           value: t.id,
                           child: Text(
-                            '${t.name} (${t.quantity.toStringAsFixed(2)})',
+                            '${t.name} (${formatCurrency(t.currentValue)})',
                           ),
                         ),
                       )
@@ -382,8 +397,9 @@ class _DepositFormState extends State<DepositForm> {
                       return 'Введите положительную сумму';
                     }
                     final ToolSummary? moneyTool = _selectedMoneyTool;
-                    if (moneyTool != null && amount > moneyTool.quantity) {
-                      return 'Недостаточно средств: ${moneyTool.quantity.toStringAsFixed(2)}';
+                    if (moneyTool != null &&
+                        amount > moneyTool.currentValue) {
+                      return 'Недостаточно средств: ${formatCurrency(moneyTool.currentValue)}';
                     }
                     return null;
                   },

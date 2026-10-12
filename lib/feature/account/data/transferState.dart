@@ -12,10 +12,22 @@ class TransferState {
   final String? selectedFromToolId;
   final String? selectedToToolId;
   final String? commission;
+  /// Курс перевода FROM → TO (строка, редактируемый; при одинаковых валютах = '1').
+  final String rate;
+  /// Сумма зачисления в валюте получателя.
+  final String amountTo;
+  /// Валюты (тикеры) тула-источника и тула-получателя.
+  final String? fromTicker;
+  final String? toTicker;
   final List<ToolSummary> availableMoneyTools;
   final List<AccountSummary> accounts;
   final FormStatus formStatus;
   final String? errorMessage;
+
+  bool get isCrossCurrency =>
+      fromTicker != null &&
+      toTicker != null &&
+      fromTicker != toTicker;
 
   const TransferState({
     required this.amount,
@@ -24,6 +36,10 @@ class TransferState {
     this.selectedFromToolId,
     this.selectedToToolId,
     this.commission,
+    this.rate = '',
+    this.amountTo = '',
+    this.fromTicker,
+    this.toTicker,
     required this.availableMoneyTools,
     required this.accounts,
     this.formStatus = FormStatus.initial,
@@ -39,6 +55,8 @@ class TransferState {
       selectedFromToolId: currentTool.id,
       availableMoneyTools: initialMoneyTools,
       accounts: accounts,
+      rate: '',
+      amountTo: '',
     );
   }
 
@@ -50,6 +68,10 @@ class TransferState {
     String? selectedFromToolId,
     String? selectedToToolId,
     String? commission,
+    String? rate,
+    String? amountTo,
+    String? fromTicker,
+    String? toTicker,
     List<ToolSummary>? availableMoneyTools,
     FormStatus? formStatus,
     String? errorMessage,
@@ -63,6 +85,10 @@ class TransferState {
       selectedToToolId:
           selectedToToolId ?? this.selectedToToolId,
       commission: commission ?? this.commission,
+      rate: rate ?? this.rate,
+      amountTo: amountTo ?? this.amountTo,
+      fromTicker: fromTicker ?? this.fromTicker,
+      toTicker: toTicker ?? this.toTicker,
       availableMoneyTools: availableMoneyTools ?? this.availableMoneyTools,
       accounts: accounts,
       formStatus: formStatus ?? this.formStatus,

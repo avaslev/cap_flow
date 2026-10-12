@@ -452,12 +452,15 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   return filtered;
 }
 
-  /// Returns only money tools associated with a specific account.
+  /// Returns only OPEN money tools associated with a specific account
+  /// (closed tools are hidden from all pickers and lists).
   List<ToolSummary> getMoneyToolsForAccount(String accountId) {
     return _tools
         .where(
           (ToolSummary tool) =>
-              tool.accountId == accountId && tool.type == ToolType.money,
+              tool.accountId == accountId &&
+              tool.type == ToolType.money &&
+              !tool.isClosed,
         )
         .toList();
   }
@@ -759,15 +762,81 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     _updateTotalBalance(); // Recalculates total and notifies listeners
   }
 
-  /// Adds a new money tool to a specified account.
-  void addMoneyTool(
-    String accountId,
-    String name,
-    double quantity,
-    String currencyTicker,
-    double unitPrice,
-  ) {
-    throw Exception('Метод устарел');
+  /// Добавляет money-тул в выбранной валюте.
+  ///
+  /// - [quantity] — сумма в валюте тула;
+  /// - [rate] — курс валюты к RUB (стоимость единицы в рублях);
+  /// - RUB-эквивалент = quantity × rate — попадает в баланс и Total;
+  /// - [withdrawalToolName] — если указан, RUB-эквивалент списывается
+  ///   с этого money-тула (внутренний обмен, isTransmit).
+  void addMoneyTool({
+    required String accountId,
+    required String name,
+    required String toolId,
+    required String currencyTicker,
+    required double quantity,
+    required double rate,
+    String? withdrawalToolName,
+  }) {
+    final AccountSummary? account = getAccountById(accountId);
+    if (account == null || account.id == 'total') {
+      debugPrint(
+        'Cannot add money tool to "Total Balance" or non-existent account.',
+      );
+      return;
+    }
+
+    ToolSummary? withdrawalTool;
+    if (withdrawalToolName != null) {
+      withdrawalTool = _tools.cast<ToolSummary?>().firstWhere(
+        (ToolSummary? tool) =>
+            tool != null &&
+            tool.accountId == accountId &&
+            tool.type == ToolType.money &&
+            tool.name == withdrawalToolName,
+        orElse: () => null,
+      );
+      if (withdrawalTool == null) {
+        debugPrint(
+          'Withdrawal money tool "$withdrawalToolName" not found in account "$accountId".',
+        );
+        return;
+      }
+    }
+
+    final double rubEquivalent = quantity * rate;
+
+    // Списание RUB-эквивалента с money-тула-источника (внутренний обмен).
+    if (withdrawalTool != null) {
+      if (withdrawalTool.currentValue < rubEquivalent) {
+        debugPrint(
+          'Insufficient funds in ${withdrawalTool.name} for this exchange.',
+        );
+      }
+      final double sourceUnitPrice = withdrawalTool.quantity > 0
+          ? (withdrawalTool.currentValue / withdrawalTool.quantity)
+          : 1.0;
+      withdrawalTool.currentValue -= rubEquivalent;
+      if (sourceUnitPrice > 0) {
+        withdrawalTool.quantity -= (rubEquivalent / sourceUnitPrice);
+      }
+    }
+
+    // Новый money-тул: quantity в валюте, currentValue = RUB-эквивалент.
+    _tools.add(
+      ToolSummary(
+        id: toolId,
+        name: name,
+        quantity: quantity,
+        percentageChange: 0.0,
+        accountId: accountId,
+        type: ToolType.money,
+        currentValue: rubEquivalent,
+        ticker: currencyTicker,
+      ),
+    );
+
+    _updateTotalBalance();
   }
 
   /// Adds a new deposit tool to a specified account.

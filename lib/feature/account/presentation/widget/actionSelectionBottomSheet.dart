@@ -4,6 +4,7 @@ import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
 import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
 import 'package:investflow/feature/account/presentation/widget/form/credit.dart';
+import 'package:investflow/feature/account/presentation/widget/form/money.dart';
 import 'package:investflow/feature/account/presentation/widget/form/other.dart';
 import 'package:investflow/feature/account/presentation/widget/form/deposit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
@@ -115,6 +116,43 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     onTap: () => _onTap(TransferForm(accountData: accountData)),
+                  ),
+                if (isGeneralAccount && hasMoneyTools)
+                  ListTile(
+                    leading: Icon(
+                      Icons.currency_exchange,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      "Добавить деньги (валюту)",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // Close the bottom sheet
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: MoneyForm(
+                              accountData: accountData,
+                              accountId: activeAccountId,
+                            ),
+                          );
+                        },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20.0),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                      ).then((_) {
+                        accountBloc.add(AccountsTransitionEvent());
+                      });
+                    },
                   ),
                 if (isGeneralAccount) // Only show for general accounts
                   ListTile(

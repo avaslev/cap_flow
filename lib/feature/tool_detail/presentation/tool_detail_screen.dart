@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:investflow/feature/tools/domain/credit_schedule.dart';
+import 'package:investflow/data/repository/currencyRepository.dart';
 import 'package:investflow/feature/tools/domain/tool_valuation.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
@@ -34,7 +36,7 @@ class ToolDetailScreen extends StatelessWidget {
       create: (_) => ToolDetailBloc()..add(LoadToolDetail(accountId, toolId)),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Asset Details'),
+          title: const Text('Детали инструмента'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
@@ -126,12 +128,20 @@ class ToolDetailScreen extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                '\$${tool.currentValue.toStringAsFixed(2)}',
+                // Денежный инструмент в недефолтной валюте: баланс в валюте тула.
+                (tool.type == 'MONEY' && tool.ticker != null)
+                    ? '${tool.quantity.toStringAsFixed(2)} ${tool.ticker}'
+                    : formatCurrency(tool.currentValue),
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).primaryColor,
                 ),
               ),
+              if (tool.type == 'MONEY' && tool.ticker != null)
+                Text(
+                  '≈ ${formatCurrency(tool.currentValue)}',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
               if (tool.percentageChange != 0)
                 Text(
                   '${tool.percentageChange >= 0 ? '+' : ''}${tool.percentageChange.toStringAsFixed(2)}%',
@@ -298,6 +308,144 @@ class ToolDetailScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _showCloseMoneySheet(
+    BuildContext context,
+    ToolDetailDisplay tool,
+  ) async {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final List<Map<String, Object?>> currencies = await CurrencyRepository()
+        .getList();
+    final List<Tool> moneyTools = await ToolDetailRepository()
+        .getAccountMoneyTools(tool.accountId, excludeToolId: tool.id);
+    if (!context.mounted) return;
+    if (moneyTools.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет другого money-тула для перевода')),
+      );
+      return;
+    }
+
+    // Курс: последний сохранённый для валюты тула,
+    // иначе подразумеваемый (currentValue / quantity).
+    final double impliedRate = tool.quantity.abs() > 0
+        ? tool.currentValue.abs() / tool.quantity.abs()
+        : 0;
+    final double savedRate = await CurrencyRepository().getRate(
+      tool.ticker ?? '',
+    );
+    final double defaultRate = savedRate > 0 ? savedRate : impliedRate;
+
+    final TextEditingController rateController = TextEditingController(
+      text: defaultRate.toStringAsFixed(4),
+    );
+    String? targetToolId = moneyTools.first.id;
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (BuildContext dialogContext, StateSetter setDialogState) {
+            double rate =
+                double.tryParse(rateController.text.replaceAll(',', '.')) ??
+                defaultRate;
+            double rub = tool.currentValue.abs() / (impliedRate == 0 ? 1 : 1) *
+                (rate / (defaultRate == 0 ? 1 : defaultRate));
+            return AlertDialog(
+              title: const Text('Перевод средств'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Весь остаток тула «${tool.name}» будет переведён на '
+                    'выбранный тул, а тул закроется.',
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: targetToolId,
+                    decoration: const InputDecoration(
+                      labelText: 'Куда перевести',
+                    ),
+                    items: moneyTools
+                        .map(
+                          (Tool t) => DropdownMenuItem<String>(
+                            value: t.id,
+                            child: Text('${t.name} (${t.id.substring(0, 8)})'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (String? v) =>
+                        setDialogState(() => targetToolId = v),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: rateController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Курс обмена',
+                      helperText: 'RUB за единицу валюты',
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'К переводу: ${rub.toStringAsFixed(2)} ₽',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Отмена'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Перевести'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (confirmed != true || targetToolId == null || !context.mounted) return;
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    try {
+      final double rate = double.tryParse(
+        rateController.text.replaceAll(',', '.'),
+      )!;
+      final double rubValue = tool.currentValue.abs();
+      final double transferred =
+          await ToolDetailRepository().closeMoneyToolAndTransfer(
+        toolId: tool.id,
+        toolName: tool.name,
+        accountId: tool.accountId,
+        targetToolId: targetToolId!,
+        quantityInCurrency: tool.quantity.abs(),
+        rate: rate,
+        rubValue: rubValue,
+        closeName: 'Обмен «${tool.name}» по курсу ${rate.toStringAsFixed(2)}',
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Тул закрыт: ${transferred.toStringAsFixed(2)} ₽ переведено',
+          ),
+        ),
+      );
+      navigator.pop();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Не удалось закрыть тул: $e')),
+      );
+    }
+  }
+
   List<Tab> _getTabsForToolType(ToolDetailDisplay tool) {
     switch (tool.type) {
       case 'MONEY':
@@ -352,8 +500,36 @@ class ToolDetailScreen extends StatelessWidget {
   }
 
   Widget _buildOverviewTab(ToolDetailDisplay tool, BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     if (tool.type == 'MONEY') {
-      return MoneyOverviewTab(tool: tool);
+      return Column(
+        children: <Widget>[
+          Expanded(child: MoneyOverviewTab(tool: tool)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: FilledButton.icon(
+              onPressed: () => _showCloseMoneySheet(context, tool),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundColor: colorScheme.onSecondaryContainer,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              icon: const Icon(Icons.currency_exchange, size: 20),
+              label: Text(
+                'Перевести на другой тул',
+                style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
     } else if (tool.type == 'STOCK' || tool.type == 'STOCKS') {
       return StockAssetTab(tool: tool);
     } else if (tool.type == 'BOND' || tool.type == 'BONDS') {

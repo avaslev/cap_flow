@@ -6,6 +6,29 @@ import 'package:investflow/core/db.dart';
 class SettingsRepository {
   static const String _themeModeKey = 'themeMode';
 
+  static const String _defaultCurrencyKey = 'defaultCurrency';
+
+  /// Дефолтная валюта (код: RUB/USD/EUR/CNY). По умолчанию RUB, курс = 1.
+  Future<String> getDefaultCurrency() async {
+    final Database db = await DatabaseHelper.instance.db;
+    final List<Map<String, Object?>> rows = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: [_defaultCurrencyKey],
+    );
+    if (rows.isEmpty) return 'RUB';
+    return (rows.first['value'] as String?) ?? 'RUB';
+  }
+
+  Future<void> setDefaultCurrency(String code) async {
+    final Database db = await DatabaseHelper.instance.db;
+    await db.insert(
+      'settings',
+      {'key': _defaultCurrencyKey, 'value': code},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
   Future<ThemeMode> getThemeMode() async {
     final Database db = await DatabaseHelper.instance.db;
     final List<Map<String, dynamic>> rows = await db.query(
