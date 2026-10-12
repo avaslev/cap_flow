@@ -43,7 +43,7 @@ class ReportScreen extends StatelessWidget {
     return '$sign${abs.toStringAsFixed(0)}';
   }
 
-  Widget _buildSummaryCards(ReportData data) {
+  Widget _buildSummaryCards(BuildContext context, ReportData data) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(/*...*/),
@@ -105,25 +105,25 @@ class ReportScreen extends StatelessWidget {
   );
 
   // Линейная диаграмма с улучшениями
-  Widget _buildTotalLineChart(ReportData data) {
+  Widget _buildTotalLineChart(BuildContext context, ReportData data) {
     return Container(
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.grey.shade50],
+          colors: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surfaceContainerLow],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200, width: 1),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +136,7 @@ class ReportScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               Container(
@@ -151,7 +151,7 @@ class ReportScreen extends StatelessWidget {
                 child: Text(
                   data.totalLineDataPercentage.toString() + '%',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -171,7 +171,7 @@ class ReportScreen extends StatelessWidget {
                   verticalInterval: 1,
                   getDrawingHorizontalLine:
                       (value) => FlLine(
-                        color: Colors.grey.shade200,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         strokeWidth: 1,
                         dashArray: [5, 5],
                       ),
@@ -188,7 +188,7 @@ class ReportScreen extends StatelessWidget {
                               formatNumber(value),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -214,9 +214,9 @@ class ReportScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             display,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -236,8 +236,8 @@ class ReportScreen extends StatelessWidget {
                       return touchedBarSpots.map((spot) {
                         return LineTooltipItem(
                           formatNumber(spot.y),
-                          const TextStyle(
-                            color: Colors.white,
+                          TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         );
@@ -284,12 +284,12 @@ class ReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _yearTotal(String label, double value, Color color) {
+  Widget _yearTotal(BuildContext context, String label, double value, Color color) {
     return Column(
       children: <Widget>[
         Text(
           label,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
         ),
         const SizedBox(height: 4),
         // Сокращённый формат (K/M), чтобы миллионы помещались в блок.
@@ -306,6 +306,7 @@ class ReportScreen extends StatelessWidget {
   }
 
   Widget _buildBarChart({
+    required BuildContext context,
     required ReportData data,
     required List<MonthIncomeExpense> monthData,
     required String title,
@@ -328,14 +329,14 @@ class ReportScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200, width: 1),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Center(
             child: Text(
               emptyMessage,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
             ),
           ),
         ),
@@ -360,19 +361,19 @@ class ReportScreen extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.grey.shade50],
+          colors: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surfaceContainerLow],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200, width: 1),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,12 +386,12 @@ class ReportScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               Text(
                 '12 месяцев',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
               ),
             ],
           ),
@@ -416,7 +417,7 @@ class ReportScreen extends StatelessWidget {
                               formatNumber(value),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -439,9 +440,9 @@ class ReportScreen extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               displayText,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -461,7 +462,7 @@ class ReportScreen extends StatelessWidget {
                   horizontalInterval: interval, // ✅ Адаптивная сетка
                   getDrawingHorizontalLine:
                       (value) => FlLine(
-                        color: Colors.grey.shade200,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         strokeWidth: 1,
                         dashArray: [5, 5],
                       ),
@@ -551,7 +552,7 @@ class ReportScreen extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
             if (state is ReportLoaded) {
-              return _buildContent(state.reportData);
+              return _buildContent(context, state.reportData);
             }
             return Center(
               child: Column(
@@ -575,7 +576,7 @@ class ReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(ReportData data) {
+  Widget _buildContent(BuildContext context, ReportData data) {
     double yearIncome = 0;
     double yearExpense = 0;
     for (final MonthIncomeExpense m in data.incomeExpenseData) {
@@ -596,26 +597,27 @@ class ReportScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
-                _yearTotal('Доход', yearIncome, Colors.green.shade600),
-                _yearTotal('Расход', yearExpense, Colors.red.shade600),
-                _yearTotal('Бюджет (план, переводы)', yearBudget, Colors.orange.shade700),
+                _yearTotal(context, 'Доход', yearIncome, Colors.green.shade600),
+                _yearTotal(context, 'Расход', yearExpense, Colors.red.shade600),
+                _yearTotal(context, 'Бюджет (план, переводы)', yearBudget, Colors.orange.shade700),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          _buildSummaryCards(data),
+          _buildSummaryCards(context, data),
           const SizedBox(height: 24),
-          _buildTotalLineChart(data),
+          _buildTotalLineChart(context, data),
           const SizedBox(height: 24),
           // ✅ Доход/Расход
           _buildBarChart(
+            context: context,
             data: data,
             monthData: data.incomeExpenseData,
             title: '💰 Доход/Расход',
@@ -629,6 +631,7 @@ class ReportScreen extends StatelessWidget {
           const SizedBox(height: 24),
           // ✅ План
           _buildBarChart(
+            context: context,
             data: data,
             monthData: data.plannedData,
             title: '📋 План',
