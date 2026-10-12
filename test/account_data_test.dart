@@ -73,10 +73,9 @@ void main() {
 
       expect(data.getAccountById('a')!.balance, 100.0);
       expect(data.getAccountById('b')!.balance, 50.0);
-      // QUirk: excluded accounts are skipped by _updateTotalBalance entirely —
-      // their balance is NOT recalculated from tools and stays 0.0.
-      expect(data.getAccountById('ex')!.balance, 0.0);
-      // ...and they are not counted in total either.
+      // Исключённый счёт: баланс считается и виден на карточке,
+      // но в Total он не попадает.
+      expect(data.getAccountById('ex')!.balance, 1000.0);
       expect(data.getAccountById('total')!.balance, 150.0);
     });
 

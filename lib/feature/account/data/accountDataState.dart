@@ -362,21 +362,22 @@ class AccountData {
     double totalTodayExpense = 0.0;
 
     for (final AccountSummary acc in _accounts) {
-      if (acc.id != 'total' && !acc.excludeFromTotal) {
-        // Sum up current values of all tools for this account to get its balance
-        final double accountToolsBalance = _tools
-            .where((ToolSummary tool) => tool.accountId == acc.id)
-            .fold(
-              0.0,
-              (double sum, ToolSummary tool) =>
-                  sum + _toolAccountValue(tool),
-            );
+      if (acc.id == 'total') continue;
+      // Баланс пересчитывается для всех счетов; excludeFromTotal исключает
+      // его только из Total — на карточке счёта сумма остаётся видна.
+      final double accountToolsBalance = _tools
+          .where((ToolSummary tool) => tool.accountId == acc.id)
+          .fold(
+            0.0,
+            (double sum, ToolSummary tool) => sum + _toolAccountValue(tool),
+          );
 
-        // Update account's balance to reflect sum of its tools
-        if (acc.balance != accountToolsBalance) {
-          acc.balance = accountToolsBalance;
-        }
+      // Update account's balance to reflect sum of its tools
+      if (acc.balance != accountToolsBalance) {
+        acc.balance = accountToolsBalance;
+      }
 
+      if (!acc.excludeFromTotal) {
         totalBalance += acc.balance;
         totalDailyChangeAmount += acc.dailyChangeAmount;
         totalTodayIncome += acc.periodIncome;
