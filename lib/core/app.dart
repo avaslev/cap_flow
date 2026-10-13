@@ -23,6 +23,9 @@ import '../src/widgets/fade_transition_page.dart';
 final appShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'app shell');
 
 class InvestApp extends StatefulWidget {
+  /// Счётчик полных перезапусков UI (после восстановления БД).
+  static final ValueNotifier<int> restartSignal = ValueNotifier<int>(0);
+
   final ThemeCubit themeCubit;
 
   const InvestApp({super.key, required this.themeCubit});
@@ -35,8 +38,18 @@ class _InvestAppState extends State<InvestApp> {
   final BookstoreAuth auth = BookstoreAuth();
 
   // Роутер создаётся один раз: пересоздание при смене темы сбрасывало
-  // навигацию на начальный экран.
-  late final GoRouter _router = _createRouter();
+  // навигацию на начальный экран. Пересоздаётся только при рестарте
+  // приложения (например, после восстановления базы из копии).
+  GoRouter _router = GoRouter(routes: <RouteBase>[]);
+  int _routerRestartCount = -1;
+
+  GoRouter _routerFor(int restartCount) {
+    if (_routerRestartCount != restartCount) {
+      _router = _createRouter();
+      _routerRestartCount = restartCount;
+    }
+    return _router;
+  }
 
   GoRouter _createRouter() {
     return GoRouter(
@@ -187,7 +200,12 @@ class _InvestAppState extends State<InvestApp> {
       value: widget.themeCubit,
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (BuildContext context, ThemeMode themeMode) {
+          return ValueListenableBuilder<int>(
+          valueListenable: InvestApp.restartSignal,
+          builder: (BuildContext context, int restartCount, Widget? _) {
           return MaterialApp.router(
+            key: ValueKey<int>(restartCount),
+            routerConfig: _routerFor(restartCount),
             builder: (BuildContext context, Widget? child) {
               if (child == null) {
                 throw ('No child in .router constructor builder');
@@ -197,7 +215,8 @@ class _InvestAppState extends State<InvestApp> {
             theme: getTheme(Brightness.light),
             darkTheme: getTheme(Brightness.dark),
             themeMode: themeMode,
-            routerConfig: _router,
+          );
+          },
           );
         },
       ),

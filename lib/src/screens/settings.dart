@@ -1,4 +1,13 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/app.dart';
+import 'package:investflow/core/db.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/theme/theme_cubit.dart';
 import 'package:investflow/data/repository/currencyRepository.dart';
@@ -167,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text('Создать резервную копию'),
                   subtitle: const Text('Сохранить все данные в файл'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _notImplemented(context, 'Создание копии'),
+                  onTap: () => _createBackup(context),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
@@ -178,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text('Восстановить из копии'),
                   subtitle: const Text('Загрузить данные из файла'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _notImplemented(context, 'Восстановление'),
+                  onTap: () => _restoreBackup(context),
                 ),
               ],
             ),
@@ -241,9 +250,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _notImplemented(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature — функция в разработке')),
-    );
+  /// Создать резервную копию: база целиком сохраняется в файл через
+  /// системный диалог «Сохранить как…» (Download, Documents и т.д.).
+  Future<void> _createBackup(BuildContext context) async {
+    try {
+      final DatabaseHelper dbHelper = DatabaseHelper.instance;
+      // Чекпоинт WAL, чтобы снять полную копию.
+      await dbHelper.backupTo(
+        join(await getDatabasesPath(), 'backups', 'investflow_last.db'),
+      );
+      final Uint8List bytes = await File(await dbHelper.dbPath).readAsBytes();
+      final String stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final Uri? saved = await FilePicker.saveFile(
+        fileName: 'investflow_$stamp.db',
+        bytes: bytes,
+        dialogTitle: 'Сохранить резервную копию',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            saved != null ? 'Копия сохранена' : 'Сохранение отменено',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось создать копию: $e')),
+        );
+      }
+    }
+  }
+
+  /// Восстановить базу из файла копии с подтверждением и перезапуском.
+  Future<void> _restoreBackup(BuildContext context) async {
+    try {
+      final PlatformFile? picked = await FilePicker.pickFile(
+        type: FileType.any,
+      );
+      final String? sourcePath = picked?.path;
+      if (sourcePath == null || !context.mounted) return;
+
+      final bool? confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext dialogContext) => AlertDialog(
+          title: const Text('Восстановить из копии?'),
+          content: const Text(
+            'Все текущие данные будут заменены содержимым файла копии. '
+            'Приложение перезапустится автоматически.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Восстановить'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+
+      await DatabaseHelper.instance.restoreFrom(sourcePath);
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext dialogContext) => AlertDialog(
+          title: const Text('Готово'),
+          content: const Text('Данные успешно восстановлены из копии.'),
+          actions: <Widget>[
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Ок'),
+            ),
+          ],
+        ),
+      );
+      // Полный перезапуск UI: новые bloc'ы читают восстановленную базу.
+      InvestApp.restartSignal.value++;
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось восстановить копию: $e')),
+        );
+      }
+    }
   }
 }

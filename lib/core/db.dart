@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'dart:io' show Directory, File;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -96,6 +97,34 @@ class DatabaseHelper {
   Future<Database> get db async {
     _database ??= await initDb();
     return _database!;
+  }
+
+  /// Полный путь к файлу базы данных.
+  Future<String> get dbPath async =>
+      join(await getDatabasesPath(), 'database.db');
+
+  /// Создать резервную копию: файл базы целиком в указанный путь.
+  /// Возвращает путь к копии.
+  Future<String> backupTo(String targetPath) async {
+    final Database database = await db;
+    // Сбросить WAL на диск, чтобы копия была полной.
+    await database.rawQuery('PRAGMA wal_checkpoint(FULL)');
+    await Directory(dirname(targetPath)).create(recursive: true);
+    await File(await dbPath).copy(targetPath);
+    return targetPath;
+  }
+
+  /// Восстановить базу из файла копии: закрывает соединение и
+  /// подменяет файл базы. Требует перезапуска приложения.
+  Future<void> restoreFrom(String sourcePath) async {
+    final String target = await dbPath;
+    await _database?.close();
+    _database = null;
+    final File sidecarWal = File('$target-wal');
+    final File sidecarShm = File('$target-shm');
+    if (await sidecarWal.exists()) await sidecarWal.delete();
+    if (await sidecarShm.exists()) await sidecarShm.delete();
+    await File(sourcePath).copy(target);
   }
 
   Future<Database> initDb() async {
