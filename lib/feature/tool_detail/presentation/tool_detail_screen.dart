@@ -964,6 +964,19 @@ class ToolDetailScreen extends StatelessWidget {
     );
   }
 
+  /// Количество с точностью до 10 знаков после запятой,
+  /// хвостовые нули обрезаются (для криптовалют).
+  String _formatCryptoQuantity(double v) {
+    String s = v.toStringAsFixed(10);
+    if (s.contains('.')) {
+      s = s.replaceAll(RegExp(r'0+$'), '');
+      if (s.endsWith('.')) {
+        s = s.substring(0, s.length - 1);
+      }
+    }
+    return s;
+  }
+
   Widget _buildGenericOverview(ToolDetailDisplay tool, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -978,7 +991,11 @@ class ToolDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _buildInfoRow('Type', _formatType(tool.type), context),
-          _buildInfoRow('Quantity', tool.quantity.toStringAsFixed(2), context),
+          _buildInfoRow(
+            'Quantity',
+            '${_formatCryptoQuantity(tool.quantity)} ${tool.ticker ?? ''}'.trim(),
+            context,
+          ),
           _buildInfoRow('Current Value', '\$${tool.currentValue.toStringAsFixed(2)}', context),
           if (tool.faceValue != null)
             _buildInfoRow('Face Value', '\$${tool.faceValue!.toStringAsFixed(2)}', context),

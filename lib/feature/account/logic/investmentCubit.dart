@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:investflow/data/models/activity.dart';
@@ -6,6 +8,8 @@ import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:investflow/data/source/cryptoSuggestSource.dart';
 import 'package:uuid/uuid.dart';
 
 enum InvestmentFormStatus { initial, loading, success, failure }
@@ -22,6 +26,8 @@ class InvestmentState {
   final double? accruedCouponIncome;
   final DateTime selectedDate;
   final List<String> suggestions;
+  /// Курс к дефолтной валюте по тикеру из внешнего источника.
+  final Map<String, double> onlineRates;
   final InvestmentOperationType operationType;
   final ToolType investmentType;
   final String? accountId;
@@ -38,6 +44,7 @@ class InvestmentState {
     this.accruedCouponIncome,
     DateTime? selectedDate,
     this.suggestions = const [],
+    this.onlineRates = const <String, double>{},
     required this.operationType,
     required this.investmentType,
     required this.accountId,
@@ -55,6 +62,7 @@ class InvestmentState {
     double? accruedCouponIncome,
     DateTime? selectedDate,
     List<String>? suggestions,
+    Map<String, double>? onlineRates,
     InvestmentOperationType? operationType,
     ToolType? investmentType,
     String? accountId,
@@ -71,6 +79,7 @@ class InvestmentState {
       accruedCouponIncome: accruedCouponIncome ?? this.accruedCouponIncome,
       selectedDate: selectedDate ?? this.selectedDate,
       suggestions: suggestions ?? this.suggestions,
+      onlineRates: onlineRates ?? this.onlineRates,
       operationType: operationType ?? this.operationType,
       investmentType: investmentType ?? this.investmentType,
       accountId: accountId ?? this.accountId,
@@ -84,6 +93,19 @@ class InvestmentCubit extends Cubit<InvestmentState> {
   final InvestmentOperationType operationType;
   final ToolType investmentType;
   final AccountsBloc accountsBloc;
+  final CryptoSuggestSource _cryptoSource = CryptoSuggestSource();
+  final Map<String, List<OnlineInstrument>> _onlineCache =
+      <String, List<OnlineInstrument>>{};
+  String? _vsCurrencyCache;
+  Timer? _searchDebounce;
+  String? _searchQuery;
+
+  @override
+  Future<void> close() {
+    _searchDebounce?.cancel();
+    _cryptoSource.dispose();
+    return super.close();
+  }
 
   InvestmentCubit({
     required this.accountData,
@@ -136,13 +158,13 @@ class InvestmentCubit extends Cubit<InvestmentState> {
   }
 
   void tickerChanged(String ticker) {
-    // Handle "TICKER - Name" format from suggestions
+    // Handle "TICKER - Name · курс VAL" format from suggestions
     String upper;
     String? name;
     if (ticker.contains(' - ')) {
-      final parts = ticker.split(' - ');
+      final List<String> parts = ticker.split(' - ');
       upper = parts[0].toUpperCase();
-      name = parts.length > 1 ? parts[1] : null;
+      name = parts.length > 1 ? parts[1].split(' · ').first.trim() : null;
     } else {
       upper = ticker.toUpperCase();
       name = accountData.allInvestmentOptions[upper];
@@ -151,9 +173,174 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     final suggestions = ticker.isEmpty ? getSuggestions() : state.suggestions;
     emit(state.copyWith(
       selectedTicker: upper,
-      selectedName: name ?? (name?.isNotEmpty == true ? name : null),
+      selectedName: name != null && name.isNotEmpty ? name : null,
       suggestions: suggestions,
     ));
+    // Курс из внешнего источника подставляется в цену.
+    final double? rate = state.onlineRates[upper];
+    if (rate != null && rate > 0) {
+      priceChanged(rate.toStringAsFixed(2));
+    }
+    // При продаже подставляем полное количество тула.
+    if (operationType == InvestmentOperationType.sell) {
+      final Iterable<ToolSummary> matches = accountData
+          .getToolsForAccount(accountId)
+          .where(
+            (ToolSummary t) =>
+                t.type == investmentType &&
+                (t.ticker ?? '').toUpperCase() == upper,
+          );
+      if (matches.isNotEmpty) {
+        quantityChanged(_trimQuantity(matches.first.quantity));
+      }
+    }
+    if (ticker.contains(' - ')) {
+      // Выбрана подсказка: курс мог ещё не успеть загрузиться —
+      // запрашиваем сразу и дозаполняем цену по приходу.
+      unawaited(_loadOnlineSuggestions(upper));
+    } else {
+      _scheduleOnlineSearch(upper);
+    }
+  }
+
+  /// Поиск подсказок во внешнем источнике с дебаунсом (только крипта).
+  void _scheduleOnlineSearch(String query) {
+    if (investmentType != ToolType.cryptocurrency ||
+        operationType != InvestmentOperationType.buy ||
+        query.length < 2) {
+      return;
+    }
+    _searchDebounce?.cancel();
+    _searchQuery = query;
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _loadOnlineSuggestions(_searchQuery ?? query);
+    });
+  }
+
+  /// Внешний источник + тула из БД; дубли убираются, побеждает внешний.
+  /// Имена показываются сразу после поиска, цены догружаются следом.
+  Future<void> _loadOnlineSuggestions(String query) async {
+    final String vs = await _defaultCurrency();
+    final String key = query.toLowerCase();
+    List<OnlineInstrument> online =
+        _onlineCache[key] ?? await _cryptoSource.search(query);
+    _onlineCache[key] = online;
+    if (online.isEmpty) {
+      emit(state.copyWith(suggestions: getSuggestions()));
+      return;
+    }
+
+    // 1) Быстрый показ имён без курсов.
+    _emitMerged(online, <String, double>{}, vs);
+
+    // 2) Догрузка цен (для закэшированных не повторяется).
+    if (online.any((OnlineInstrument i) => i.rate == null)) {
+      final Map<String, double> rates = await _cryptoSource.fetchRates(
+        online,
+        vs,
+      );
+      for (final OnlineInstrument i in online) {
+        final double? r = rates[i.id];
+        if (r != null) {
+          i.rate = r;
+        }
+      }
+      _emitMerged(online, rates, vs);
+    } else {
+      _emitMerged(
+        online,
+        <String, double>{
+          for (final OnlineInstrument i in online)
+            if (i.rate != null) i.id: i.rate!,
+        },
+        vs,
+      );
+    }
+  }
+
+  Future<String> _defaultCurrency() async {
+    _vsCurrencyCache ??= await SettingsRepository().getDefaultCurrency();
+    return _vsCurrencyCache!;
+  }
+
+  /// Слияние внешних подсказок с тулами из БД и обновление состояния.
+  void _emitMerged(
+    List<OnlineInstrument> online,
+    Map<String, double> freshRates,
+    String vs,
+  ) {
+    final Map<String, double> rates = <String, double>{
+      for (final OnlineInstrument i in online)
+        if (i.rate != null && i.rate! > 0) i.ticker.toUpperCase(): i.rate!,
+    };
+    final Set<String> onlineTickers = online
+        .map((OnlineInstrument i) => i.ticker.toUpperCase())
+        .toSet();
+    // Единый формат «ТИКЕР - Название · курс»: тулам из БД курс —
+    // текущая цена инструмента (стоимость / количество).
+    final List<String> dbEntries = getSuggestions()
+        .where((String entry) {
+          final String entryTicker = entry.split(' - ').first.toUpperCase();
+          return !onlineTickers.contains(entryTicker);
+        })
+        .map<String>((String entry) {
+          final int sep = entry.indexOf(' - ');
+          if (sep < 0) return entry;
+          final String ticker = entry.substring(0, sep).toUpperCase();
+          final String name = entry.substring(sep + 3);
+          final double? rate = _impliedRate(ticker);
+          final String rateSuffix =
+              (rate != null && rate > 0) ? ' · ${_fmtRate(rate)} $vs' : '';
+          return '$ticker - $name$rateSuffix';
+        })
+        .toList();
+    final List<String> merged = <String>[
+      ...online.map((OnlineInstrument i) {
+        final double r = i.rate ?? freshRates[i.id] ?? 0;
+        final String rateSuffix = r > 0 ? ' · ${_fmtRate(r)} $vs' : '';
+        return '${i.ticker} - ${i.name}$rateSuffix';
+      }),
+      ...dbEntries,
+    ];
+    emit(state.copyWith(suggestions: merged, onlineRates: rates));
+    // Дозаполнение цены выбранным курсом, если она ещё пуста.
+    final String? selected = state.selectedTicker;
+    final double? selectedRate = selected != null ? rates[selected] : null;
+    if (selectedRate != null && selectedRate > 0 && state.price == null) {
+      priceChanged(_fmtRate(selectedRate));
+    }
+  }
+
+  /// Количество без хвостовых нулей (до 10 знаков).
+  String _trimQuantity(double v) {
+    String s = v.toStringAsFixed(10);
+    if (s.contains('.')) {
+      s = s.replaceAll(RegExp(r'0+$'), '');
+      if (s.endsWith('.')) {
+        s = s.substring(0, s.length - 1);
+      }
+    }
+    return s;
+  }
+
+  /// Текущая цена единицы инструмента из БД (стоимость / количество).
+  double? _impliedRate(String ticker) {
+    for (final ToolSummary t in accountData.getToolsForAccount(accountId)) {
+      if (t.type == investmentType &&
+          (t.ticker ?? '').toUpperCase() == ticker &&
+          t.quantity > 0) {
+        return t.currentValue / t.quantity;
+      }
+    }
+    return null;
+  }
+
+  String _fmtRate(double v) {
+    String s = v.toStringAsFixed(2);
+    if (v >= 1000) {
+      s = v.round().toString();
+    }
+    return s;
   }
 
   void nameChanged(String name) {

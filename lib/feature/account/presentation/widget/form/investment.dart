@@ -73,17 +73,43 @@ class AddInvestmentOperationForm extends StatelessWidget {
   }
 }
 
-class _InvestmentFormContent extends StatelessWidget {
+class _InvestmentFormContent extends StatefulWidget {
   const _InvestmentFormContent();
+
+  @override
+  State<_InvestmentFormContent> createState() => _InvestmentFormContentState();
+}
+
+class _InvestmentFormContentState extends State<_InvestmentFormContent> {
+  final TextEditingController _tickerCtrl = TextEditingController();
+  final TextEditingController _nameCtrl = TextEditingController();
+  final TextEditingController _priceCtrl = TextEditingController();
+  final TextEditingController _quantityCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tickerCtrl.text =
+        context.read<InvestmentCubit>().state.selectedTicker ?? '';
+    _nameCtrl.text = context.read<InvestmentCubit>().state.selectedName ?? '';
+  }
+
+  @override
+  void dispose() {
+    _tickerCtrl.dispose();
+    _nameCtrl.dispose();
+    _priceCtrl.dispose();
+    _quantityCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    final investmentType =
-        context.read<InvestmentCubit>().state.investmentType;
-    final operationType =
-        context.read<InvestmentCubit>().state.operationType;
+    final InvestmentCubit cubit = context.read<InvestmentCubit>();
+    final investmentType = cubit.state.investmentType;
+    final operationType = cubit.state.operationType;
 
     final investmentTypeName = _investmentTypeName(investmentType);
     final title = operationType == InvestmentOperationType.buy
@@ -113,11 +139,6 @@ class _InvestmentFormContent extends StatelessWidget {
         tickerPrefixIcon = Icons.currency_exchange;
     }
 
-    // Create a controller in the enclosing scope that onSelected can access
-    final tickerController = TextEditingController(
-      text: context.read<InvestmentCubit>().state.selectedTicker ?? '',
-    );
-
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -126,12 +147,37 @@ class _InvestmentFormContent extends StatelessWidget {
       ),
       child: BlocBuilder<InvestmentCubit, InvestmentState>(
         builder: (context, state) {
-          // Update controller when state changes externally
-          final newText = state.selectedTicker ?? '';
-          if (tickerController.text != newText) {
-            tickerController.text = newText;
-            tickerController.selection = TextSelection.fromPosition(
-              TextPosition(offset: newText.length),
+          // Контроллеры синхронизируются только при внешнем изменении
+          // (выбор подсказки), набор текста не конфликтует.
+          final String tickerText = state.selectedTicker ?? '';
+          if (_tickerCtrl.text != tickerText) {
+            _tickerCtrl.text = tickerText;
+            _tickerCtrl.selection = TextSelection.fromPosition(
+              TextPosition(offset: tickerText.length),
+            );
+          }
+          final String nameText = state.selectedName ?? '';
+          if (_nameCtrl.text != nameText) {
+            _nameCtrl.text = nameText;
+            _nameCtrl.selection = TextSelection.fromPosition(
+              TextPosition(offset: nameText.length),
+            );
+          }
+          final String priceText = state.price?.toString() ?? '';
+          if (_priceCtrl.text != priceText) {
+            _priceCtrl.text = priceText;
+            _priceCtrl.selection = TextSelection.fromPosition(
+              TextPosition(offset: priceText.length),
+            );
+          }
+          final double? parsedQty = double.tryParse(
+            _quantityCtrl.text.replaceAll(',', '.'),
+          );
+          if (state.quantity != parsedQty) {
+            final String qtyText = state.quantity?.toString() ?? '';
+            _quantityCtrl.value = TextEditingValue(
+              text: qtyText,
+              selection: TextSelection.collapsed(offset: qtyText.length),
             );
           }
 
@@ -165,13 +211,11 @@ class _InvestmentFormContent extends StatelessWidget {
                       });
                     },
                     onSelected: (selection) {
-                      // Extract only the ticker from "TICKER - Name" format
-                      final ticker = selection.contains(' - ')
-                          ? selection.split(' - ').first
-                          : selection;
+                      // Полная строка "TICKER - Name · курс VAL":
+                      // cubit сам извлечёт тикер, название и курс.
                       context
                           .read<InvestmentCubit>()
-                          .tickerChanged(ticker);
+                          .tickerChanged(selection);
                     },
                     fieldViewBuilder: (
                       context,
@@ -180,7 +224,7 @@ class _InvestmentFormContent extends StatelessWidget {
                       onFieldSubmitted,
                     ) {
                       return TextFormField(
-                        controller: tickerController,
+                        controller: _tickerCtrl,
                         focusNode: fieldFocusNode,
                         decoration: InputDecoration(
                           labelText:
@@ -215,8 +259,7 @@ class _InvestmentFormContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    key: ValueKey('name_${state.selectedName ?? ''}'),
-                    initialValue: state.selectedName ?? '',
+                    controller: _nameCtrl,
                     decoration: InputDecoration(
                       labelText: 'Название $investmentTypeName',
                       border: OutlineInputBorder(
@@ -237,8 +280,7 @@ class _InvestmentFormContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    initialValue:
-                        state.quantity?.toString() ?? '',
+                    controller: _quantityCtrl,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
@@ -291,7 +333,7 @@ class _InvestmentFormContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    initialValue: state.price?.toString() ?? '',
+                    controller: _priceCtrl,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
