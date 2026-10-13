@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/data/models/activity.dart';
@@ -132,11 +133,7 @@ class _CreditFormState extends State<CreditForm> {
             t.name.toLowerCase() == name.toLowerCase());
     if (duplicate) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Кредит с названием «$name» уже есть на счёте'),
-        ),
-      );
+      Toast.show(context, 'Кредит с названием «$name» уже есть на счёте');
       return;
     }
 
@@ -264,16 +261,12 @@ class _CreditFormState extends State<CreditForm> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Кредит «$name» добавлен')),
-        );
+        Toast.show(context, 'Кредит «$name» добавлен');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось добавить кредит: $e')),
-        );
+        Toast.show(context, 'Не удалось добавить кредит: $e', error: true);
         setState(() => _saving = false);
       }
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/core/utils/calculateNextOccurrence.dart';
@@ -30,20 +31,12 @@ class FinancialEventForm extends StatelessWidget {
       child: BlocListener<FinancialEventCubit, FinancialEventEditState>(
         listener: (BuildContext context, FinancialEventEditState state) {
           if (state.formStatus == FormStatus.success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Событие сохранено')),
-            );
+            Toast.show(context, 'Событие сохранено');
             Navigator.pop(context);
           } else if (state.formStatus == FormStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Не удалось сохранить событие')),
-            );
+            Toast.show(context, 'Не удалось сохранить событие', error: true);
           } else if (state.formStatus == FormStatus.validationError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Проверьте заполнение полей. ${state.errorMessage ?? ''}'),
-              ),
-            );
+            Toast.show(context, 'Проверьте заполнение полей. ${state.errorMessage ?? ''}');
           }
         },
         child: _FinancialEventFormContent(
@@ -169,9 +162,7 @@ class _FinancialEventFormContentState
       if (formKey.currentState!.validate()) {
         context.read<FinancialEventCubit>().submit();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Проверьте заполнение полей.')),
-        );
+        Toast.show(context, 'Проверьте заполнение полей.');
       }
     };
   }
@@ -557,13 +548,7 @@ class _FinancialEventFormContentState
                                 if (picked.isBefore(DateTime.now()) &&
                                     !widget.isEditing &&
                                     mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Внимание: выбрана прошедшая дата.',
-                                      ),
-                                    ),
-                                  );
+                                  Toast.show(context, 'Внимание: выбрана прошедшая дата.',);
                                 }
                               }
                             },
@@ -812,18 +797,11 @@ class _FinancialEventFormContentState
                                               Navigator.pop(context);
                                             }
                                           },
+                                    // Разрушающее действие: error/onError,
+                                    // геометрия из темы.
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          colorScheme.errorContainer,
-                                      foregroundColor:
-                                          colorScheme.onErrorContainer,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      minimumSize: const Size(
-                                        double.infinity,
-                                        50,
-                                      ),
+                                      backgroundColor: colorScheme.error,
+                                      foregroundColor: colorScheme.onError,
                                     ),
                                     icon: const Icon(Icons.delete_outline),
                                     label: Text(

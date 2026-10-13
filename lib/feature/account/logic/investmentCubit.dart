@@ -451,7 +451,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         quantity: instrumentCost,
         price: 1,
         currency: Currency.RUB,
-        isTransmit: false,
+        isTransmit: true, // внутренний обмен, не расход
         name: 'Buy $name (money out)',
       ),
     );
@@ -508,7 +508,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           quantity: quantity,
           price: price,
           currency: Currency.RUB,
-          isTransmit: false,
+          isTransmit: true, // внутренний обмен, не доход
           name: 'Buy $name',
         ),
       );
@@ -532,7 +532,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           quantity: quantity,
           price: price,
           currency: Currency.RUB,
-          isTransmit: false,
+          isTransmit: true, // внутренний обмен, не доход
           name: 'Buy $name',
         ),
       );
@@ -575,7 +575,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         quantity: quantity * price,
         price: 1,
         currency: Currency.RUB,
-        isTransmit: false,
+        isTransmit: true, // внутренний обмен, не доход
         name: 'Sell $name (money in)',
       ),
     );
@@ -624,7 +624,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         quantity: quantity,
         price: price,
         currency: Currency.RUB,
-        isTransmit: false,
+        isTransmit: true, // внутренний обмен, не расход
         name: 'Sell $name',
       ),
     );

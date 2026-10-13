@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/scaffold.dart';
 import 'package:investflow/core/theme/appTheme.dart';
 import 'package:investflow/core/theme/theme_cubit.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/feature/account/presentation/accountsScreen.dart';
 import 'package:investflow/feature/tool_detail/presentation/tool_detail_screen.dart';
@@ -36,6 +38,9 @@ class InvestApp extends StatefulWidget {
 
 class _InvestAppState extends State<InvestApp> {
   final BookstoreAuth auth = BookstoreAuth();
+
+  /// Время последнего свайпа «назад» на главном экране (окно выхода 2 с).
+  DateTime? _lastBackAt;
 
   // Роутер создаётся один раз: пересоздание при смене темы сбрасывало
   // навигацию на начальный экран. Пересоздаётся только при рестарте
@@ -78,7 +83,31 @@ class _InvestAppState extends State<InvestApp> {
                 var p when p.startsWith('/settings') => 2,
                 _ => 0,
               },
-              child: child,
+              child: PopScope(
+                // Свайп «назад»: настройки и активность ведут на главный
+                // экран; с аккаунтов — двойной свайп с предупреждением.
+                canPop: false,
+                onPopInvokedWithResult: (bool didPop, Object? result) {
+                  if (didPop) return;
+                  if (state.uri.path.startsWith('/settings') ||
+                      state.uri.path.startsWith('/activities')) {
+                    _lastBackAt = null;
+                    GoRouter.of(context).go('/accounts');
+                    return;
+                  }
+                  // Главный экран: первый свайп — подсказка, второй — выход.
+                  final DateTime now = DateTime.now();
+                  if (_lastBackAt != null &&
+                      now.difference(_lastBackAt!) <
+                          const Duration(seconds: 2)) {
+                    SystemNavigator.pop();
+                  } else {
+                    _lastBackAt = now;
+                    Toast.show(context, 'Свайпните ещё раз, чтобы выйти');
+                  }
+                },
+                child: child,
+              ),
             );
           },
           routes: <RouteBase>[

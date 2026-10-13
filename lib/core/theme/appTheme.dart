@@ -65,6 +65,17 @@ ThemeData getTheme(Brightness brightness) {
         minimumSize: const Size(double.infinity, 50),
       ),
     ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        minimumSize: const Size(double.infinity, 50),
+      ),
+    ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         // textStyle: customTextTheme.labelLarge,

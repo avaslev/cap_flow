@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
@@ -240,18 +241,10 @@ class ToolDetailScreen extends StatelessWidget {
         startDate: tool.startDate ?? DateTime.now(),
         endDate: tool.endDate,
       );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Депозит закрыт: ${formatCurrency(payout)} зачислено в деньги счёта',
-          ),
-        ),
-      );
+      Toast.show(context, 'Депозит закрыт: ${formatCurrency(payout)} зачислено в деньги счёта');
       navigator.pop();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось закрыть депозит: $e')),
-      );
+      Toast.show(context, 'Не удалось закрыть депозит: $e');
     }
   }
 
@@ -293,18 +286,10 @@ class ToolDetailScreen extends StatelessWidget {
         creditName: tool.name,
         accountId: tool.accountId,
       );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Кредит закрыт: погашено ${paid.toStringAsFixed(2)} ₽',
-          ),
-        ),
-      );
+      Toast.show(context, 'Кредит закрыт: погашено ${paid.toStringAsFixed(2)} ₽');
       navigator.pop();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось закрыть кредит: $e')),
-      );
+      Toast.show(context, 'Не удалось закрыть кредит: $e');
     }
   }
 
@@ -319,9 +304,7 @@ class ToolDetailScreen extends StatelessWidget {
         .getAccountMoneyTools(tool.accountId, excludeToolId: tool.id);
     if (!context.mounted) return;
     if (moneyTools.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нет другого money-тула для перевода')),
-      );
+      Toast.show(context, 'Нет другого money-тула для перевода');
       return;
     }
 
@@ -431,18 +414,10 @@ class ToolDetailScreen extends StatelessWidget {
         rubValue: rubValue,
         closeName: 'Обмен «${tool.name}» по курсу ${rate.toStringAsFixed(2)}',
       );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Тул закрыт: ${transferred.toStringAsFixed(2)} ₽ переведено',
-          ),
-        ),
-      );
+      Toast.show(context, 'Тул закрыт: ${transferred.toStringAsFixed(2)} ₽ переведено');
       navigator.pop();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось закрыть тул: $e')),
-      );
+      Toast.show(context, 'Не удалось закрыть тул: $e');
     }
   }
 
@@ -512,11 +487,6 @@ class ToolDetailScreen extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: colorScheme.secondaryContainer,
                 foregroundColor: colorScheme.onSecondaryContainer,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                minimumSize: const Size(double.infinity, 48),
               ),
               icon: const Icon(Icons.currency_exchange, size: 20),
               label: Text(
@@ -582,16 +552,10 @@ class ToolDetailScreen extends StatelessWidget {
         toolName: tool.name,
         accountId: tool.accountId,
       );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Актив продан: +${price.toStringAsFixed(2)} ₽ в деньги'),
-        ),
-      );
+      Toast.show(context, 'Актив продан: +${price.toStringAsFixed(2)} ₽ в деньги');
       navigator.pop();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось продать актив: $e')),
-      );
+      Toast.show(context, 'Не удалось продать актив: $e');
     }
   }
 
@@ -643,39 +607,20 @@ class ToolDetailScreen extends StatelessWidget {
                       valueController.text.replaceAll(',', '.'),
                     );
                     if (newValue == null || newValue <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Введите положительную стоимость'),
-                        ),
-                      );
+                      Toast.show(context, 'Введите положительную стоимость');
                       return;
                     }
                     final double delta = await ToolDetailRepository()
                         .revalueOtherTool(toolId: tool.id, newValue: newValue);
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            delta >= 0
+                      Toast.show(context, delta >= 0
                                 ? 'Переоценка: +${delta.toStringAsFixed(2)} ₽'
-                                : 'Переоценка: ${delta.toStringAsFixed(2)} ₽',
-                          ),
-                        ),
-                      );
+                                : 'Переоценка: ${delta.toStringAsFixed(2)} ₽',);
                       context.read<ToolDetailBloc>().add(
                         LoadToolDetail(tool.accountId, tool.id),
                       );
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
                   icon: const Icon(Icons.update, size: 20),
                   label: Text(
                     'Переоценить',
@@ -691,14 +636,9 @@ class ToolDetailScreen extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => _sellOtherTool(context, tool),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.error,
-                    foregroundColor: colorScheme.onError,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
                   icon: const Icon(Icons.sell_outlined, size: 20),
                   label: Text(
                     'Продать',
@@ -776,11 +716,6 @@ class ToolDetailScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.error,
               foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              minimumSize: const Size(double.infinity, 48),
             ),
             icon: const Icon(Icons.delete_outline, size: 20),
             label: Text(
@@ -848,11 +783,6 @@ class ToolDetailScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.error,
               foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              minimumSize: const Size(double.infinity, 48),
             ),
             icon: const Icon(Icons.delete_outline, size: 20),
             label: Text(

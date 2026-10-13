@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:investflow/data/models/account.dart';
@@ -334,9 +335,7 @@ class _FinancialEventOverviewPageState
         financialEventBloc.add(LoadFinancialEvents(state.accountId));
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Данные счёта недоступны.')),
-      );
+      Toast.show(context, 'Данные счёта недоступны.');
     }
   }
 }

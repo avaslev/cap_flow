@@ -216,9 +216,9 @@ class BondAssetTab extends StatelessWidget {
                   icon: const Icon(Icons.sell),
                   label: const Text('Sell Bond'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
                 ),
               ),
             ],
@@ -348,6 +348,9 @@ class BondAssetTab extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(64, 40),
+            ),
             onPressed: () => Navigator.pop(context),
             child: const Text('Sell'),
           ),

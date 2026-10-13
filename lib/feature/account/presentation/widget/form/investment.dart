@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/feature/account/logic/investmentCubit.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
@@ -38,20 +39,10 @@ class AddInvestmentOperationForm extends StatelessWidget {
             final typeName = _investmentTypeName(investmentType);
             final ticker = state.selectedTicker ?? '';
             final qty = state.quantity ?? 0;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$operation $qty $typeName $ticker!'),
-              ),
-            );
+            Toast.show(context, '$operation $qty $typeName $ticker!');
             Navigator.pop(context);
           } else if (state.formStatus == InvestmentFormStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  state.errorMessage ?? 'Ошибка при выполнении операции',
-                ),
-              ),
-            );
+            Toast.show(context, state.errorMessage ?? 'Ошибка при выполнении операции', error: true);
           }
         },
         child: const _InvestmentFormContent(),
@@ -508,26 +499,27 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                                 .read<InvestmentCubit>()
                                 .submit();
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: buttonColor,
-                            foregroundColor: colorScheme.onPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
-                            minimumSize:
-                                const Size(double.infinity, 50),
-                          ),
+                          // Покупка — тема (primary); продажа — error.
+                          style: buttonColor == colorScheme.error
+                              ? ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.error,
+                                  foregroundColor: colorScheme.onError,
+                                )
+                              : null,
                           icon: Icon(buttonIcon,
-                              color: colorScheme.onPrimary, size: 20),
+                              color: buttonColor == colorScheme.error
+                                  ? colorScheme.onError
+                                  : colorScheme.onPrimary,
+                              size: 20),
                           label: Text(
                             buttonText,
                             style: Theme.of(context)
                                 .textTheme
                                 .labelLarge!
                                 .copyWith(
-                                  color: colorScheme.onPrimary,
+                                  color: buttonColor == colorScheme.error
+                                      ? colorScheme.onError
+                                      : colorScheme.onPrimary,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),

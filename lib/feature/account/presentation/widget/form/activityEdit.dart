@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:intl/intl.dart';
@@ -85,16 +86,12 @@ class _ActivityEditSheetState extends State<ActivityEditSheet> {
       await ActivityRepository().update(updated);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Операция обновлена')),
-        );
+        Toast.show(context, 'Операция обновлена');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось обновить операцию: $e')),
-        );
+        Toast.show(context, 'Не удалось обновить операцию: $e', error: true);
         setState(() => _saving = false);
       }
     }

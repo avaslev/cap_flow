@@ -9,6 +9,7 @@ import 'package:investflow/feature/account/presentation/widget/form/other.dart';
 import 'package:investflow/feature/account/presentation/widget/form/deposit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// A modal bottom sheet for selecting a financial action.
@@ -364,11 +365,7 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context); // Close the bottom sheet
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('View account activities selected'),
-                      ),
-                    );
+                    Toast.show(context, 'View account activities selected');
                     // TODO: Implement navigation to All Events screen (or specific account events)
                   },
                 ),

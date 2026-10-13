@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -197,11 +198,7 @@ class _DepositFormState extends State<DepositForm> {
     final double principal = double.parse(_amountController.text.replaceAll(',', '.'));
     final double rate = double.tryParse(_rateController.text.replaceAll(',', '.')) ?? 0;
     if (_payoutType == PayoutType.atEndOfTerm && !_hasEndDate) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Для выплаты «в конце срока» укажите дату окончания.'),
-        ),
-      );
+      Toast.show(context, 'Для выплаты «в конце срока» укажите дату окончания.');
       setState(() => _saving = false);
       return;
     }
@@ -272,16 +269,12 @@ class _DepositFormState extends State<DepositForm> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Депозит «$name» открыт')),
-        );
+        Toast.show(context, 'Депозит «$name» открыт');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть депозит: $e')),
-        );
+        Toast.show(context, 'Не удалось открыть депозит: $e', error: true);
         setState(() => _saving = false);
       }
     }

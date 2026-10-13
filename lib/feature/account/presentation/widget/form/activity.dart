@@ -2,6 +2,7 @@ import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/activityCubit.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -55,24 +56,12 @@ class ActivityForm extends StatelessWidget {
       child: BlocListener<ActivityCubit, ActivityState>(
         listener: (BuildContext context, ActivityState state) {
           if (state.formStatus == FormStatus.success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Activity added successfully!')),
-            );
+            Toast.show(context, 'Activity added successfully!');
             Navigator.pop(context); // Close the bottom sheet
           } else if (state.formStatus == FormStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Failed to add activity: ${state.errorMessage ?? "Unknown error"}',
-                ),
-              ),
-            );
+            Toast.show(context, 'Failed to add activity: ${state.errorMessage ?? "Unknown error"}', error: true);
           } else if (state.formStatus == FormStatus.validationError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage ?? 'Please check your input.'),
-              ),
-            );
+            Toast.show(context, state.errorMessage ?? 'Please check your input.');
           }
         },
         child: const _ActivityFormContent(),
@@ -273,12 +262,6 @@ class _ActivityFormContentState extends State<_ActivityFormContent> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorScheme.secondaryContainer,
                               foregroundColor: colorScheme.onSecondaryContainer,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
-                              minimumSize: const Size(double.infinity, 50),
                             ),
                             child: Text(
                               'Skip',
@@ -335,24 +318,9 @@ class _ActivityFormContentState extends State<_ActivityFormContent> {
               if (formKey.currentState!.validate()) {
                 context.read<ActivityCubit>().submitActivity();
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Please correct the highlighted errors.',
-                    ),
-                  ),
-                );
+                Toast.show(context, 'Please correct the highlighted errors.', error: true);
               }
             },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        minimumSize: const Size(double.infinity, 50),
-      ),
       icon: state.formStatus == FormStatus.loading
           ? SizedBox(
               width: 20,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -367,12 +368,7 @@ class AccountCard extends StatelessWidget {
           remove: true,
         ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Счёт «${account.name}» удалён'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      Toast.show(context, 'Счёт «${account.name}» удалён');
     } else {
       accountBloc.add(DisableEditModeAccountCardEvent(account.id));
     }

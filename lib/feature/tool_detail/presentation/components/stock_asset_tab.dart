@@ -176,10 +176,8 @@ class StockAssetTab extends StatelessWidget {
                   onPressed: () => _showBuyDialog(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Buy'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
+                  // Покупка — primary из темы.
+                // style из темы
                 ),
               ),
               const SizedBox(width: 12),
@@ -189,9 +187,9 @@ class StockAssetTab extends StatelessWidget {
                   icon: const Icon(Icons.remove),
                   label: const Text('Sell'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                  ),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
                 ),
               ),
             ],
@@ -279,6 +277,9 @@ class StockAssetTab extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(64, 40),
+            ),
             onPressed: () => Navigator.pop(context),
             child: const Text('Buy'),
           ),
@@ -316,6 +317,9 @@ class StockAssetTab extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(64, 40),
+            ),
             onPressed: () => Navigator.pop(context),
             child: const Text('Sell'),
           ),

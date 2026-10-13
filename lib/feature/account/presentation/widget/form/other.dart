@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/models/tool.dart';
@@ -119,16 +120,12 @@ class _OtherFormState extends State<OtherForm> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Актив «$name» добавлен')),
-        );
+        Toast.show(context, 'Актив «$name» добавлен');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось добавить актив: $e')),
-        );
+        Toast.show(context, 'Не удалось добавить актив: $e', error: true);
         setState(() => _saving = false);
       }
     }

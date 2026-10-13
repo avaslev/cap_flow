@@ -9,6 +9,7 @@ import 'package:investflow/feature/account/presentation/widget/eventList.dart';
 import 'package:investflow/feature/account/presentation/widget/toolList.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -197,22 +198,6 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                         '/accounts/${state.accountData.activeAccountId}/events',
                                       );
                                     },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: colorScheme.primary,
-                                      foregroundColor: colorScheme.onPrimary,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12.0,
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                      ),
-                                      minimumSize: const Size(
-                                        double.infinity,
-                                        48,
-                                      ),
-                                    ),
                                     icon: const Icon(Icons.history, size: 20),
                                     label: Text(
                                       'События',
@@ -235,18 +220,6 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: colorScheme.secondary,
                                       foregroundColor: colorScheme.onSecondary,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12.0,
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                      ),
-                                      minimumSize: const Size(
-                                        double.infinity,
-                                        48,
-                                      ),
                                     ),
                                     icon: const Icon(
                                       Icons.add_circle,
@@ -357,9 +330,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
       );
     } else {
       // Handle the case where state is not AccountsDataState, e.g., show a snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account data not available.')),
-      );
+      Toast.show(context, 'Account data not available.');
     }
   }
 }

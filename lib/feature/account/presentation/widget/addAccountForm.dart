@@ -3,6 +3,7 @@ import 'package:investflow/feature/account/data/addAccountFormState.dart';
 import 'package:investflow/feature/account/logic/addAccountFormCubit.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Helper function to get display name for AccountType.
@@ -314,26 +315,10 @@ class _AddAccountFormState extends State<AddAccountForm> {
                       ),
                     );
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Account "$name" created successfully!'),
-                      ),
-                    );
+                    Toast.show(context, 'Account "$name" created successfully!');
                     Navigator.pop(context); // Close the bottom sheet
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: const Size(
-                    double.infinity,
-                    50,
-                  ), // Ensure button fills width
-                ),
                 icon: Icon(
                   Icons.add_card,
                   color: colorScheme.onPrimary,

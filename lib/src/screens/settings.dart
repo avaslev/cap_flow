@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:investflow/core/app.dart';
 import 'package:investflow/core/db.dart';
 import 'package:intl/intl.dart';
@@ -267,18 +268,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         dialogTitle: 'Сохранить резервную копию',
       );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            saved != null ? 'Копия сохранена' : 'Сохранение отменено',
-          ),
-        ),
-      );
+      Toast.show(context, saved != null ? 'Копия сохранена' : 'Сохранение отменено',);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось создать копию: $e')),
-        );
+        Toast.show(context, 'Не удалось создать копию: $e', error: true);
       }
     }
   }
@@ -306,6 +299,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text('Отмена'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 40),
+              ),
               onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Восстановить'),
             ),
@@ -323,6 +319,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: const Text('Данные успешно восстановлены из копии.'),
           actions: <Widget>[
             FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 40),
+              ),
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Ок'),
             ),
@@ -333,9 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       InvestApp.restartSignal.value++;
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось восстановить копию: $e')),
-        );
+        Toast.show(context, 'Не удалось восстановить копию: $e', error: true);
       }
     }
   }

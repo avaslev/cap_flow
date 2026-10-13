@@ -2,6 +2,7 @@ import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/transferState.dart';
 import 'package:investflow/feature/account/logic/transferCubit.dart';
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -35,24 +36,12 @@ class TransferForm extends StatelessWidget {
       child: BlocListener<TransferCubit, TransferState>(
         listener: (BuildContext context, TransferState state) {
           if (state.formStatus == FormStatus.success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Перевод добавлен')),
-            );
+            Toast.show(context, 'Перевод добавлен');
             Navigator.pop(context); // Close the bottom sheet
           } else if (state.formStatus == FormStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Не удалось добавить перевод: ${state.errorMessage ?? "Ошибка"}',
-                ),
-              ),
-            );
+            Toast.show(context, 'Не удалось добавить перевод: ${state.errorMessage ?? "Ошибка"}', error: true);
           } else if (state.formStatus == FormStatus.validationError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage ?? 'Проверьте заполнение полей.'),
-              ),
-            );
+            Toast.show(context, state.errorMessage ?? 'Проверьте заполнение полей.');
           }
         },
         child: _TransferFormContent(),
@@ -422,24 +411,9 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                               if (_formKey.currentState!.validate()) {
                                 context.read<TransferCubit>().submitIncome();
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please correct the highlighted errors.',
-                                    ),
-                                  ),
-                                );
+                                Toast.show(context, 'Please correct the highlighted errors.', error: true);
                               }
                             },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
                     icon:
                         state.formStatus == FormStatus.loading
                             ? SizedBox(
