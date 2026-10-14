@@ -274,21 +274,6 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                         investmentType: ToolType.stocks,
                       )),
                   ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.sell,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    title: Text(
-                      "Продать Акции (Sell Stocks)",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.sell,
-                        investmentType: ToolType.stocks,
-                      )),
-                  ),
                   // New: Bond Actions
                   ListTile(
                     leading: Icon(
@@ -302,21 +287,6 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                     onTap: () => _onTap(AddInvestmentOperationForm(
                         accountId: activeAccountId,
                         operationType: InvestmentOperationType.buy,
-                        investmentType: ToolType.bonds,
-                      )),
-                  ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.money_off_csred,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    title: Text(
-                      "Продать Облигации (Sell Bonds)",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.sell,
                         investmentType: ToolType.bonds,
                       )),
                   ),

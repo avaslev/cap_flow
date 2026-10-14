@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 
 class BondAssetTab extends StatelessWidget {
@@ -8,10 +12,11 @@ class BondAssetTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Bond Overview',
@@ -20,6 +25,58 @@ class BondAssetTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+
+
+          // Actions
+          Text(
+            'Actions',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: ToolType.bonds,
+                    operationType: InvestmentOperationType.buy,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Купить'),
+                  // Покупка — primary из темы.
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: ToolType.bonds,
+                    operationType: InvestmentOperationType.sell,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
+                  icon: const Icon(Icons.sell),
+                  label: const Text('Продать'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
 
           // Bond summary card
           Card(
@@ -110,12 +167,30 @@ class BondAssetTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow('Maturity Date', _getMaturityDate(), context),
-                  _buildDetailRow('Coupon Rate', '${(tool.interestRate! * 100).toStringAsFixed(2)}%', context),
-                  _buildDetailRow('Payment Frequency', 'Semi-annual', context),
-                  _buildDetailRow('Credit Rating', 'AA+', context),
-                  _buildDetailRow('Issuer', 'Government', context),
-                  _buildDetailRow('Yield to Maturity', '3.2%', context),
+                  _buildDetailRow(
+                    'Maturity Date',
+                    tool.endDate != null
+                        ? DateFormat('dd.MM.yyyy').format(tool.endDate!)
+                        : '—',
+                    context,
+                  ),
+                  _buildDetailRow(
+                    'Coupon Rate',
+                    tool.interestRate != null
+                        ? '${(tool.interestRate! * 100).toStringAsFixed(2)}%'
+                        : '—',
+                    context,
+                  ),
+                  _buildDetailRow(
+                    'Face Value',
+                    tool.faceValue != null
+                        ? '${tool.faceValue!.toStringAsFixed(2)} ₽'
+                        : '—',
+                    context,
+                  ),
+                  _buildDetailRow('Payment Frequency', '—', context),
+                  _buildDetailRow('Credit Rating', '—', context),
+                  _buildDetailRow('Issuer', '—', context),
                 ],
               ),
             ),
@@ -169,69 +244,38 @@ class BondAssetTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildCashFlowItem(
-                    date: 'Jun 2024',
-                    amount: '\$${tool.faceValue! * tool.interestRate! / 2}',
-                    type: 'Coupon Payment',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCashFlowItem(
-                    date: 'Dec 2024',
-                    amount: '\$${tool.faceValue! * tool.interestRate! / 2}',
-                    type: 'Coupon Payment',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCashFlowItem(
-                    date: 'Jun 2025',
-                    amount: '\$${tool.faceValue! + tool.faceValue! * tool.interestRate! / 2}',
-                    type: 'Coupon + Principal',
-                    isFinal: true,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Actions
-          Text(
-            'Actions',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showSellDialog(context),
-                  icon: const Icon(Icons.sell),
-                  label: const Text('Sell Bond'),
-                  style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
-                ),
+          if (tool.faceValue != null && tool.interestRate != null) ...<Widget>[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: <Widget>[
+                    _buildCashFlowItem(
+                      date: '—',
+                      amount:
+                          '${(tool.faceValue! * tool.interestRate! / 2).toStringAsFixed(2)} ₽',
+                      type: 'Coupon Payment',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCashFlowItem(
+                      date: '—',
+                      amount:
+                          '${(tool.faceValue! + tool.faceValue! * tool.interestRate! / 2).toStringAsFixed(2)} ₽',
+                      type: 'Coupon + Principal',
+                      isFinal: true,
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+
+          ],
+        ),
       ),
     );
   }
 
-  String _getMaturityDate() {
-    // Mock date - in real app this would come from the model
-    return 'Jun 15, 2025';
-  }
 
   Widget _buildDetailRow(String label, String value, BuildContext context) {
     return Padding(
@@ -321,43 +365,6 @@ class BondAssetTab extends StatelessWidget {
     );
   }
 
-  void _showSellDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sell Bond'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Current Market Value: \$${tool.currentValue.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Face Value to Sell',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(64, 40),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Sell'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _BondChartPainter extends CustomPainter {

@@ -37,7 +37,14 @@ class ToolDetailScreen extends StatelessWidget {
       create: (_) => ToolDetailBloc()..add(LoadToolDetail(accountId, toolId)),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Детали инструмента'),
+          // Заголовок — название тула (после загрузки).
+          title: BlocBuilder<ToolDetailBloc, ToolDetailState>(
+            builder: (BuildContext context, ToolDetailState state) {
+              final String name =
+                  state is ToolDetailLoaded ? state.tool.name : toolId;
+              return Text(name, overflow: TextOverflow.ellipsis);
+            },
+          ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),

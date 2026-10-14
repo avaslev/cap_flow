@@ -10,12 +10,17 @@ class AddInvestmentOperationForm extends StatelessWidget {
   final String accountId;
   final InvestmentOperationType operationType;
   final ToolType investmentType;
+  /// Пресет с детального экрана: тикер и название не вводятся.
+  final String? presetTicker;
+  final String? presetName;
 
   const AddInvestmentOperationForm({
     super.key,
     required this.accountId,
     required this.operationType,
     required this.investmentType,
+    this.presetTicker,
+    this.presetName,
   });
 
   @override
@@ -29,6 +34,8 @@ class AddInvestmentOperationForm extends StatelessWidget {
         operationType: operationType,
         investmentType: investmentType,
         accountsBloc: accountsBloc,
+        presetTicker: presetTicker,
+        presetName: presetName,
       ),
       child: BlocListener<InvestmentCubit, InvestmentState>(
         listener: (context, state) {
@@ -76,6 +83,12 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _priceCtrl = TextEditingController();
   final TextEditingController _quantityCtrl = TextEditingController();
+  final TextEditingController _faceValueCtrl = TextEditingController();
+  final TextEditingController _nkdCtrl = TextEditingController();
+  final FocusNode _tickerFocus = FocusNode();
+  /// Подсказки показываются только после изменения текста в поле:
+  /// простое выделение/фокус список не открывает.
+  bool _tickerDirty = false;
 
   @override
   void initState() {
@@ -83,6 +96,18 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
     _tickerCtrl.text =
         context.read<InvestmentCubit>().state.selectedTicker ?? '';
     _nameCtrl.text = context.read<InvestmentCubit>().state.selectedName ?? '';
+    // Перестроение при смене фокуса: выпадающий список подсказок
+    // закрывается, когда поле тикера теряет фокус.
+    _tickerFocus.addListener(_onTickerFocusChanged);
+  }
+
+  void _onTickerFocusChanged() {
+    if (mounted) {
+      if (!_tickerFocus.hasFocus) {
+        _tickerDirty = false;
+      }
+      setState(() {});
+    }
   }
 
   @override
@@ -91,6 +116,9 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
     _nameCtrl.dispose();
     _priceCtrl.dispose();
     _quantityCtrl.dispose();
+    _faceValueCtrl.dispose();
+    _nkdCtrl.dispose();
+    _tickerFocus.dispose();
     super.dispose();
   }
 
@@ -138,6 +166,9 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
       ),
       child: BlocBuilder<InvestmentCubit, InvestmentState>(
         builder: (context, state) {
+          // Пресет с детального экрана: тикер и название не вводятся.
+          final bool hideIdentity =
+              context.read<InvestmentCubit>().presetTicker != null;
           // Контроллеры синхронизируются только при внешнем изменении
           // (выбор подсказки), набор текста не конфликтует.
           final String tickerText = state.selectedTicker ?? '';
@@ -171,6 +202,27 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
               selection: TextSelection.collapsed(offset: qtyText.length),
             );
           }
+          // Номинал и НКД: обновляются из провайдера при выборе облигации.
+          final double? parsedFace = double.tryParse(
+            _faceValueCtrl.text.replaceAll(',', '.'),
+          );
+          if (state.faceValue != parsedFace) {
+            final String faceText = state.faceValue?.toString() ?? '';
+            _faceValueCtrl.value = TextEditingValue(
+              text: faceText,
+              selection: TextSelection.collapsed(offset: faceText.length),
+            );
+          }
+          final double? parsedNkd = double.tryParse(
+            _nkdCtrl.text.replaceAll(',', '.'),
+          );
+          if (state.accruedCouponIncome != parsedNkd) {
+            final String nkdText = state.accruedCouponIncome?.toString() ?? '';
+            _nkdCtrl.value = TextEditingValue(
+              text: nkdText,
+              selection: TextSelection.collapsed(offset: nkdText.length),
+            );
+          }
 
           return Form(
             child: SingleChildScrollView(
@@ -188,69 +240,88 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                           ),
                     ),
                   ),
-                  Autocomplete<String>(
-                    initialValue:
-                        TextEditingValue(text: state.selectedTicker ?? ''),
-                    optionsBuilder: (textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
-                      }
-                      final lowerCaseQuery =
-                          textEditingValue.text.toLowerCase();
-                      return state.suggestions.where((option) {
-                        return option.toLowerCase().contains(lowerCaseQuery);
-                      });
-                    },
-                    onSelected: (selection) {
-                      // Полная строка "TICKER - Name · курс VAL":
-                      // cubit сам извлечёт тикер, название и курс.
-                      context
-                          .read<InvestmentCubit>()
-                          .tickerChanged(selection);
-                    },
-                    fieldViewBuilder: (
-                      context,
-                      fieldTextEditingController,
-                      fieldFocusNode,
-                      onFieldSubmitted,
-                    ) {
-                      return TextFormField(
-                        controller: _tickerCtrl,
-                        focusNode: fieldFocusNode,
-                        decoration: InputDecoration(
-                          labelText:
-                              'Тикер (например, AAPL, SPY, GOV, BTC)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          prefixIcon: Icon(tickerPrefixIcon,
-                              color: colorScheme.onSurfaceVariant),
+                  if (!hideIdentity) ...<Widget>[
+                    TextFormField(
+                      controller: _tickerCtrl,
+                      focusNode: _tickerFocus,
+                      decoration: InputDecoration(
+                        labelText: 'Тикер или название (SBER, Сбербанк…)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
                         ),
-                        onChanged: (value) {
-                          final upper = value.toUpperCase();
-                          if (upper != value) {
-                            fieldTextEditingController.text = upper;
-                            fieldTextEditingController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(offset: upper.length),
-                            );
-                          }
-                          context
-                              .read<InvestmentCubit>()
-                              .tickerChanged(upper);
-                        },
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Пожалуйста, введите тикер';
-                          }
-                          return null;
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _nameCtrl,
+                        prefixIcon: Icon(tickerPrefixIcon,
+                            color: colorScheme.onSurfaceVariant),
+                        // Индикатор запроса к внешнему источнику.
+                        suffixIcon: state.isSearching
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                      onChanged: (value) {
+                        _tickerDirty = true;
+                        final upper = value.toUpperCase();
+                        if (upper != value) {
+                          _tickerCtrl.value = TextEditingValue(
+                            text: upper,
+                            selection: TextSelection.collapsed(
+                              offset: upper.length,
+                            ),
+                          );
+                        }
+                        context
+                            .read<InvestmentCubit>()
+                            .tickerChanged(upper);
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Пожалуйста, введите тикер';
+                        }
+                        return null;
+                      },
+                    ),
+                    // Выпадающий список — только после изменения тикера.
+                    if (state.suggestions.isNotEmpty &&
+                        _tickerFocus.hasFocus &&
+                        _tickerDirty)
+                      Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.only(top: 4),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: state.suggestions
+                              .take(8)
+                              .map<Widget>(
+                                (String option) => ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    option,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                  onTap: () {
+                                    // Полная строка "TICKER - Name · курс":
+                                    // cubit извлечёт тикер, название и курс.
+                                    context
+                                        .read<InvestmentCubit>()
+                                        .tickerChanged(option);
+                                    _tickerDirty = false;
+                                    _tickerFocus.unfocus();
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nameCtrl,
                     decoration: InputDecoration(
                       labelText: 'Название $investmentTypeName',
                       border: OutlineInputBorder(
@@ -259,16 +330,17 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                       prefixIcon: Icon(Icons.label,
                           color: colorScheme.onSurfaceVariant),
                     ),
-                    onChanged: (value) {
-                      context.read<InvestmentCubit>().nameChanged(value);
-                    },
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Пожалуйста, введите название';
-                      }
-                      return null;
-                    },
-                  ),
+                      onChanged: (value) {
+                        context.read<InvestmentCubit>().nameChanged(value);
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Пожалуйста, введите название';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _quantityCtrl,
@@ -356,8 +428,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                     Column(
                       children: [
                         TextFormField(
-                          initialValue:
-                              state.faceValue?.toString() ?? '',
+                          controller: _faceValueCtrl,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           decoration: InputDecoration(
@@ -392,9 +463,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                     Column(
                       children: [
                         TextFormField(
-                          initialValue:
-                              state.accruedCouponIncome?.toString() ??
-                                  '',
+                          controller: _nkdCtrl,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           decoration: InputDecoration(

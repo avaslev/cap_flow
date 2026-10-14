@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/logic/investmentCubit.dart';
+import 'package:investflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 
 class StockAssetTab extends StatelessWidget {
@@ -8,10 +13,11 @@ class StockAssetTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Stock Overview',
@@ -20,6 +26,59 @@ class StockAssetTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+
+
+          // Actions
+          Text(
+            'Actions',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: ToolType.stocks,
+                    operationType: InvestmentOperationType.buy,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Buy'),
+                  // Покупка — primary из темы.
+                // style из темы
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: ToolType.stocks,
+                    operationType: InvestmentOperationType.sell,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
+                  icon: const Icon(Icons.remove),
+                  label: const Text('Sell'),
+                  style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
+                ),
+              ),
+            ],
+          ),
+
 
           // Stock header with price change
           Card(
@@ -92,9 +151,9 @@ class StockAssetTab extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Quick stats
+          // Позиция: реальные данные из портфеля.
           Text(
-            'Quick Stats',
+            'Позиция',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -103,20 +162,34 @@ class StockAssetTab extends StatelessWidget {
 
           Row(
             children: [
-              Expanded(child: _buildStatCard('Day Range', '\$${(tool.currentValue * 0.98).toStringAsFixed(2)} - \$${(tool.currentValue * 1.02).toStringAsFixed(2)}', context)),
+              Expanded(
+                child: _buildStatCard(
+                  'Количество',
+                  _formatCryptoQuantity(tool.quantity),
+                  context,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('Volume', '${(tool.quantity * 1000).toInt().toString()}', context)),
+              Expanded(
+                child: _buildStatCard(
+                  'Цена за единицу',
+                  tool.quantity.abs() > 0
+                      ? formatCurrency(
+                          tool.currentValue / tool.quantity.abs(),
+                        )
+                      : '—',
+                  context,
+                ),
+              ),
             ],
           ),
 
           const SizedBox(height: 12),
 
-          Row(
-            children: [
-              Expanded(child: _buildStatCard('Market Cap', '\$${(tool.currentValue * tool.quantity * 1e9 / 1000).toStringAsFixed(2)}B', context)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('P/E Ratio', '25.3', context)),
-            ],
+          _buildStatCard(
+            'Стоимость позиции',
+            formatCurrency(tool.currentValue),
+            context,
           ),
 
           const SizedBox(height: 24),
@@ -158,45 +231,22 @@ class StockAssetTab extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
-
-          // Actions
-          Text(
-            'Actions',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showBuyDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Buy'),
-                  // Покупка — primary из темы.
-                // style из темы
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showSellDialog(context),
-                  icon: const Icon(Icons.remove),
-                  label: const Text('Sell'),
-                  style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
-                ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  /// Количество с точностью до 10 знаков, хвостовые нули обрезаются.
+  String _formatCryptoQuantity(double v) {
+    String s = v.toStringAsFixed(10);
+    if (s.contains('.')) {
+      s = s.replaceAll(RegExp(r'0+$'), '');
+      if (s.endsWith('.')) {
+        s = s.substring(0, s.length - 1);
+      }
+    }
+    return s;
   }
 
   Widget _buildStatCard(String label, String value, BuildContext context) {
@@ -248,85 +298,7 @@ class StockAssetTab extends StatelessWidget {
     );
   }
 
-  void _showBuyDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Buy Stock'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Number of shares',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Price per share',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(64, 40),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Buy'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _showSellDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sell Stock'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Number of shares',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Price per share',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(64, 40),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Sell'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ChartPainter extends CustomPainter {

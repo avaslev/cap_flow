@@ -82,6 +82,16 @@ class ScheduledTransactionRepository {
   }
 
   /// Removes planner records linked to a deposit (interest schedules).
+  Future<List<ScheduledTransaction>> getByDepositTool(String toolId) async {
+    final Database db = await DatabaseHelper.instance.db;
+    final List<Map<String, Object?>> rows = await db.query(
+      'scheduled_transactions',
+      where: 'deposit_tool_id = ?',
+      whereArgs: [toolId],
+    );
+    return rows.map(ScheduledTransaction.fromMap).toList();
+  }
+
   Future<void> deleteByDepositTool(String depositToolId) async {
     Database db = await DatabaseHelper.instance.db;
     await db.delete(

@@ -10,6 +10,10 @@ import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/data/source/cryptoSuggestSource.dart';
+import 'package:investflow/data/source/moexSuggestSource.dart';
+import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:investflow/data/repository/currencyRepository.dart';
 import 'package:uuid/uuid.dart';
 
 enum InvestmentFormStatus { initial, loading, success, failure }
@@ -26,6 +30,8 @@ class InvestmentState {
   final double? accruedCouponIncome;
   final DateTime selectedDate;
   final List<String> suggestions;
+  /// Идёт запрос подсказок во внешний источник.
+  final bool isSearching;
   /// Курс к дефолтной валюте по тикеру из внешнего источника.
   final Map<String, double> onlineRates;
   final InvestmentOperationType operationType;
@@ -44,6 +50,7 @@ class InvestmentState {
     this.accruedCouponIncome,
     DateTime? selectedDate,
     this.suggestions = const [],
+    this.isSearching = false,
     this.onlineRates = const <String, double>{},
     required this.operationType,
     required this.investmentType,
@@ -62,6 +69,7 @@ class InvestmentState {
     double? accruedCouponIncome,
     DateTime? selectedDate,
     List<String>? suggestions,
+    bool? isSearching,
     Map<String, double>? onlineRates,
     InvestmentOperationType? operationType,
     ToolType? investmentType,
@@ -79,6 +87,7 @@ class InvestmentState {
       accruedCouponIncome: accruedCouponIncome ?? this.accruedCouponIncome,
       selectedDate: selectedDate ?? this.selectedDate,
       suggestions: suggestions ?? this.suggestions,
+      isSearching: isSearching ?? this.isSearching,
       onlineRates: onlineRates ?? this.onlineRates,
       operationType: operationType ?? this.operationType,
       investmentType: investmentType ?? this.investmentType,
@@ -93,17 +102,24 @@ class InvestmentCubit extends Cubit<InvestmentState> {
   final InvestmentOperationType operationType;
   final ToolType investmentType;
   final AccountsBloc accountsBloc;
+  /// Форма открыта с детального экрана: тикер/название уже известны.
+  final String? presetTicker;
+  final String? presetName;
   final CryptoSuggestSource _cryptoSource = CryptoSuggestSource();
+  final MoexSuggestSource _moexSource = MoexSuggestSource();
   final Map<String, List<OnlineInstrument>> _onlineCache =
       <String, List<OnlineInstrument>>{};
   String? _vsCurrencyCache;
   Timer? _searchDebounce;
   String? _searchQuery;
+  /// Счётчик поисков: ответы устаревших запросов отбрасываются.
+  int _searchEpoch = 0;
 
   @override
   Future<void> close() {
     _searchDebounce?.cancel();
     _cryptoSource.dispose();
+    _moexSource.dispose();
     return super.close();
   }
 
@@ -113,13 +129,69 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     required this.operationType,
     required this.investmentType,
     required this.accountsBloc,
+    this.presetTicker,
+    this.presetName,
   }) : super(InvestmentState(
           selectedDate: DateTime.now(),
           operationType: operationType,
           investmentType: investmentType,
           accountId: accountId,
+          selectedTicker: presetTicker,
+          selectedName: presetName,
         )) {
     emit(state.copyWith(suggestions: getSuggestions()));
+    // Пресет с детального экрана: полное количество при продаже
+    // и актуальная цена (MOEX, иначе портфель) при покупке и продаже.
+    if (presetTicker != null) {
+      final String upper = presetTicker!.toUpperCase();
+      if (operationType == InvestmentOperationType.sell) {
+        final Iterable<ToolSummary> matches = accountData
+            .getToolsForAccount(accountId)
+            .where(
+              (ToolSummary t) =>
+                  t.type == investmentType &&
+                  (t.ticker ?? '').toUpperCase() == upper,
+            );
+        if (matches.isNotEmpty) {
+          quantityChanged(_trimQuantity(matches.first.quantity));
+        }
+      }
+      unawaited(_prefillPrice(upper));
+    }
+  }
+
+  /// Цена по умолчанию: актуальная из внешнего источника, при недоступности —
+  /// текущая цена из портфеля (стоимость / количество).
+  Future<void> _prefillPrice(String ticker) async {
+    double? price;
+    if (investmentType == ToolType.stocks ||
+        investmentType == ToolType.bonds) {
+      try {
+        final List<MoexInstrument> board = await _moexSource.search(
+          ticker,
+          bonds: investmentType == ToolType.bonds,
+        );
+        for (final MoexInstrument i in board) {
+          if (i.ticker.toUpperCase() == ticker && (i.price ?? 0) > 0) {
+            price = i.priceInRub()! * await _rubToDefault();
+            break;
+          }
+        }
+      } catch (_) {
+        // Внешний источник недоступен — используем портфель.
+      }
+    }
+    price ??= _impliedRate(ticker);
+    if (price != null && price > 0 && state.price == null) {
+      priceChanged(_fmtRate(price));
+    }
+    // Облигация: НКД из провайдера, если поле пустое.
+    if (investmentType == ToolType.bonds) {
+      final double? nkd = _moexSource.meta(ticker)?.accruedInt;
+      if (nkd != null && nkd > 0 && (state.accruedCouponIncome ?? 0) <= 0) {
+        accruedCouponIncomeChanged(_fmtRate(nkd));
+      }
+    }
   }
 
   List<String> getSuggestions() {
@@ -132,25 +204,17 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           .map<String>((tool) => '${tool.ticker} - ${tool.name}')
           .toList();
     } else {
-      // For buy operations, return all available options for the investment type
-      final List<String> validTickers;
-      if (investmentType == ToolType.stocks) {
-        validTickers = [
-          'AAPL', 'TSLA', 'NVDA', 'GOOG', 'MSFT', 'AMZN', 'FB',
-          'JPM', 'XOM', 'V', 'PG', 'KO', 'NFLX', 'DIS', 'BA',
-          'GS', 'SBER', 'GAZP', 'LKOH', 'YNDX'
-        ];
-      } else if (investmentType == ToolType.bonds) {
-        validTickers = ['GOV', 'CORP'];
-      } else if (investmentType == ToolType.cryptocurrency) {
-        validTickers = ['BTC', 'ETH', 'XRP', 'LTC'];
-      } else {
-        validTickers = [];
-      }
-
-      suggestions = accountData.allInvestmentOptions.entries
-          .where((entry) => validTickers.contains(entry.key))
-          .map((entry) => '${entry.key} - ${entry.value}')
+      // Для покупки справочник динамический: тула из БД этого счёта
+      // (тикер, название). Цены добавляет внешний источник, приоритет у него.
+      suggestions = accountData
+          .getToolsForAccount(accountId)
+          .where(
+            (tool) =>
+                tool.type == investmentType &&
+                tool.ticker != null &&
+                !tool.isClosed,
+          )
+          .map<String>((tool) => '${tool.ticker} - ${tool.name}')
           .toList();
     }
     suggestions.sort();
@@ -167,19 +231,60 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       name = parts.length > 1 ? parts[1].split(' · ').first.trim() : null;
     } else {
       upper = ticker.toUpperCase();
-      name = accountData.allInvestmentOptions[upper];
+      // Имя берём из тулов БД, если такой тикер уже покупался.
+      name = accountData
+          .getToolsForAccount(accountId)
+          .cast<ToolSummary?>()
+          .firstWhere(
+            (ToolSummary? t) =>
+                t != null &&
+                t.type == investmentType &&
+                (t.ticker ?? '').toUpperCase() == upper,
+            orElse: () => null,
+          )
+          ?.name;
     }
     // Refresh suggestions when ticker is cleared
-    final suggestions = ticker.isEmpty ? getSuggestions() : state.suggestions;
+    final List<String> suggestions;
+    if (ticker.isEmpty) {
+      suggestions = getSuggestions();
+    } else if (!ticker.contains(' - ')) {
+      // Ручной ввод: список закрывается и соберётся заново по запросу.
+      suggestions = const <String>[];
+    } else {
+      suggestions = state.suggestions;
+    }
     emit(state.copyWith(
       selectedTicker: upper,
       selectedName: name != null && name.isNotEmpty ? name : null,
       suggestions: suggestions,
     ));
-    // Курс из внешнего источника подставляется в цену.
-    final double? rate = state.onlineRates[upper];
-    if (rate != null && rate > 0) {
-      priceChanged(rate.toStringAsFixed(2));
+    // Цена — прямо из строки подсказки «· 150 RUB»: надёжнее карты курсов,
+    // которую могут перетереть параллельные запросы.
+    double? price = () {
+      final RegExpMatch? m = RegExp(
+        r'·\s*([\d., ]+?)\s*[A-ZА-Я]{3}\s*$',
+      ).firstMatch(ticker);
+      if (m == null) return null;
+      return double.tryParse(m.group(1)!.replaceAll(' ', '').replaceAll(',', '.'));
+    }();
+    if (price == null || price <= 0) {
+      price = state.onlineRates[upper];
+    }
+    if (price != null && price > 0) {
+      priceChanged(_fmtRate(price));
+    }
+    // Облигация: номинал и НКД из данных провайдера.
+    if (investmentType == ToolType.bonds) {
+      final MoexInstrument? meta = _moexSource.meta(upper);
+      final double? face = meta?.faceValue;
+      if (face != null && face > 0) {
+        faceValueChanged(_fmtRate(face));
+      }
+      final double? nkd = meta?.accruedInt;
+      if (nkd != null && nkd > 0) {
+        accruedCouponIncomeChanged(_fmtRate(nkd));
+      }
     }
     // При продаже подставляем полное количество тула.
     if (operationType == InvestmentOperationType.sell) {
@@ -195,43 +300,73 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       }
     }
     if (ticker.contains(' - ')) {
-      // Выбрана подсказка: курс мог ещё не успеть загрузиться —
-      // запрашиваем сразу и дозаполняем цену по приходу.
-      unawaited(_loadOnlineSuggestions(upper));
+      // Подсказка выбрана: закрываем список и обновляем цены выбранного.
+      emit(state.copyWith(suggestions: const <String>[]));
+      unawaited(_applySelectedTickerExtras(upper));
     } else {
       _scheduleOnlineSearch(upper);
     }
   }
 
-  /// Поиск подсказок во внешнем источнике с дебаунсом (только крипта).
+  /// После выбора подсказки: догрузить курсы и подставить цену,
+  /// если она не была известна в момент выбора.
+  Future<void> _applySelectedTickerExtras(String upper) async {
+    await _loadOnlineSuggestions(upper);
+    if (isClosed) return;
+    final double? lateRate = state.onlineRates[upper];
+    if (lateRate != null && lateRate > 0 && (state.price ?? 0) <= 0) {
+      priceChanged(_fmtRate(lateRate));
+    }
+  }
+
+  /// Поиск подсказок во внешнем источнике с дебаунсом
+  /// (крипта — CoinGecko, акции/облигации — MOEX).
   void _scheduleOnlineSearch(String query) {
-    if (investmentType != ToolType.cryptocurrency ||
-        operationType != InvestmentOperationType.buy ||
-        query.length < 2) {
+    if (operationType != InvestmentOperationType.buy || query.length < 2) {
       return;
     }
     _searchDebounce?.cancel();
     _searchQuery = query;
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      _loadOnlineSuggestions(_searchQuery ?? query);
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final int epoch = ++_searchEpoch;
+      emit(state.copyWith(isSearching: true));
+      await _loadOnlineSuggestions(_searchQuery ?? query, epoch);
+      if (!isClosed && epoch == _searchEpoch) {
+        emit(state.copyWith(isSearching: false));
+      }
     });
   }
 
   /// Внешний источник + тула из БД; дубли убираются, побеждает внешний.
   /// Имена показываются сразу после поиска, цены догружаются следом.
-  Future<void> _loadOnlineSuggestions(String query) async {
+  Future<void> _loadOnlineSuggestions(String query, [int? epoch]) async {
+    epoch ??= ++_searchEpoch;
+    if (investmentType == ToolType.stocks ||
+        investmentType == ToolType.bonds) {
+      await _loadMoexSuggestions(query, epoch);
+      return;
+    }
     final String vs = await _defaultCurrency();
-    final String key = query.toLowerCase();
+    final String key = '${investmentType.name}:${query.toLowerCase()}';
     List<OnlineInstrument> online =
         _onlineCache[key] ?? await _cryptoSource.search(query);
     _onlineCache[key] = online;
     if (online.isEmpty) {
-      emit(state.copyWith(suggestions: getSuggestions()));
+      final String q = query.toLowerCase();
+      final List<String> matched = q.isEmpty
+          ? getSuggestions()
+          : getSuggestions()
+                .where((String e) => e.toLowerCase().contains(q))
+                .toList();
+      final (List<String> hints, Map<String, double> rates) =
+          _withImpliedRates(matched, vs);
+      emit(state.copyWith(suggestions: hints, onlineRates: rates));
+      _applySelectedTickerPrice();
       return;
     }
 
     // 1) Быстрый показ имён без курсов.
-    _emitMerged(online, <String, double>{}, vs);
+    _emitMerged(online, <String, double>{}, vs, query: query);
 
     // 2) Догрузка цен (для закэшированных не повторяется).
     if (online.any((OnlineInstrument i) => i.rate == null)) {
@@ -245,7 +380,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           i.rate = r;
         }
       }
-      _emitMerged(online, rates, vs);
+      _emitMerged(online, rates, vs, query: query);
     } else {
       _emitMerged(
         online,
@@ -254,8 +389,125 @@ class InvestmentCubit extends Cubit<InvestmentState> {
             if (i.rate != null) i.id: i.rate!,
         },
         vs,
+        query: query,
       );
     }
+  }
+
+  /// Подсказки акций/облигаций из MOEX: борд кэшируется в источнике,
+  /// поиск локальный. Курс = цена закрытия, конвертированная в дефолтную валюту.
+  Future<void> _loadMoexSuggestions(String query, int epoch) async {
+    final String vs = await _defaultCurrency();
+    final double rubToDefault = await _rubToDefault();
+    final List<MoexInstrument> online = await _moexSource.search(
+      query,
+      bonds: investmentType == ToolType.bonds,
+    );
+    if (epoch != _searchEpoch) {
+      return; // ответ устарел: уже есть более новый запрос
+    }
+    final String q = query.toLowerCase();
+    if (online.isEmpty) {
+      // Провайдер ничего не нашёл: DB-подсказки с ценой из портфеля.
+      final List<String> matched = getSuggestions()
+          .where((String e) => e.toLowerCase().contains(q))
+          .toList();
+      final (List<String> hints, Map<String, double> rates) =
+          _withImpliedRates(matched, vs);
+      emit(state.copyWith(suggestions: hints, onlineRates: rates));
+      _applySelectedTickerPrice();
+      return;
+    }
+    // Котировка облигаций — % от номинала: полная цена = % × номинал.
+    final Map<String, double> rates = <String, double>{
+      for (final MoexInstrument i in online)
+        if (i.priceInRub() != null && i.priceInRub()! > 0)
+          i.ticker.toUpperCase(): i.priceInRub()! * rubToDefault,
+    };
+    final Set<String> onlineTickers = online
+        .map((MoexInstrument i) => i.ticker.toUpperCase())
+        .toSet();
+    final List<String> dbEntries = getSuggestions()
+        .where((String entry) {
+          final String entryTicker = entry.split(' - ').first.toUpperCase();
+          if (onlineTickers.contains(entryTicker)) {
+            return false; // дубли: побеждает внешний источник
+          }
+          return entry.toLowerCase().contains(q);
+        })
+        .map<String>((String entry) => _withImpliedRate(entry, vs))
+        .toList();
+    final List<String> merged = <String>[
+      ...online.map((MoexInstrument i) {
+        final double? fullPrice = i.priceInRub();
+        final String suffix =
+            (fullPrice != null && fullPrice > 0)
+                ? ' · ${_fmtRate(fullPrice * rubToDefault)} $vs'
+                : '';
+        return '${i.ticker} - ${i.name}$suffix';
+      }),
+      ...dbEntries,
+    ];
+    emit(state.copyWith(suggestions: merged, onlineRates: rates));
+    // Дозаполнение цены выбранным курсом.
+    final String? selected = state.selectedTicker;
+    final double? selectedRate = selected != null ? rates[selected] : null;
+    if (selectedRate != null && selectedRate > 0 && state.price == null) {
+      priceChanged(_fmtRate(selectedRate));
+    }
+  }
+
+  /// DB-подсказки с ценой из портфеля + карта курсов, чтобы при выборе
+  /// подсказки цена подставилась в форму.
+  (List<String>, Map<String, double>) _withImpliedRates(
+    List<String> entries,
+    String vs,
+  ) {
+    final Map<String, double> rates = <String, double>{};
+    final List<String> result = entries.map<String>((String entry) {
+      final String withRate = _withImpliedRate(entry, vs);
+      final int sep = entry.indexOf(' - ');
+      if (sep > 0) {
+        final String ticker = entry.substring(0, sep).toUpperCase();
+        final double? rate = _impliedRate(ticker);
+        if (rate != null && rate > 0) {
+          rates[ticker] = rate;
+        }
+      }
+      return withRate;
+    }).toList();
+    return (result, rates);
+  }
+
+  /// Дозаполнить цену выбранного тикера, когда курсы доехали позже выбора.
+  void _applySelectedTickerPrice() {
+    final String? selected = state.selectedTicker;
+    if (selected == null) return;
+    final double? rate = state.onlineRates[selected];
+    if (rate != null && rate > 0 && (state.price ?? 0) <= 0) {
+  
+      priceChanged(_fmtRate(rate));
+    }
+  }
+
+  /// Курс дефолтной валюты к рублю (для перевода MOEX-цен).
+  Future<double> _rubToDefault() async {
+    final String def = await _defaultCurrency();
+    if (def.toUpperCase() == 'RUB') return 1;
+    final double r = await CurrencyRepository().getRate('RUB');
+    return r > 0 ? r : 1;
+  }
+
+  /// Дописать БД-подсказке текущую цену инструмента, если она есть.
+  String _withImpliedRate(String entry, String vs) {
+    final int sep = entry.indexOf(' - ');
+    if (sep < 0) return entry;
+    if (entry.contains(' · ')) return entry;
+    final String ticker = entry.substring(0, sep).toUpperCase();
+    final double? rate = _impliedRate(ticker);
+    final String suffix =
+        (rate != null && rate > 0) ? ' · ${_fmtRate(rate)} $vs' : '';
+    return '$entry$suffix';
   }
 
   Future<String> _defaultCurrency() async {
@@ -267,8 +519,9 @@ class InvestmentCubit extends Cubit<InvestmentState> {
   void _emitMerged(
     List<OnlineInstrument> online,
     Map<String, double> freshRates,
-    String vs,
-  ) {
+    String vs, {
+    String? query,
+  }) {
     final Map<String, double> rates = <String, double>{
       for (final OnlineInstrument i in online)
         if (i.rate != null && i.rate! > 0) i.ticker.toUpperCase(): i.rate!,
@@ -278,10 +531,23 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         .toSet();
     // Единый формат «ТИКЕР - Название · курс»: тулам из БД курс —
     // текущая цена инструмента (стоимость / количество).
+    final String q = query?.toLowerCase() ?? '';
+    // Цены портфеля для DB-подсказок — чтобы при выборе подставлялись.
+    final Map<String, double> dbRates = <String, double>{};
     final List<String> dbEntries = getSuggestions()
         .where((String entry) {
           final String entryTicker = entry.split(' - ').first.toUpperCase();
-          return !onlineTickers.contains(entryTicker);
+          if (onlineTickers.contains(entryTicker)) {
+            return false; // дубли: побеждает внешний источник
+          }
+          if (q.isEmpty || entry.toLowerCase().contains(q)) {
+            final double? rate = _impliedRate(entryTicker);
+            if (rate != null && rate > 0) {
+              dbRates[entryTicker] = rate;
+            }
+            return true;
+          }
+          return false;
         })
         .map<String>((String entry) {
           final int sep = entry.indexOf(' - ');
@@ -302,7 +568,12 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       }),
       ...dbEntries,
     ];
-    emit(state.copyWith(suggestions: merged, onlineRates: rates));
+    emit(
+      state.copyWith(
+        suggestions: merged,
+        onlineRates: <String, double>{...rates, ...dbRates},
+      ),
+    );
     // Дозаполнение цены выбранным курсом, если она ещё пуста.
     final String? selected = state.selectedTicker;
     final double? selectedRate = selected != null ? rates[selected] : null;
@@ -310,6 +581,105 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       priceChanged(_fmtRate(selectedRate));
     }
   }
+
+  // ─── Дивиденды и купоны через планировщик ───
+
+  /// Создать запись планировщика (дивиденды/купоны), если данных нет — тихо выйти.
+  Future<void> _ensureIncomeSchedule({
+    required String toolId,
+    required String ticker,
+    required double qty,
+    required ToolSummary? moneyTool,
+  }) async {
+    if (qty <= 0) return;
+    final List<ScheduledTransaction> existing = await _schedulesFor(toolId);
+    if (existing.isNotEmpty) return;
+
+    if (investmentType == ToolType.stocks) {
+      final ({double value, String dateIso})? div = await _moexSource
+          .lastDividend(ticker);
+      if (div == null) return;
+      final DateTime divDate =
+          DateTime.tryParse(div.dateIso) ?? DateTime.now();
+      final DateTime now = DateTime.now();
+      final DateTime first = divDate.isAfter(now)
+          ? divDate
+          : DateTime(divDate.year + 1, divDate.month, divDate.day);
+      await ScheduledTransactionRepository().add(
+        ScheduledTransaction(
+          id: const Uuid().v7(),
+          accountId: accountId,
+          name: 'Дивиденды $ticker',
+          amount: _round2(div.value * qty),
+          type: 'income',
+          category: 'Дивиденды',
+          date: first,
+          walletId: moneyTool?.id ?? accountId,
+          recurrenceType: 'annually',
+          nextExecutionDate: first,
+          totalExecutions: 0,
+          executedCount: 0,
+          depositToolId: toolId,
+        ),
+      );
+    } else if (investmentType == ToolType.bonds) {
+      final MoexInstrument? meta = _moexSource.meta(ticker);
+      if (meta == null ||
+          meta.couponValue == null ||
+          meta.couponValue! <= 0) {
+        return;
+      }
+      final DateTime? nextCoupon = DateTime.tryParse(meta.nextCouponIso ?? '');
+      if (nextCoupon == null) return;
+      final int period = meta.couponPeriodDays ?? 182;
+      final String recurrence =
+          period <= 40
+              ? 'monthly'
+              : period <= 110
+              ? 'quarterly'
+              : period <= 220
+              ? 'semiannual'
+              : 'annually';
+      await ScheduledTransactionRepository().add(
+        ScheduledTransaction(
+          id: const Uuid().v7(),
+          accountId: accountId,
+          name: 'Купон $ticker',
+          amount: _round2(meta.couponValue! * qty),
+          type: 'income',
+          category: 'Купоны',
+          date: nextCoupon,
+          walletId: moneyTool?.id ?? accountId,
+          recurrenceType: recurrence,
+          nextExecutionDate: nextCoupon,
+          totalExecutions: 0,
+          executedCount: 0,
+          depositToolId: toolId,
+        ),
+      );
+    }
+  }
+
+  /// Пересчитать суммы планировщика пропорционально новому количеству.
+  Future<void> _recalcIncomeSchedule(
+    String toolId,
+    double oldQty,
+    double newQty,
+  ) async {
+    if (oldQty <= 0 || newQty <= 0) return;
+    final List<ScheduledTransaction> existing = await _schedulesFor(toolId);
+    for (final ScheduledTransaction st in existing) {
+      final double perUnit = st.amount / oldQty;
+      await ScheduledTransactionRepository().update(
+        st.copyWith(amount: _round2(perUnit * newQty)),
+      );
+    }
+  }
+
+  Future<List<ScheduledTransaction>> _schedulesFor(String toolId) =>
+      ScheduledTransactionRepository().getByDepositTool(toolId);
+
+  double _round2(double v) => (v * 100).roundToDouble() / 100;
 
   /// Количество без хвостовых нулей (до 10 знаков).
   String _trimQuantity(double v) {
@@ -495,8 +865,6 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     if (existingTool != null && existingTool.type != investmentType) {
       existingTool = null;
     }
-    debugPrint('[InvestmentCubit] _handleBuy: looking for ticker=$ticker, accountId=$accountId, type=$investmentType, found=${existingTool?.id}');
-
     if (existingTool != null) {
       // Create activity to increase the instrument position
       await ActivityRepository().insert(
@@ -512,15 +880,49 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           name: 'Buy $name',
         ),
       );
+      final double newQty = existingTool.quantity + quantity;
+      await _recalcIncomeSchedule(existingTool.id, existingTool.quantity, newQty);
+      await _ensureIncomeSchedule(
+        toolId: existingTool.id,
+        ticker: ticker,
+        qty: newQty,
+        moneyTool: moneyTool,
+      );
       return existingTool.id;
     } else {
       final String newToolId = Uuid().v7();
+      // Облигация: реальные номинал, годовая ставка купона и дата погашения
+      // из данных MOEX (если биржа недоступна — поля остаются пустыми).
+      double? faceValue;
+      double? interestRate;
+      DateTime? endDate;
+      if (investmentType == ToolType.bonds) {
+        final MoexInstrument? meta = _moexSource.meta(ticker);
+        final MoexInstrument? bondMeta = _moexSource.meta(ticker);
+        final double face = bondMeta?.faceValue ?? 0;
+        if (face > 0) {
+          faceValue = face;
+        }
+        final double coupon = bondMeta?.couponValue ?? 0;
+        final int period = bondMeta?.couponPeriodDays ?? 0;
+        if (coupon > 0 && period > 0 && faceValue != null) {
+          final double annualCoupon = coupon * 365 / period;
+          interestRate = annualCoupon / faceValue!;
+        }
+        final String? mat = bondMeta?.maturityIso;
+        if (mat != null) {
+          endDate = DateTime.tryParse(mat);
+        }
+      }
       await ToolRepository().insert(Tool(
         id: newToolId,
         name: name,
         accountId: accountId,
         type: investmentType.name,
         ticker: ticker,
+        faceValue: faceValue,
+        interestRate: interestRate,
+        endDate: endDate,
       ));
       // Create activity to set the initial position
       await ActivityRepository().insert(
@@ -535,6 +937,12 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           isTransmit: true, // внутренний обмен, не доход
           name: 'Buy $name',
         ),
+      );
+      await _ensureIncomeSchedule(
+        toolId: newToolId,
+        ticker: ticker,
+        qty: quantity,
+        moneyTool: moneyTool,
       );
       return newToolId;
     }
@@ -559,8 +967,6 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     if (existingTool != null && existingTool.type != investmentType) {
       existingTool = null;
     }
-    debugPrint('[InvestmentCubit] _handleSell: looking for ticker=$ticker, accountId=$accountId, type=$investmentType, found=${existingTool?.id}');
-
     if (existingTool == null || existingTool.quantity < quantity) {
       throw Exception('Insufficient quantity of $ticker to sell');
     }
@@ -630,8 +1036,14 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     );
 
     // If selling all, mark tool for deletion after activity replay
-    if (existingTool.quantity - quantity <= 0) {
+    final double newQty = existingTool.quantity - quantity;
+    if (newQty <= 0) {
+      await ScheduledTransactionRepository().deleteByDepositTool(
+        existingTool.id,
+      );
       await ToolRepository().delete(existingTool.id);
+    } else {
+      await _recalcIncomeSchedule(existingTool.id, existingTool.quantity, newQty);
     }
 
     return existingTool.id;

@@ -49,6 +49,8 @@ enum RecurrenceType {
   none,
   weekly,
   monthly,
+  quarterly,
+  semiannual,
   annually,
   monthlyOnDay,
 }
@@ -63,6 +65,10 @@ extension RecurrenceTypeExtension on RecurrenceType {
         return 'Каждую неделю';
       case RecurrenceType.monthly:
         return 'Каждый месяц (в тот же день)';
+      case RecurrenceType.quarterly:
+        return 'Каждый квартал';
+      case RecurrenceType.semiannual:
+        return 'Каждые полгода';
       case RecurrenceType.annually:
         return 'Каждый год';
       case RecurrenceType.monthlyOnDay:

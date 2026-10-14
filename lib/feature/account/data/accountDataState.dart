@@ -254,37 +254,6 @@ class AccountData {
   String? _targetDisplayAccount;
 
   /// Dummy data for stock suggestions and names
-  static const Map<String, String> _allInvestmentOptions = <String, String>{
-    'AAPL': 'Apple Inc. Stock',
-    'TSLA': 'Tesla Inc. Stock',
-    'NVDA': 'Nvidia Corp. Stock',
-    'GOOG': 'Alphabet Inc. (Google) Stock',
-    'MSFT': 'Microsoft Corp. Stock',
-    'AMZN': 'Amazon.com Inc. Stock',
-    'FB': 'Meta Platforms Inc. (Facebook) Stock',
-    'JPM': 'JPMorgan Chase & Co. Stock',
-    'XOM': 'Exxon Mobil Corp. Stock',
-    'V': 'Visa Inc. Stock',
-    'PG': 'Procter & Gamble Co. Stock',
-    'KO': 'The Coca-Cola Company Stock',
-    'NFLX': 'Netflix Inc. Stock',
-    'DIS': 'The Walt Disney Company Stock',
-    'BA': 'The Boeing Company Stock',
-    'GS': 'Goldman Sachs Group Inc. Stock',
-    'SBER': 'Sberbank Stock',
-    'GAZP': 'Gazprom Stock',
-    'LKOH': 'Lukoil Stock',
-    'YNDX': 'Yandex N.V. Stock',
-    'GOV': 'Russian Federal Bonds', // Example bond ticker
-    'CORP': 'Corporate Bonds A', // Example corporate bond ticker
-    'BTC': 'Bitcoin', // New: Cryptocurrency
-    'ETH': 'Ethereum', // New: Cryptocurrency
-    'XRP': 'Ripple', // New: Cryptocurrency
-    'LTC': 'Litecoin', // New: Cryptocurrency
-  };
-
-  Map<String, String> get allInvestmentOptions => _allInvestmentOptions;
-
   AccountData()
     : _accounts = <AccountSummary>[],
       _events = new Map<String, Event>(),

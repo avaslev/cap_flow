@@ -92,6 +92,12 @@ DateTime? calculateNextOccurrence({
           currentCandidate.second, currentCandidate.millisecond, 
           currentCandidate.microsecond);
         break;
+      case 'quarterly':
+        currentCandidate = _addMonthCorrectly(currentCandidate, 3);
+        break;
+      case 'semiannual':
+        currentCandidate = _addMonthCorrectly(currentCandidate, 6);
+        break;
       case 'monthlyOnDay':
         final int targetRecurrenceDay = recurrenceDayOfMonth ?? currentCandidate.day;
         int year = currentCandidate.year;
