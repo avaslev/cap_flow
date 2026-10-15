@@ -137,12 +137,14 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           canMoveUp: index > 1,
                           canMoveDown:
                               index < state.accountData.accounts.length - 1,
-                          onMoveUp: () => accountBloc.add(
-                            MoveAccountEvent(account.id, up: true),
-                          ),
-                          onMoveDown: () => accountBloc.add(
-                            MoveAccountEvent(account.id, up: false),
-                          ),
+                          onMoveUp:
+                              () => accountBloc.add(
+                                MoveAccountEvent(account.id, up: true),
+                              ),
+                          onMoveDown:
+                              () => accountBloc.add(
+                                MoveAccountEvent(account.id, up: false),
+                              ),
                         ),
                       ),
                     );
@@ -162,8 +164,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                     if (!_pageController.hasClients) return;
                     final double? page = _pageController.page;
                     if (page == null) return;
-                    final int accountsCount =
-                        state.accountData.accounts.length;
+                    final int accountsCount = state.accountData.accounts.length;
                     int targetPage = page.round();
                     final double velocity = details.primaryVelocity ?? 0;
                     if (velocity < -kMinFlingVelocity) {
@@ -201,13 +202,12 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                     icon: const Icon(Icons.history, size: 20),
                                     label: Text(
                                       'События',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge!
-                                          .copyWith(
-                                            color: colorScheme.onPrimary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelLarge!.copyWith(
+                                        color: colorScheme.onPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -227,13 +227,12 @@ class _AccountListScreenState extends State<AccountListScreen> {
                                     ),
                                     label: Text(
                                       'Добавить',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge!
-                                          .copyWith(
-                                            color: colorScheme.onSecondary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelLarge!.copyWith(
+                                        color: colorScheme.onSecondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -241,7 +240,46 @@ class _AccountListScreenState extends State<AccountListScreen> {
                             ),
                           ),
                         // Total: последние события; обычный счёт: тула.
-                        if (state.accountData.activeAccountId == 'total')
+                        if (state.accountData.accounts
+                            .where((AccountSummary acc) => acc.id != 'total')
+                            .isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 24),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  Icon(
+                                    Icons.account_balance_wallet_outlined,
+                                    size: 56,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'У вас пока нет счетов',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium?.copyWith(
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Кнопка в полэкрана, по центру.
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 2,
+                                    child: FilledButton.icon(
+                                      onPressed:
+                                          () => _showAddAccountForm(context),
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('Добавить счёт'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else ...<Widget>[
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -249,20 +287,19 @@ class _AccountListScreenState extends State<AccountListScreen> {
                             ),
                             child: Text(
                               'Последние события',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium!
-                                  .copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.onSurface,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium!.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
                           ),
-                        if (state.accountData.activeAccountId == 'total')
                           EventList(
                             accountData: state.accountData,
                             maxEvents: 50,
                           ),
+                        ],
                         if (state.accountData.activeAccountId != 'total')
                           ToolList(
                             accountData: state.accountData,

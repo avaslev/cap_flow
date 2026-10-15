@@ -10,11 +10,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 String _getAccountTypeDisplayName(AccountType type) {
   switch (type) {
     case AccountType.general:
-      return 'General Account';
+      return 'Обычный';
     case AccountType.brokerage:
-      return 'Brokerage Account';
+      return 'Брокерский';
     case AccountType.cryptocurrency:
-      return 'Cryptocurrency Account';
+      return 'Криптовалютный';
   }
 }
 
@@ -41,6 +41,11 @@ class _AddAccountFormState extends State<AddAccountForm> {
         {'name': 'Orange', 'value': 0xffFD7E14},
         {'name': 'Indigo', 'value': 0xff6610F2},
         {'name': 'Deep Purple', 'value': 0xff6A0DAD}, // Total balance color
+        {'name': 'Pink', 'value': 0xffE83E8C},
+        {'name': 'Red', 'value': 0xffDC3545},
+        {'name': 'Light Blue', 'value': 0xff38BDF8},
+        {'name': 'Brown', 'value': 0xff8D6E63},
+        {'name': 'Blue Grey', 'value': 0xff607D8B},
       ];
 
   @override
@@ -77,6 +82,55 @@ class _AddAccountFormState extends State<AddAccountForm> {
     super.dispose();
   }
 
+  /// Выбор типа счёта нижней шторкой (вместо DropdownButtonFormField).
+  Future<void> _pickAccountType(
+    BuildContext context,
+    AddAccountFormState formState,
+  ) async {
+    FocusScope.of(context).unfocus();
+    final AccountType? picked = await showModalBottomSheet<AccountType>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (BuildContext sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Тип счёта',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ...AccountType.values.map<Widget>((AccountType type) {
+              final bool selected = type == formState.selectedAccountType;
+              return ListTile(
+                leading: Icon(
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                title: Text(_getAccountTypeDisplayName(type)),
+                onTap: () => Navigator.pop(sheetContext, type),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && context.mounted) {
+      context.read<AddAccountFormCubit>().updateSelectedAccountType(picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -88,12 +142,14 @@ class _AddAccountFormState extends State<AddAccountForm> {
         context.watch<AddAccountFormCubit>().state;
 
     return Container(
-      padding: EdgeInsets.only(
+      // Нижний отступ фиксированный: при открытии/закрытии клавиатуры
+      // шторка не меняет высоту — выпадающий список AccountType остаётся
+      // на своём месте. Форма скроллится, поле имени сверху видно всегда.
+      padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
         top: 16.0,
-        // Adjust padding for keyboard to prevent overflow
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
+        bottom: 16.0,
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -109,7 +165,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Text(
-                  "Create New Account",
+                  'Новый счёт',
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
@@ -119,7 +175,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Account Name',
+                  labelText: 'Название счёта',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
                   ),
@@ -130,7 +186,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
                 ),
                 validator: (String? value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter an account name';
+                    return 'Введите название счёта';
                   }
                   return null;
                 },
@@ -143,8 +199,8 @@ class _AddAccountFormState extends State<AddAccountForm> {
                   signed: true,
                 ),
                 decoration: InputDecoration(
-                  labelText: 'Initial Balance',
-                  hintText: 'e.g., 1000.50 or -500.00',
+                  labelText: 'Начальный баланс',
+                  hintText: 'например, 1000.50 или -500.00',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
                   ),
@@ -155,27 +211,34 @@ class _AddAccountFormState extends State<AddAccountForm> {
                 ),
                 validator: (String? value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter an initial balance';
+                    return 'Введите начальный баланс';
                   }
                   if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
+                    return 'Введите корректное число';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 24),
               Text(
-                'Account Type:',
+                'Тип счёта:',
                 style: Theme.of(context).textTheme.titleMedium!.copyWith(
                   fontWeight: FontWeight.w500,
                   color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<AccountType>(
-                value: formState.selectedAccountType,
+              // Выбор типа через нижнюю шторку: оверлей-меню Dropdown
+              // неустойчиво к смене высоты шторки (клавиатура/скролл).
+              TextFormField(
+                readOnly: true,
+                controller: TextEditingController(
+                  text: _getAccountTypeDisplayName(
+                    formState.selectedAccountType,
+                  ),
+                ),
                 decoration: InputDecoration(
-                  labelText: 'Type',
+                  labelText: 'Тип',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
                   ),
@@ -183,28 +246,14 @@ class _AddAccountFormState extends State<AddAccountForm> {
                     Icons.category,
                     color: colorScheme.onSurfaceVariant,
                   ),
+                  suffixIcon: const Icon(Icons.arrow_drop_down),
                 ),
-                items:
-                    AccountType.values.map<DropdownMenuItem<AccountType>>((
-                      AccountType type,
-                    ) {
-                      return DropdownMenuItem<AccountType>(
-                        value: type,
-                        child: Text(_getAccountTypeDisplayName(type)),
-                      );
-                    }).toList(),
-                onChanged: (AccountType? newValue) {
-                  if (newValue != null) {
-                    context
-                        .read<AddAccountFormCubit>()
-                        .updateSelectedAccountType(newValue);
-                  }
-                },
+                onTap: () => _pickAccountType(context, formState),
               ),
               const SizedBox(height: 16),
               SwitchListTile(
                 title: Text(
-                  'Hide Events for this Account',
+                  'Скрыть события счёта',
                   style: Theme.of(context).textTheme.titleMedium!.copyWith(
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurface,
@@ -224,7 +273,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
               const SizedBox(height: 8),
               SwitchListTile(
                 title: Text(
-                  'Exclude from Total Balance',
+                  'Исключить из общего баланса',
                   style: Theme.of(context).textTheme.titleMedium!.copyWith(
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurface,
@@ -245,7 +294,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Select Card Color:',
+                'Цвет карточки:',
                 style: Theme.of(context).textTheme.titleMedium!.copyWith(
                   fontWeight: FontWeight.w500,
                   color: colorScheme.onSurface,
@@ -315,7 +364,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
                       ),
                     );
 
-                    Toast.show(context, 'Account "$name" created successfully!');
+                    Toast.show(context, 'Счёт «$name» создан');
                     Navigator.pop(context); // Close the bottom sheet
                   }
                 },
@@ -325,7 +374,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
                   size: 20,
                 ),
                 label: Text(
-                  "Create Account",
+                  'Создать счёт',
                   style: Theme.of(context).textTheme.labelLarge!.copyWith(
                     color: colorScheme.onPrimary,
                     fontWeight: FontWeight.w600,
