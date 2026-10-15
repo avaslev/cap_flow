@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/logic/accountBloc.dart';
-import 'package:investflow/feature/account/logic/investmentCubit.dart';
 import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
@@ -65,7 +64,18 @@ Future<void> showInvestmentFormSheet(
     ),
   );
   accountsBloc.close();
-  if (context.mounted) {
-    context.read<ToolDetailBloc>().add(LoadToolDetail(accountId, toolId));
+  if (!context.mounted) return;
+  // Полная продажа удаляет тул — детальный экран тогда закрываем.
+  bool toolDeleted = false;
+  try {
+    await ToolRepository().get(toolId);
+  } catch (_) {
+    toolDeleted = true;
   }
+  if (toolDeleted) {
+    Toast.show(context, 'Позиция продана полностью');
+    Navigator.of(context).pop();
+    return;
+  }
+  context.read<ToolDetailBloc>().add(LoadToolDetail(accountId, toolId));
 }

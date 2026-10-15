@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/logic/investmentCubit.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 
@@ -102,7 +100,7 @@ class StockAssetTab extends StatelessWidget {
                               Text(
                                 tool.ticker!,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontSize: 14,
                                 ),
                               ),
@@ -142,7 +140,7 @@ class StockAssetTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     '${tool.quantity.toStringAsFixed(2)} shares',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -258,7 +256,7 @@ class StockAssetTab extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
@@ -283,14 +281,16 @@ class StockAssetTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? Theme.of(context).primaryColor
-              : Colors.grey[200],
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           period,
           style: TextStyle(
-            color: isActive ? Colors.white : Colors.grey[700],
+            color: isActive
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 12,
           ),
         ),

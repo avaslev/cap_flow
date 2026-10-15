@@ -14,6 +14,7 @@ import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
 import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_repository.dart';
+import 'package:investflow/feature/tool_detail/presentation/components/crypto_asset_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/money_overview_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/money_performance_tab.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/stock_asset_tab.dart';
@@ -511,6 +512,8 @@ class ToolDetailScreen extends StatelessWidget {
       return StockAssetTab(tool: tool);
     } else if (tool.type == 'BOND' || tool.type == 'BONDS') {
       return BondAssetTab(tool: tool);
+    } else if (tool.type == 'CRYPTOCURRENCY' || tool.type == 'CRYPTO') {
+      return CryptoAssetTab(tool: tool);
     } else if (tool.type == 'DEPOSIT') {
       return _buildDepositOverview(tool, context);
     } else if (tool.type == 'CREDIT') {
@@ -998,7 +1001,10 @@ class ToolDetailScreen extends StatelessWidget {
           itemBuilder: (BuildContext context, int index) {
             final Activity activity = activities[index];
             final bool isAdd = activity.type == ActivityType.add;
-            final double value = activity.price * activity.quantity;
+            // Маркер прибыль/убыток (quantity = 0) несёт сумму в price.
+            final double value = activity.quantity == 0
+                ? activity.price
+                : activity.price * activity.quantity;
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(

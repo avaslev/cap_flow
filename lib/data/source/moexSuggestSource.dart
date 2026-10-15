@@ -49,19 +49,31 @@ class MoexSuggestSource {
   static final Map<String, MoexInstrument> _byTicker =
       <String, MoexInstrument>{};
 
-  static const Duration _cacheTtl = Duration(minutes: 10);
+  /// Кэш выдаётся мгновенно всегда; обновление в фоне раз в час —
+  /// медленная/недоступная сеть не ломает подсказки.
+  static const Duration _cacheTtl = Duration(hours: 1);
 
   final HttpClient _client = HttpClient()
     ..connectionTimeout = const Duration(seconds: 5);
 
-  /// Полный список бумаг борда (с кэшем на 10 минут).
+  /// Полный список бумаг борда (stale-while-revalidate).
   Future<List<MoexInstrument>> _board(String market, String board) async {
     final String key = '$market:$board';
     final cached = _boardCache[key];
-    if (cached != null &&
-        DateTime.now().difference(cached.at) < _cacheTtl) {
+    if (cached != null) {
+      if (DateTime.now().difference(cached.at) > _cacheTtl) {
+        unawaited(_fetchBoard(market, board));
+      }
       return cached.items;
     }
+    return _fetchBoard(market, board);
+  }
+
+  /// Загрузка борда из сети с обновлением кэша. При ошибке возвращает
+  /// предыдущий кэш (если был), иначе пустой список.
+  Future<List<MoexInstrument>> _fetchBoard(String market, String board) async {
+    final String key = '$market:$board';
+    final cached = _boardCache[key];
     try {
       final String columns = (market == 'bonds')
           ? 'SECID,SHORTNAME,PREVPRICE,COUPONVALUE,NEXTCOUPON,COUPONPERIOD,'
@@ -74,13 +86,13 @@ class MoexSuggestSource {
       );
       final HttpClientRequest request = await _client.getUrl(uri);
       final HttpClientResponse response = await request.close().timeout(
-        const Duration(seconds: 20),
+        const Duration(seconds: 25),
       );
       if (response.statusCode != 200) {
         return cached?.items ?? const <MoexInstrument>[];
       }
       final String raw = await response.transform(utf8.decoder).join().timeout(
-        const Duration(seconds: 20),
+        const Duration(seconds: 25),
       );
       final Map<String, dynamic> body =
           jsonDecode(raw) as Map<String, dynamic>;

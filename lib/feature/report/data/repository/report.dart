@@ -171,14 +171,15 @@ class ReportRepository {
       SUM(
         CASE 
           WHEN a.type = 'add'
-          THEN ABS(a.quantity * a.price) 
+          -- Маркер прибыли/убытка (quantity = 0) несёт сумму в price.
+          THEN ABS(CASE WHEN a.quantity = 0 THEN a.price ELSE a.quantity * a.price END)
           ELSE 0 
         END
       ) as income,
       SUM(
         CASE 
           WHEN a.type = 'substract'
-          THEN ABS(a.quantity * a.price) 
+          THEN ABS(CASE WHEN a.quantity = 0 THEN a.price ELSE a.quantity * a.price END)
           ELSE 0 
         END
       ) as expense

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/feature/account/logic/investmentCubit.dart';
@@ -85,7 +86,12 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
   final TextEditingController _quantityCtrl = TextEditingController();
   final TextEditingController _faceValueCtrl = TextEditingController();
   final TextEditingController _nkdCtrl = TextEditingController();
+  final TextEditingController _commissionCtrl = TextEditingController();
   final FocusNode _tickerFocus = FocusNode();
+  final FocusNode _quantityFocus = FocusNode();
+  final FocusNode _priceFocus = FocusNode();
+  final FocusNode _faceValueFocus = FocusNode();
+  final FocusNode _nkdFocus = FocusNode();
   /// Подсказки показываются только после изменения текста в поле:
   /// простое выделение/фокус список не открывает.
   bool _tickerDirty = false;
@@ -118,7 +124,12 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
     _quantityCtrl.dispose();
     _faceValueCtrl.dispose();
     _nkdCtrl.dispose();
+    _commissionCtrl.dispose();
     _tickerFocus.dispose();
+    _quantityFocus.dispose();
+    _priceFocus.dispose();
+    _faceValueFocus.dispose();
+    _nkdFocus.dispose();
     super.dispose();
   }
 
@@ -185,8 +196,10 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
               TextPosition(offset: nameText.length),
             );
           }
+          // Автозаполнение пишется в поле, только когда оно не в фокусе:
+          // ручной ввод (включая стирание запятых) не перетирается.
           final String priceText = state.price?.toString() ?? '';
-          if (_priceCtrl.text != priceText) {
+          if (!_priceFocus.hasFocus && _priceCtrl.text != priceText) {
             _priceCtrl.text = priceText;
             _priceCtrl.selection = TextSelection.fromPosition(
               TextPosition(offset: priceText.length),
@@ -195,7 +208,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
           final double? parsedQty = double.tryParse(
             _quantityCtrl.text.replaceAll(',', '.'),
           );
-          if (state.quantity != parsedQty) {
+          if (!_quantityFocus.hasFocus && state.quantity != parsedQty) {
             final String qtyText = state.quantity?.toString() ?? '';
             _quantityCtrl.value = TextEditingValue(
               text: qtyText,
@@ -206,7 +219,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
           final double? parsedFace = double.tryParse(
             _faceValueCtrl.text.replaceAll(',', '.'),
           );
-          if (state.faceValue != parsedFace) {
+          if (!_faceValueFocus.hasFocus && state.faceValue != parsedFace) {
             final String faceText = state.faceValue?.toString() ?? '';
             _faceValueCtrl.value = TextEditingValue(
               text: faceText,
@@ -216,7 +229,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
           final double? parsedNkd = double.tryParse(
             _nkdCtrl.text.replaceAll(',', '.'),
           );
-          if (state.accruedCouponIncome != parsedNkd) {
+          if (!_nkdFocus.hasFocus && state.accruedCouponIncome != parsedNkd) {
             final String nkdText = state.accruedCouponIncome?.toString() ?? '';
             _nkdCtrl.value = TextEditingValue(
               text: nkdText,
@@ -344,6 +357,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _quantityCtrl,
+                    focusNode: _quantityFocus,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
@@ -397,6 +411,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _priceCtrl,
+                    focusNode: _priceFocus,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
@@ -429,6 +444,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                       children: [
                         TextFormField(
                           controller: _faceValueCtrl,
+                          focusNode: _faceValueFocus,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           decoration: InputDecoration(
@@ -464,10 +480,11 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                       children: [
                         TextFormField(
                           controller: _nkdCtrl,
+                          focusNode: _nkdFocus,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           decoration: InputDecoration(
-                            labelText: 'НКД (RUB)',
+                            labelText: 'НКД за 1 облигацию (RUB)',
                             hintText: 'например, 12.50',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
@@ -496,7 +513,7 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                       ],
                     ),
                   TextFormField(
-                    initialValue: state.commission?.toString() ?? '',
+                    controller: _commissionCtrl,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
@@ -521,6 +538,43 @@ class _InvestmentFormContentState extends State<_InvestmentFormContent> {
                         }
                       }
                       return null;
+                    },
+                  ),
+                  // Итог операции: живой пересчёт при вводе.
+                  Builder(
+                    builder: (BuildContext context) {
+                      double parse(String v) =>
+                          double.tryParse(v.replaceAll(',', '.')) ?? 0;
+                      final double q = parse(_quantityCtrl.text);
+                      final double price = parse(_priceCtrl.text);
+                      final double comm = parse(_commissionCtrl.text);
+                      final double nkd = investmentType == ToolType.bonds
+                          ? parse(_nkdCtrl.text) * q
+                          : 0;
+                      final double total = q * price + nkd +
+                          (operationType == InvestmentOperationType.buy
+                              ? comm
+                              : -comm);
+                      if (q <= 0 || price <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      final String label =
+                          operationType == InvestmentOperationType.buy
+                              ? 'Будет списано'
+                              : 'Итого к зачислению';
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          '$label: ${formatCurrency(total)}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.primary,
+                              ),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 16),

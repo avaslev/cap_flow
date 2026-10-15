@@ -12,6 +12,7 @@ import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/data/source/cryptoSuggestSource.dart';
 import 'package:investflow/data/source/moexSuggestSource.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:investflow/core/utils/averageCost.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/currencyRepository.dart';
 import 'package:uuid/uuid.dart';
@@ -185,9 +186,14 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     if (price != null && price > 0 && state.price == null) {
       priceChanged(_fmtRate(price));
     }
-    // Облигация: НКД из провайдера, если поле пустое.
+    // Облигация: номинал и НКД из провайдера, если поля пустые.
     if (investmentType == ToolType.bonds) {
-      final double? nkd = _moexSource.meta(ticker)?.accruedInt;
+      final MoexInstrument? meta = _moexSource.meta(ticker);
+      final double? face = meta?.faceValue;
+      if (face != null && face > 0 && (state.faceValue ?? 0) <= 0) {
+        faceValueChanged(_fmtRate(face));
+      }
+      final double? nkd = meta?.accruedInt;
       if (nkd != null && nkd > 0 && (state.accruedCouponIncome ?? 0) <= 0) {
         accruedCouponIncomeChanged(_fmtRate(nkd));
       }
@@ -200,7 +206,9 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       suggestions = accountData
           .getToolsForAccount(accountId)
           .where((tool) =>
-              tool.type == investmentType && tool.ticker != null)
+              tool.type == investmentType &&
+              tool.ticker != null &&
+              tool.quantity > 0)
           .map<String>((tool) => '${tool.ticker} - ${tool.name}')
           .toList();
     } else {
@@ -851,7 +859,8 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           toolId: moneyTool.id,
           type: ActivityType.substract,
           createAt: date,
-          quantity: accruedCouponIncome,
+          // НКД в форме — на одну облигацию; списываем за всё количество.
+          quantity: accruedCouponIncome * quantity,
           price: 1,
           currency: Currency.RUB,
           isTransmit: false,
@@ -994,7 +1003,8 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           toolId: moneyTool.id,
           type: ActivityType.add,
           createAt: date,
-          quantity: accruedCouponIncome,
+          // НКД в форме — на одну облигацию; получаем за всё количество.
+          quantity: accruedCouponIncome * quantity,
           price: 1,
           currency: Currency.RUB,
           isTransmit: false,
@@ -1035,13 +1045,39 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       ),
     );
 
-    // If selling all, mark tool for deletion after activity replay
+    // Реализованная прибыль/убыток: средняя цена из истории активити тула.
+    final List<Activity> history = await ActivityRepository()
+        .getActivityListByTool(existingTool.id);
+    final AverageCostResult avg = computeAverageCost(history);
+    final double realized = (price - avg.avgCost) * quantity;
+    if (avg.hasBuyHistory && realized.abs() > 0.01) {
+      final bool isGain = realized > 0;
+      // Маркер на туле-инструменте: quantity 0 — на количество и балансы
+      // не влияет, сумма хранится в price.
+      await ActivityRepository().insert(
+        Activity(
+          id: Uuid().v7(),
+          toolId: existingTool.id,
+          type: isGain ? ActivityType.add : ActivityType.substract,
+          createAt: date,
+          quantity: 0,
+          price: realized.abs(),
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: isGain
+              ? '${Activity.investmentGainName} $name'
+              : '${Activity.investmentLossName} $name',
+        ),
+      );
+    }
+
+    // Полная продажа: тул остаётся с количеством 0 (скрыт в списках),
+    // план купонов/дивидендов удаляется — позиции нет.
     final double newQty = existingTool.quantity - quantity;
     if (newQty <= 0) {
       await ScheduledTransactionRepository().deleteByDepositTool(
         existingTool.id,
       );
-      await ToolRepository().delete(existingTool.id);
     } else {
       await _recalcIncomeSchedule(existingTool.id, existingTool.quantity, newQty);
     }

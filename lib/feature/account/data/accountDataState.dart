@@ -411,6 +411,15 @@ class AccountData {
 List<ToolSummary> getToolsForAccount(String accountId) {
   final List<ToolSummary> filtered = _tools
       .where((ToolSummary tool) => tool.accountId == accountId)
+      // Инвестиционные тула с нулевым количеством (полностью проданные)
+      // скрываются из списков, но остаются в базе.
+      .where(
+        (ToolSummary tool) =>
+            tool.type == ToolType.money ||
+            tool.type == ToolType.deposit ||
+            tool.type == ToolType.credit ||
+            tool.quantity > 0,
+      )
       .toList();
   filtered.sort((ToolSummary a, ToolSummary b) {
     final int typeComparison = a.type.index.compareTo(b.type.index);

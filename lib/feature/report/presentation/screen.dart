@@ -131,13 +131,23 @@ class ReportScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '📈 Общая сумма',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.trending_up,
+                    size: 22,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Общая сумма',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -310,6 +320,7 @@ class ReportScreen extends StatelessWidget {
     required ReportData data,
     required List<MonthIncomeExpense> monthData,
     required String title,
+    IconData? titleIcon,
     required List<Legend> legends,
     required Color incomeColor,
     required Color expenseColor,
@@ -327,7 +338,11 @@ class ReportScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          // Пустое состояние: цвет темы (поддержка тёмного оформления).
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
         ),
@@ -381,13 +396,25 @@ class ReportScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+              Row(
+                children: [
+                  if (titleIcon != null) ...<Widget>[
+                    Icon(
+                      titleIcon,
+                      size: 22,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
               Text(
                 '12 месяцев',
@@ -620,7 +647,8 @@ class ReportScreen extends StatelessWidget {
             context: context,
             data: data,
             monthData: data.incomeExpenseData,
-            title: '💰 Доход/Расход',
+            title: 'Доход/Расход',
+            titleIcon: Icons.paid_outlined,
             legends: [
               Legend('Доход', Colors.green.shade600),
               Legend('Расход', Colors.red.shade600),
@@ -634,7 +662,8 @@ class ReportScreen extends StatelessWidget {
             context: context,
             data: data,
             monthData: data.plannedData,
-            title: '📋 План',
+            title: 'План',
+            titleIcon: Icons.event_note_outlined,
             legends: [
               Legend('План доход', Colors.green.shade500.withOpacity(0.8)),
               Legend('План расход', Colors.red.shade500.withOpacity(0.8)),

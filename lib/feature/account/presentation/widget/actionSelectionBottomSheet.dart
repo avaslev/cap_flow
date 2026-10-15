@@ -308,21 +308,6 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                         investmentType: ToolType.cryptocurrency,
                       )),
                   ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.currency_yen, // Using yen for selling crypto
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    title: Text(
-                      "Продать Криптовалюту (Sell Crypto)",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.sell,
-                        investmentType: ToolType.cryptocurrency,
-                      )),
-                  ),
                 ],
                 ListTile(
                   leading: Icon(

@@ -314,9 +314,10 @@ class _FinancialEventOverviewPageState
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
                   child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
+                    // Фон формы — surface темы (поддержка тёмного оформления).
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                     ),

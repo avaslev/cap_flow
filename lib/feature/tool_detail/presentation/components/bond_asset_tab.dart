@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
@@ -101,7 +100,7 @@ class BondAssetTab extends StatelessWidget {
                               Text(
                                 tool.ticker!,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontSize: 14,
                                 ),
                               ),
@@ -138,12 +137,12 @@ class BondAssetTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Face Value: \$${tool.faceValue?.toStringAsFixed(2) ?? "100.00"}',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   if (tool.interestRate != null)
                     Text(
                       'Coupon: ${(tool.interestRate! * 100).toStringAsFixed(2)}%',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -251,6 +250,7 @@ class BondAssetTab extends StatelessWidget {
                 child: Column(
                   children: <Widget>[
                     _buildCashFlowItem(
+                      context: context,
                       date: '—',
                       amount:
                           '${(tool.faceValue! * tool.interestRate! / 2).toStringAsFixed(2)} ₽',
@@ -258,6 +258,7 @@ class BondAssetTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildCashFlowItem(
+                      context: context,
                       date: '—',
                       amount:
                           '${(tool.faceValue! + tool.faceValue! * tool.interestRate! / 2).toStringAsFixed(2)} ₽',
@@ -288,7 +289,7 @@ class BondAssetTab extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
             ),
@@ -305,6 +306,7 @@ class BondAssetTab extends StatelessWidget {
   }
 
   Widget _buildCashFlowItem({
+    required BuildContext context,
     required String date,
     required String amount,
     required String type,
@@ -317,7 +319,7 @@ class BondAssetTab extends StatelessWidget {
           child: Text(
             date,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 14,
             ),
           ),
@@ -335,7 +337,9 @@ class BondAssetTab extends StatelessWidget {
           amount,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isFinal ? Colors.green : Colors.grey[700],
+            color: isFinal
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -350,14 +354,16 @@ class BondAssetTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? Theme.of(context).primaryColor
-              : Colors.grey[200],
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           period,
           style: TextStyle(
-            color: isActive ? Colors.white : Colors.grey[700],
+            color: isActive
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 12,
           ),
         ),

@@ -396,7 +396,10 @@ class _ActivityListItem extends StatelessWidget {
     final bool isAdd = activity.type == ActivityType.add;
     // Переводы между своими счетами — нейтральные (не доход/расход).
     final bool internal = activity.isTransmit;
-    final double value = activity.price * activity.quantity;
+    // Маркер прибыль/убыток (quantity = 0) несёт сумму в price.
+    final double value = activity.quantity == 0
+        ? activity.price
+        : activity.price * activity.quantity;
 
     return InkWell(
       onTap: () {

@@ -217,7 +217,7 @@ class _FinancialEventFormContentState
               height: 4,
               margin: const EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -804,16 +804,8 @@ class _FinancialEventFormContentState
                                       foregroundColor: colorScheme.onError,
                                     ),
                                     icon: const Icon(Icons.delete_outline),
-                                    label: Text(
-                                      'Удалить',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge!
-                                          .copyWith(
-                                            color: colorScheme.onErrorContainer,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
+                                    // Цвет текста наследует onError кнопки.
+                                    label: const Text('Удалить'),
                                   ),
                                 ),
                                 const SizedBox(width: 16),

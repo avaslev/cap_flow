@@ -274,6 +274,36 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           }
         }
 
+        // Реализованная прибыль/убыток от продажи инвестиций: маркер
+        // на туле-инструменте (quantity = 0, сумма в price).
+        if (!activity.isTransmit && toolSummary.type != ToolType.money) {
+          final String? markerName = activity.name;
+          final bool isGain = markerName?.startsWith(
+                Activity.investmentGainName,
+              ) ??
+              false;
+          final bool isLoss = markerName?.startsWith(
+                Activity.investmentLossName,
+              ) ??
+              false;
+          if ((isGain || isLoss) && activity.price > 0) {
+            final DateTime at = activity.createAt;
+            final bool inPeriod = at.isAfter(periodStart);
+            if (inPeriod) {
+              final AccountSummary? acc = accountData.getAccountById(
+                toolSummary.accountId,
+              );
+              if (acc != null) {
+                if (isGain) {
+                  acc.periodIncome += activity.price;
+                } else {
+                  acc.periodExpense += activity.price;
+                }
+              }
+            }
+          }
+        }
+
         debugPrint('[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, ' +
             'qtyChange=${quantityChange.toStringAsFixed(2)}, valueChange=${valueChange.toStringAsFixed(2)}, ' +
             'newQty=${toolSummary.quantity.toStringAsFixed(2)}, newValue=${toolSummary.currentValue.toStringAsFixed(2)}');

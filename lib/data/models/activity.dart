@@ -2,6 +2,12 @@ enum ActivityType {add, substract}
 enum Currency {RUB, USD}
 
 class Activity {
+  /// Маркер реализованной прибыли: quantity = 0, сумма в price.
+  static const String investmentGainName = 'Доход от продажи';
+
+  /// Маркер реализованного убытка: quantity = 0, сумма в price.
+  static const String investmentLossName = 'Убыток от продажи';
+
   final String id;
   final String toolId;
   final ActivityType type;
