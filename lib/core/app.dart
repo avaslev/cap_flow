@@ -17,10 +17,10 @@ import 'package:investflow/feature/event/presentation/eventListScreen.dart';
 import 'package:investflow/feature/report/logic/bloc.dart';
 import 'package:investflow/feature/report/presentation/screen.dart';
 
-import '../src/auth.dart';
-import '../src/screens/settings.dart';
-import '../src/screens/sign_in.dart';
-import '../src/widgets/fade_transition_page.dart';
+import 'package:investflow/feature/auth/logic/auth_session.dart';
+import 'package:investflow/feature/settings/presentation/settings_screen.dart';
+import 'package:investflow/feature/auth/presentation/sign_in_screen.dart';
+import 'package:investflow/core/widgets/fade_transition_page.dart';
 
 final appShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'app shell');
 
@@ -37,7 +37,7 @@ class InvestApp extends StatefulWidget {
 }
 
 class _InvestAppState extends State<InvestApp> {
-  final BookstoreAuth auth = BookstoreAuth();
+  final AuthSession auth = AuthSession();
 
   /// Время последнего свайпа «назад» на главном экране (окно выхода 2 с).
   DateTime? _lastBackAt;
@@ -62,7 +62,7 @@ class _InvestAppState extends State<InvestApp> {
       debugLogDiagnostics: true,
       initialLocation: '/accounts',
       redirect: (BuildContext context, GoRouterState state) {
-        final bool signedIn = BookstoreAuth.of(context).signedIn;
+        final bool signedIn = AuthSession.of(context).signedIn;
         if (state.uri.toString() != '/sign-in' && !signedIn) {
           return '/sign-in';
         }
@@ -209,7 +209,7 @@ class _InvestAppState extends State<InvestApp> {
                 return SignInScreen(
                   onSignIn: (value) async {
                     final GoRouter router = GoRouter.of(context);
-                    await BookstoreAuth.of(
+                    await AuthSession.of(
                       context,
                     ).signIn(value.username, value.password);
                     router.go('/accounts');
@@ -239,7 +239,7 @@ class _InvestAppState extends State<InvestApp> {
               if (child == null) {
                 throw ('No child in .router constructor builder');
               }
-              return BookstoreAuthScope(notifier: auth, child: child);
+              return AuthSessionScope(notifier: auth, child: child);
             },
             theme: getTheme(Brightness.light),
             darkTheme: getTheme(Brightness.dark),
