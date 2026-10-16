@@ -274,25 +274,28 @@ class _AccountListScreenState extends State<AccountListScreen> {
                             ),
                           )
                         else ...<Widget>[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              'Последние события',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleMedium!.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface,
+                          // Последние события — только на счёте Total.
+                          if (state.accountData.activeAccountId == 'total')
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                'Последние события',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleMedium!.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
                               ),
                             ),
-                          ),
-                          EventList(
-                            accountData: state.accountData,
-                            maxEvents: 50,
-                          ),
+                          if (state.accountData.activeAccountId == 'total')
+                            EventList(
+                              accountData: state.accountData,
+                              maxEvents: 50,
+                            ),
                         ],
                         if (state.accountData.activeAccountId != 'total')
                           ToolList(

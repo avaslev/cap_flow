@@ -59,7 +59,15 @@ DateTime? calculateNextOccurrence({
     return null;
   }
 
-  DateTime currentCandidate = initialDate;
+  // Нормализация к полуночи: время initialDate (например, 08:53 момента
+  // создания) не должно порождать дубль occurrences внутри одного месяца —
+  // 20-е 08:53 vs 20-е 00:00 формально «разные» даты.
+  final DateTime initialMidnight = DateTime(
+    initialDate.year,
+    initialDate.month,
+    initialDate.day,
+  );
+  DateTime currentCandidate = initialMidnight;
 
   // Loop indefinitely until a suitable next occurrence is found or determined that none exist.
   while (true) {

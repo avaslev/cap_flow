@@ -12,7 +12,13 @@ List<DateTime> projectOccurrences({
   int maxOccurrences = 400,
 }) {
   final List<DateTime> out = <DateTime>[];
-  DateTime cursor = firstDate;
+  // Нормализация к полуночи — как в отчёте (бакеты по дням).
+  final DateTime start = DateTime(
+    firstDate.year,
+    firstDate.month,
+    firstDate.day,
+  );
+  DateTime cursor = start;
   int made = 0;
   while (!cursor.isAfter(windowEnd) && made < maxOccurrences) {
     if (recurrenceEndDate != null && cursor.isAfter(recurrenceEndDate)) break;
@@ -32,6 +38,19 @@ List<DateTime> projectOccurrences({
 }
 
 void main() {
+  test('таймзона: время initialDate не дублирует occurrence в месяце', () {
+    // Реальный кейс: monthlyOnDay день=20; nextExecution — 20-е 00:00,
+    // date создания — 16-е 08:53. Без нормализации утилита возвращала
+    // 20-е 08:53 — второй occurrence в том же месяце (дубль октября).
+    final DateTime? next = calculateNextOccurrence(
+      initialDate: DateTime(2026, 10, 16, 8, 53),
+      recurrenceType: 'monthlyOnDay',
+      recurrenceDayOfMonth: 20,
+      now: DateTime(2026, 10, 20),
+    );
+    expect(next, DateTime(2026, 11, 20));
+  });
+
   test('monthlyOnDay(15): кредит 11.10.2026 → 12 платежей окт26..сен27', () {
     final List<DateTime> dates = projectOccurrences(
       // Курсор стартует с next_execution_date (не с даты создания).
@@ -46,9 +65,10 @@ void main() {
       print('occ: ${d.toIso8601String()}');
     }
     expect(dates.length, 12, reason: '12 платежей');
-    // Время суток наследуется от initialDate.
-    expect(dates.first, DateTime(2026, 10, 15, 13, 24));
-    expect(dates.last, DateTime(2027, 9, 15, 13, 24));
+    // Даты нормализованы к полуночи: время initialDate (13:24 из-за
+    // таймзоны) не должно порождать дубль occurrence внутри месяца.
+    expect(dates.first, DateTime(2026, 10, 15));
+    expect(dates.last, DateTime(2027, 9, 15));
   });
 
   test('monthly (ЖКХ, бессрочный): все месяцы окна', () {
