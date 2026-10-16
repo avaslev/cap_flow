@@ -244,17 +244,11 @@ class _AccountListScreenState extends State<AccountListScreen> {
                             .where((AccountSummary acc) => acc.id != 'total')
                             .isEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: 24),
+                            padding: const EdgeInsets.only(top: 96),
                             child: Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: <Widget>[
-                                  Icon(
-                                    Icons.account_balance_wallet_outlined,
-                                    size: 56,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(height: 12),
                                   Text(
                                     'У вас пока нет счетов',
                                     style: Theme.of(

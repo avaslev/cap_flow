@@ -18,8 +18,10 @@ import 'package:investflow/feature/report/logic/bloc.dart';
 import 'package:investflow/feature/report/presentation/screen.dart';
 
 import 'package:investflow/feature/auth/logic/auth_session.dart';
+import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/feature/settings/presentation/settings_screen.dart';
 import 'package:investflow/feature/auth/presentation/sign_in_screen.dart';
+import 'package:investflow/feature/auth/presentation/pin_screen.dart';
 import 'package:investflow/core/widgets/fade_transition_page.dart';
 
 final appShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'app shell');
@@ -36,11 +38,48 @@ class InvestApp extends StatefulWidget {
   State<InvestApp> createState() => _InvestAppState();
 }
 
-class _InvestAppState extends State<InvestApp> {
+class _InvestAppState extends State<InvestApp> with WidgetsBindingObserver {
   final AuthSession auth = AuthSession();
 
   /// Время последнего свайпа «назад» на главном экране (окно выхода 2 с).
   DateTime? _lastBackAt;
+
+  /// Момент ухода приложения в фон — для автоблокировки кодом.
+  DateTime? _pausedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Холодный старт: включённая функция блокирует приложение сразу.
+    auth.loadPinState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      _maybeLockOnResume();
+    }
+  }
+
+  /// Возврат из фона: блокируем, если прошло больше таймаута.
+  Future<void> _maybeLockOnResume() async {
+    if (!auth.pinEnabled) return;
+    final int timeoutSec = await SettingsRepository().getPinTimeout();
+    final DateTime pausedAt = _pausedAt ?? DateTime.now();
+    if (DateTime.now().difference(pausedAt).inSeconds >= timeoutSec) {
+      auth.lock();
+    }
+  }
 
   // Роутер создаётся один раз: пересоздание при смене темы сбрасывало
   // навигацию на начальный экран. Пересоздаётся только при рестарте
@@ -65,6 +104,16 @@ class _InvestAppState extends State<InvestApp> {
         final bool signedIn = AuthSession.of(context).signedIn;
         if (state.uri.toString() != '/sign-in' && !signedIn) {
           return '/sign-in';
+        }
+        // Блокировка кодом: включена и активна — только экран ввода кода.
+        if (auth.pinEnabled &&
+            auth.pinLocked &&
+            state.uri.toString() != '/lock') {
+          return '/lock';
+        }
+        if (state.uri.toString() == '/lock' &&
+            (!auth.pinEnabled || !auth.pinLocked)) {
+          return '/accounts';
         }
         return null;
       },
@@ -200,6 +249,18 @@ class _InvestAppState extends State<InvestApp> {
               },
             ),
           ],
+        ),
+        GoRoute(
+          path: '/lock',
+          builder: (BuildContext context, GoRouterState state) {
+            return PinScreen(mode: PinScreenMode.verify, session: auth);
+          },
+        ),
+        GoRoute(
+          path: '/pin-setup',
+          builder: (BuildContext context, GoRouterState state) {
+            return PinScreen(mode: PinScreenMode.setup, session: auth);
+          },
         ),
         GoRoute(
           path: '/sign-in',

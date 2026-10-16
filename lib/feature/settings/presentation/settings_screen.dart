@@ -11,6 +11,9 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/theme/theme_cubit.dart';
+import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:investflow/feature/auth/presentation/pin_screen.dart';
+import 'package:investflow/feature/auth/logic/auth_session.dart';
 import 'package:investflow/data/repository/currencyRepository.dart';
 
 /// Экран настроек: каркас разделов (внешний вид, данные, о приложении).
@@ -27,11 +30,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _defaultCurrency;
   bool _loadingCurrency = true;
 
+  bool _pinEnabled = false;
+  int _pinTimeout = 60;
+
   @override
   void initState() {
     super.initState();
     _loadCurrencies();
+    _loadPin();
   }
+
+  Future<void> _loadPin() async {
+    final SettingsRepository repo = SettingsRepository();
+    final bool enabled = await repo.getPinEnabled();
+    final int timeout = await repo.getPinTimeout();
+    if (mounted) {
+      setState(() {
+        _pinEnabled = enabled;
+        _pinTimeout = timeout;
+      });
+    }
+  }
+
+  /// Включение: открыть установку кода; выключение: стереть код.
+  Future<void> _togglePin(bool value) async {
+    final AuthSession session = AuthSession.of(this.context);
+    if (value) {
+      await Navigator.of(this.context).push(
+        MaterialPageRoute<void>(
+          builder: (BuildContext routeContext) => PinScreen(
+            mode: PinScreenMode.setup,
+            session: session,
+          ),
+        ),
+      );
+      // Код уже применён на экране PIN — перечитываем для тумблера.
+      await _loadPin();
+      return;
+    }
+    await session.applyPinSetting(enabled: false);
+    await _loadPin();
+  }
+
+  Future<void> _pickPinTimeout() async {
+    final int? picked = await showModalBottomSheet<int>(
+      context: this.context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (BuildContext sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Блокировать через',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            ...<int, String>{
+              0: 'Сразу',
+              60: '1 минуту',
+              300: '5 минут',
+            }.entries.map<Widget>(
+              (MapEntry<int, String> e) => ListTile(
+                leading: Icon(
+                  _pinTimeout == e.key
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                ),
+                title: Text(e.value),
+                onTap: () => Navigator.pop(sheetContext, e.key),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      await SettingsRepository().setPinTimeout(picked);
+      if (mounted) {
+        setState(() => _pinTimeout = picked);
+      }
+    }
+  }
+
+  String get _pinTimeoutLabel => switch (_pinTimeout) {
+    0 => 'Сразу',
+    60 => '1 минута',
+    300 => '5 минут',
+    _ => '$_pinTimeout сек',
+  };
 
   Future<void> _loadCurrencies() async {
     final CurrencyRepository currencyRepository = CurrencyRepository();
@@ -190,6 +281,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _restoreBackup(context),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── Безопасность ───
+          _sectionHeader(context, 'Безопасность'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: <Widget>[
+                SwitchListTile(
+                  title: const Text('Вход по коду'),
+                  subtitle: const Text(
+                    'Запрашивать 4-значный код при открытии',
+                  ),
+                  value: _pinEnabled,
+                  onChanged: (bool value) => _togglePin(value),
+                ),
+                if (_pinEnabled) ...<Widget>[
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    title: const Text('Блокировать без использования'),
+                    subtitle: Text('Через: $_pinTimeoutLabel'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _pickPinTimeout(),
+                  ),
+                ],
               ],
             ),
           ),
