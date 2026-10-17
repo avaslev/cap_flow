@@ -31,14 +31,16 @@ class Account {
   }
 
   factory Account.fromMap(Map<String, dynamic> map) {
-    print(map);
     return Account(
       id: map['id'].toString(),
       name: map['name'].toString(),
       colorValue: int.parse(map['colorValue'].toString()),
       type: map['type'].toString(),
       hideEvents: map['hideEvents'].toString(),
-      excludeFromTotal: map['excludeFromTotal'].toString()
+      excludeFromTotal: map['excludeFromTotal'].toString(),
+      // Порядок счёта (стрелки перестановки) — иначе после перезапуска
+      // сортировка падает в fallback по id и порядок «слетает».
+      sortOrder: int.tryParse(map['sortOrder']?.toString() ?? '') ?? 0,
     );
   }
 }
