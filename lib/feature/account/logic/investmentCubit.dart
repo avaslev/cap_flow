@@ -1030,7 +1030,15 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       );
     }
 
-    // Create activity to reduce the instrument position
+    // Средняя цена позиции из истории активити тула (до записи продажи) —
+    // списание с инструмента идёт по себестоимости, чтобы реплей тула
+    // показывал себестоимость остатка, а не накапливал прибыль в минус.
+    final List<Activity> history = await ActivityRepository()
+        .getActivityListByTool(existingTool.id);
+    final AverageCostResult avg = computeAverageCost(history);
+    final double costPrice = avg.avgCost > 0 ? avg.avgCost : price;
+
+    // Create activity to reduce the instrument position (по себестоимости)
     await ActivityRepository().insert(
       Activity(
         id: Uuid().v7(),
@@ -1038,18 +1046,16 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         type: ActivityType.substract,
         createAt: date,
         quantity: quantity,
-        price: price,
+        price: costPrice,
         currency: Currency.RUB,
         isTransmit: true, // внутренний обмен, не расход
         name: 'Sell $name',
       ),
     );
 
-    // Реализованная прибыль/убыток: средняя цена из истории активити тула.
-    final List<Activity> history = await ActivityRepository()
-        .getActivityListByTool(existingTool.id);
-    final AverageCostResult avg = computeAverageCost(history);
-    final double realized = (price - avg.avgCost) * quantity;
+    // Реализованная прибыль/убыток — отдельная активити на туле-инструменте
+    // (quantity 0 — на количество и балансы не влияет, сумма хранится в price).
+    final double realized = (price - costPrice) * quantity;
     if (avg.hasBuyHistory && realized.abs() > 0.01) {
       final bool isGain = realized > 0;
       // Маркер на туле-инструменте: quantity 0 — на количество и балансы

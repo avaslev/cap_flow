@@ -84,12 +84,14 @@ void main() {
     expect(withMarker.quantity, base.quantity);
   });
 
-  test('продажа до нуля: позиция закрыта, покупок больше нет', () {
+  test('продажа до нуля: средняя сохраняется для прибыли этой продажи', () {
     final AverageCostResult r = computeAverageCost(<Activity>[
       _act(ActivityType.add, 2, 100, 1),
       _act(ActivityType.substract, 2, 150, 2),
     ]);
     expect(r.quantity, 0);
-    expect(r.hasBuyHistory, isFalse);
+    // Покупки были — прибыль продажи должна считаться.
+    expect(r.hasBuyHistory, isTrue);
+    expect(r.avgCost, 100);
   });
 }
