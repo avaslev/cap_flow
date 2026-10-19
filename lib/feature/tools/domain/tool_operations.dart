@@ -8,7 +8,6 @@ enum ToolOperationType {
   mature, // закрытие депозита в конце срока
   creditPayment, // плановый платёж (проценты + тело)
   earlyRepayment,
-  manualRevalue,
   buy,
   sell,
   transferIn,
@@ -39,7 +38,7 @@ Set<ToolOperationType> allowedOperations(TypedTool tool) {
       ToolOperationType.buy,
       ToolOperationType.sell,
     },
-    OtherTool() => <ToolOperationType>{ToolOperationType.manualRevalue},
+    OtherTool() => <ToolOperationType>{ToolOperationType.sell},
   };
 }
 

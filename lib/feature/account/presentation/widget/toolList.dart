@@ -1,6 +1,8 @@
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:investflow/feature/account/logic/accountBloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -149,8 +151,12 @@ class ToolTile extends StatelessWidget {
     final Color negativeChangeColor = colorScheme.error;
 
     return InkWell(
-      onTap: () {
-        context.push('/accounts/$accountId/tools/${tool.id}');
+      onTap: () async {
+        await context.push('/accounts/$accountId/tools/${tool.id}');
+        // Детальный экран мог изменить данные (продажа) — обновляем счёт.
+        if (context.mounted) {
+          context.read<AccountsBloc>().add(AccountsTransitionEvent());
+        }
       },
       borderRadius: BorderRadius.circular(12.0),
       child: Card(

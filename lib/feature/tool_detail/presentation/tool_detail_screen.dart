@@ -15,11 +15,12 @@ import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
 import 'package:investflow/feature/tool_detail/data/tool_detail_repository.dart';
 import 'package:investflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
+import 'package:investflow/feature/tool_detail/presentation/components/other_sell_sheet.dart';
 
 /// Детальный экран инструмента: hero-блок (сумма, чипы валюты/типа) и
 /// «наезжающий» лист с деталями, кнопками действий и плитками разделов
 /// (активности, динамика, график платежей). Табов больше нет.
-class ToolDetailScreen extends StatelessWidget {
+class ToolDetailScreen extends StatefulWidget {
   final String accountId;
   final String toolId;
 
@@ -30,16 +31,57 @@ class ToolDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<ToolDetailScreen> createState() => _ToolDetailScreenState();
+}
+
+class _ToolDetailScreenState extends State<ToolDetailScreen> {
+  final ScrollController _scrollController = ScrollController();
+  // 0 — экран не прокручен (аппбар прозрачный, сливается с hero),
+  // 1 — прокручен (аппбар непрозрачный, скрывает уезжающий hero).
+  double _scrollFraction = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double t = (_scrollController.offset / 40).clamp(0.0, 1.0);
+    if (t != _scrollFraction) {
+      setState(() => _scrollFraction = t);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Аппбар: при прокрутке плавно переходит из прозрачного (сливается с
+    // градиентом hero) в непрозрачный surface (скрывает уезжающий hero).
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color barColor =
+        Color.lerp(Colors.transparent, colorScheme.surface, _scrollFraction)!;
+    final Color barForeground =
+        Color.lerp(colorScheme.onPrimaryContainer, colorScheme.onSurface, _scrollFraction)!;
     return BlocProvider<ToolDetailBloc>(
-      create: (_) => ToolDetailBloc()..add(LoadToolDetail(accountId, toolId)),
+      create: (_) => ToolDetailBloc()..add(LoadToolDetail(widget.accountId, widget.toolId)),
       child: Scaffold(
+        // Body уходит под аппбар, а аппбар прозрачный — градиент
+        // верхнего блока продолжается до края экрана.
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
           // Заголовок — название тула (после загрузки).
           title: BlocBuilder<ToolDetailBloc, ToolDetailState>(
             builder: (BuildContext context, ToolDetailState state) {
               final String name =
-                  state is ToolDetailLoaded ? state.tool.name : toolId;
+                  state is ToolDetailLoaded ? state.tool.name : widget.toolId;
               return Text(name, overflow: TextOverflow.ellipsis);
             },
           ),
@@ -47,7 +89,10 @@ class ToolDetailScreen extends StatelessWidget {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
+          backgroundColor: barColor,
+          foregroundColor: barForeground,
           elevation: 0,
+          scrolledUnderElevation: 0,
         ),
         body: BlocBuilder<ToolDetailBloc, ToolDetailState>(
           builder: (context, state) {
@@ -77,7 +122,14 @@ class ToolDetailScreen extends StatelessWidget {
     final bool isForeignMoney = tool.type == 'MONEY' && tool.ticker != null;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+      // Отступ сверху: тело уходит под прозрачный аппбар, поэтому
+      // контент начинается ниже статус-бара и тулбара.
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + kToolbarHeight,
+        20,
+        36,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -166,11 +218,17 @@ class ToolDetailScreen extends StatelessWidget {
 
   Widget _buildAssetDetail(ToolDetailDisplay tool, BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      children: <Widget>[
-        _buildHero(tool, context),
-        Expanded(
-          child: Container(
+    // Единый скролл: hero и нижний лист прокручиваются вместе, аппбар
+    // остаётся на месте. Обычный SingleChildScrollView (без sliver'ов),
+    // т.к. SliverFillRemaining меряет intrinsic-высоту ребёнка, а секции
+    // содержат shrink-wrap GridView, который intrinsic-размеры не
+    // поддерживает (из-за этого страница оставалась пустой).
+    return SingleChildScrollView(
+      controller: _scrollController,
+      child: Column(
+        children: <Widget>[
+          _buildHero(tool, context),
+          Container(
             width: double.infinity,
             decoration: BoxDecoration(
               color: colorScheme.surface,
@@ -179,7 +237,7 @@ class ToolDetailScreen extends StatelessWidget {
               ),
             ),
             transform: Matrix4.translationValues(0, -24, 0),
-            child: SingleChildScrollView(
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,8 +245,8 @@ class ToolDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -571,9 +629,6 @@ class ToolDetailScreen extends StatelessWidget {
 
   List<Widget> _otherSections(ToolDetailDisplay tool, BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final TextEditingController valueController = TextEditingController(
-      text: tool.currentValue.toStringAsFixed(2),
-    );
     return <Widget>[
       _sectionTitle(context, 'Детали'),
       _detailsCard(<Widget>[
@@ -585,38 +640,14 @@ class ToolDetailScreen extends StatelessWidget {
         ),
       ], context),
       _sectionTitle(context, 'Действия'),
-      Row(
-        children: <Widget>[
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _revalueOtherTool(context, tool, valueController),
-              icon: const Icon(Icons.update, size: 20),
-              label: const Text('Переоценить'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _sellOtherTool(context, tool),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              icon: const Icon(Icons.sell_outlined, size: 20),
-              label: const Text('Продать'),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 20),
-      _sectionTitle(context, 'Переоценка'),
-      TextFormField(
-        controller: valueController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
-          labelText: 'Новая стоимость (RUB)',
-          prefixIcon: Icon(Icons.attach_money),
+      ElevatedButton.icon(
+        onPressed: () => _sellOtherTool(context, tool),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colorScheme.error,
+          foregroundColor: colorScheme.onError,
         ),
+        icon: const Icon(Icons.sell_outlined, size: 20),
+        label: const Text('Продать'),
       ),
       const SizedBox(height: 20),
       ..._tilesSection(tool, context, <Widget>[_activitiesTile(context, tool)]),
@@ -708,6 +739,7 @@ class ToolDetailScreen extends StatelessWidget {
         crossAxisCount: 2,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
         childAspectRatio: 2.4,
@@ -835,75 +867,25 @@ class ToolDetailScreen extends StatelessWidget {
 
   // ─────────────────────── ДЕЙСТВИЯ ───────────────────────
 
-  Future<void> _revalueOtherTool(
-    BuildContext context,
-    ToolDetailDisplay tool,
-    TextEditingController valueController,
-  ) async {
-    final double? newValue = double.tryParse(
-      valueController.text.replaceAll(',', '.'),
-    );
-    if (newValue == null || newValue <= 0) {
-      Toast.show(context, 'Введите положительную стоимость');
-      return;
-    }
-    final double delta = await ToolDetailRepository().revalueOtherTool(
-      toolId: tool.id,
-      newValue: newValue,
-    );
-    if (context.mounted) {
-      Toast.show(
-        context,
-        delta >= 0
-            ? 'Переоценка: +${delta.toStringAsFixed(2)} ₽'
-            : 'Переоценка: ${delta.toStringAsFixed(2)} ₽',
-      );
-      context.read<ToolDetailBloc>().add(
-        LoadToolDetail(tool.accountId, tool.id),
-      );
-    }
-  }
-
   Future<void> _sellOtherTool(
     BuildContext context,
     ToolDetailDisplay tool,
   ) async {
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Продажа актива'),
-          content: Text(
-            'Актив «${tool.name}» будет продан за '
-            '${tool.currentValue.abs().toStringAsFixed(2)} ₽, деньги будут '
-            'зачислены на money-тул счёта. Продолжить?',
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Продать'),
-            ),
-          ],
-        );
-      },
+    final double? realized = await showOtherSellSheet(
+      context,
+      accountId: tool.accountId,
+      toolId: tool.id,
+      toolName: tool.name,
+      currentValue: tool.currentValue,
     );
-    if (confirmed != true || !context.mounted) return;
-
-    try {
-      final double price = await ToolDetailRepository().sellOtherTool(
-        toolId: tool.id,
-        toolName: tool.name,
-        accountId: tool.accountId,
-      );
-      Toast.show(context, 'Актив продан: +${price.toStringAsFixed(2)} ₽ в деньги');
-      Navigator.of(context).pop();
-    } catch (e) {
-      Toast.show(context, 'Не удалось продать актив: $e');
-    }
+    if (realized == null || !context.mounted) return;
+    Toast.show(
+      context,
+      realized >= 0
+          ? 'Актив продан. Доход: +${realized.toStringAsFixed(2)} ₽'
+          : 'Актив продан. Убыток: ${realized.toStringAsFixed(2)} ₽',
+    );
+    Navigator.of(context).pop();
   }
 
   Future<void> _confirmCloseDeposit(

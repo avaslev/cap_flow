@@ -1039,23 +1039,6 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     _updateTotalBalance();
   }
 
-  /// Переоценка тула «прочее»: стоимость меняется на [newValue] через дельту
-  /// (replay-совместимо). Возвращает фактическую дельту (со знаком).
-  double revalueOtherTool(String toolName, double newValue) {
-    final ToolSummary? tool = _tools.cast<ToolSummary?>().firstWhere(
-      (ToolSummary? t) =>
-          t != null && t.type == ToolType.other && t.name == toolName,
-      orElse: () => null,
-    );
-    if (tool == null) {
-      return 0;
-    }
-    final double delta = newValue - tool.currentValue;
-    tool.currentValue = newValue;
-    _updateTotalBalance();
-    return delta;
-  }
-
   /// Toggles the hideEvents flag for a specific account.
   void toggleHideEvents(String accountId) {
     final AccountSummary? account = getAccountById(accountId);

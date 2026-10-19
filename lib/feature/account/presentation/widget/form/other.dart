@@ -105,7 +105,8 @@ class _OtherFormState extends State<OtherForm> {
           quantity: 1,
           price: value,
           currency: Currency.RUB,
-          isTransmit: false,
+          // Внутреннее перемещение (деньги → актив), не доход.
+          isTransmit: true,
           name: openName,
         ),
       );

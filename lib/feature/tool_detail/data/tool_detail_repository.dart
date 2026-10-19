@@ -3,6 +3,7 @@ import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/models/activity.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:investflow/core/utils/averageCost.dart';
 import 'package:investflow/data/models/tools/tool_kind.dart';
 import 'package:uuid/uuid.dart';
 import 'package:investflow/feature/tools/domain/tool_valuation.dart';
@@ -225,59 +226,32 @@ class ToolDetailRepository {
     return outstanding;
   }
 
-  /// Переоценка тула «прочее»: стоимость доводится до [newValue] дельтой
-  /// (add/substract активити), replay даёт ровно [newValue].
-  /// Возвращает применённую дельту (со знаком).
-  Future<double> revalueOtherTool({
-    required String toolId,
-    required double newValue,
-  }) async {
-    final Tool tool = await _repo.get(toolId);
-    final List<Activity> activities = await _activityRepo.getActivityListByTool(
-      toolId,
-    );
-    double current = 0;
-    for (final Activity a in activities) {
-      current += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
-    }
-    final double delta = newValue - current;
-    if (delta == 0) return 0;
-
-    final DateTime now = DateTime.now();
-    await _activityRepo.insert(
-      Activity(
-        id: const Uuid().v7(),
-        toolId: toolId,
-        type: delta > 0 ? ActivityType.add : ActivityType.substract,
-        createAt: now,
-        quantity: 1,
-        price: delta.abs(),
-        currency: Currency.RUB,
-        isTransmit: true, // переоценка — не доход/расход
-        name: 'Переоценка «${tool.name}»',
-      ),
-    );
-    return delta;
-  }
-
-  /// Продажа актива «прочее»: деньги зачисляются на первый money-тул
-  /// счёта, актив помечается закрытым (история сохраняется).
-  /// Возвращает фактически зачисленную сумму.
+  /// Продажа актива «прочее» за [salePrice]: деньги зачисляются на первый
+  /// money-тул счёта, актив списывается по себестоимости, реализованная
+  /// прибыль/убыток пишется маркером (как при продаже ценных бумаг), затем
+  /// актив скрывается (isClosed). Возвращает реализованный результат
+  /// (цена продажи − себестоимость).
   Future<double> sellOtherTool({
     required String toolId,
     required String toolName,
     required String accountId,
-    double? salePrice,
+    required double salePrice,
+    DateTime? date,
   }) async {
-    // Текущая стоимость = replay активити тула.
     final List<Activity> activities = await _activityRepo
         .getActivityListByTool(toolId);
-    double current = 0;
-    for (final Activity a in activities) {
-      current += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
+    // Себестоимость позиции (переоценки нет — это стоимость заведения).
+    final AverageCostResult avg = computeAverageCost(activities);
+    double costPrice = avg.avgCost;
+    if (costPrice <= 0) {
+      // Fallback: текущая восстановленная стоимость актива.
+      double current = 0;
+      for (final Activity a in activities) {
+        current += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
+      }
+      costPrice = current.abs();
     }
-    current = current.abs();
-    final double price = salePrice ?? current;
+    final double qty = avg.quantity > 0 ? avg.quantity : 1;
 
     final List<Tool> accountTools = await _repo.geListByAccount(accountId);
     final List<Tool> moneyTools = accountTools
@@ -288,41 +262,64 @@ class ToolDetailRepository {
     }
     final Tool money = moneyTools.first;
 
-    final DateTime now = DateTime.now();
+    final DateTime now = date ?? DateTime.now();
     final String closeName = 'Продажа актива «$toolName»';
 
-    // Актив обнуляется...
-    await _activityRepo.insert(
-      Activity(
-        id: const Uuid().v7(),
-        toolId: toolId,
-        type: ActivityType.substract,
-        createAt: now,
-        quantity: 1,
-        price: current,
-        currency: Currency.RUB,
-        isTransmit: true,
-        name: closeName,
-      ),
-    );
-    // ...деньги зачисляются на money-тул (по цене продажи).
+    // Деньги зачисляются на money-тул (по цене продажи).
     await _activityRepo.insert(
       Activity(
         id: const Uuid().v7(),
         toolId: money.id,
         type: ActivityType.add,
         createAt: now,
-        quantity: price,
+        quantity: salePrice,
         price: 1,
         currency: Currency.RUB,
-        isTransmit: true,
+        isTransmit: true, // внутреннее перемещение, не доход
         name: closeName,
       ),
     );
-    // Актив закрывается (история сохраняется).
+    // Актив обнуляется (списание по себестоимости).
+    await _activityRepo.insert(
+      Activity(
+        id: const Uuid().v7(),
+        toolId: toolId,
+        type: ActivityType.substract,
+        createAt: now,
+        quantity: qty,
+        price: costPrice,
+        currency: Currency.RUB,
+        isTransmit: true, // внутреннее перемещение, не расход
+        name: closeName,
+      ),
+    );
+
+    // Реализованная прибыль/убыток — маркер (quantity 0) на туле актива:
+    // на количество и балансы не влияет, сумма хранится в price.
+    final double realized = salePrice - costPrice * qty;
+    if (realized.abs() > 0.01) {
+      final bool isGain = realized > 0;
+      await _activityRepo.insert(
+        Activity(
+          id: const Uuid().v7(),
+          toolId: toolId,
+          type: isGain ? ActivityType.add : ActivityType.substract,
+          createAt: now,
+          quantity: 0,
+          price: realized.abs(),
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: isGain
+              ? '${Activity.investmentGainName} $toolName'
+              : '${Activity.investmentLossName} $toolName',
+        ),
+      );
+    }
+
+    // Актив скрывается из списков (история сохраняется).
     final Tool row = await _repo.get(toolId);
     await _repo.update(row.copyWith(isClosed: true));
-    return price;
+    return realized;
   }
 
   /// Деньги-тулы счёта (кроме исключённого).

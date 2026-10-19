@@ -384,24 +384,6 @@ void main() {
       expect(data.getAccountById('total')!.balance, 100.0);
     });
 
-    test('переоценка меняет стоимость тула', () {
-      final AccountData data = AccountData();
-      data.addAccounts([_account('a')]);
-      data.addTool(
-        ToolSummary(
-          id: 'ot1',
-          name: 'Дача',
-          quantity: 1,
-          percentageChange: 0,
-          accountId: 'a',
-          type: ToolType.other,
-          currentValue: 500000,
-        ),
-      );
-      data.revalueOtherTool('Дача', 750000);
-      expect(data.tools['ot1']!.currentValue, 750000.0);
-      expect(data.getAccountById('a')!.balance, 750000.0);
-    });
   });
 
   group('Tool lookups', () {

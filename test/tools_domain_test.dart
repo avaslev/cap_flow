@@ -271,7 +271,7 @@ void main() {
       expect(ops.contains(ToolOperationType.withdraw), isFalse);
     });
 
-    test('security: buy/sell; other: manual revalue', () {
+    test('security: buy/sell; other: sell', () {
       expect(
         allowedOperations(
           const StockTool(id: 't', accountId: 'a', name: 'AAPL'),
@@ -285,7 +285,7 @@ void main() {
         allowedOperations(
           const OtherTool(id: 't', accountId: 'a', name: 'Car'),
         ),
-        <ToolOperationType>{ToolOperationType.manualRevalue},
+        <ToolOperationType>{ToolOperationType.sell},
       );
     });
 
