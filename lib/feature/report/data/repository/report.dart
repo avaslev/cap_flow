@@ -38,31 +38,40 @@ class ReportRepository {
         DateTime(now.year, now.month, 1).millisecondsSinceEpoch,
         DateTime(now.year, now.month + 12, 1).millisecondsSinceEpoch,
       ),
-      categoryExpenses: await _getCategoryExpenses(
+      categoryExpenses: await _getCategoryTotals(
         accountId,
         startOfYear,
         endOfYear,
+        type: 'substract',
+      ),
+      categoryIncomes: await _getCategoryTotals(
+        accountId,
+        startOfYear,
+        endOfYear,
+        type: 'add',
       ),
     );
   }
 
-  /// Реальные расходы (без внутренних переводов) по категориям
+  /// Реальные операции (без внутренних переводов) по категориям
   /// (activities.name) за 12-месячное окно [startTime, endTime].
   ///
+  /// [type] — 'substract' (расходы) или 'add' (доходы).
   /// Маркер прибыли/убытка (quantity = 0) несёт сумму в price —
   /// формула совпадает с [_getIncomeExpenseData].
-  Future<List<CategoryExpense>> _getCategoryExpenses(
+  Future<List<CategorySummary>> _getCategoryTotals(
     String accountId,
     int startTime,
-    int endTime,
-  ) async {
+    int endTime, {
+    required String type,
+  }) async {
     final accountCondition =
         accountId == 'total' ? "acc.excludeFromTotal = 'false'" : "acc.id = ?";
 
     final params =
         accountId == 'total'
-            ? [startTime, endTime]
-            : [startTime, endTime, accountId];
+            ? [startTime, endTime, type]
+            : [startTime, endTime, accountId, type];
 
     final result = await _database.rawQuery('''
     SELECT
@@ -71,21 +80,21 @@ class ReportRepository {
       strftime('%m', datetime(a.create_at/1000, 'unixepoch')) as month_index,
       SUM(
         ABS(CASE WHEN a.quantity = 0 THEN a.price ELSE a.quantity * a.price END)
-      ) as expense
+      ) as total
     FROM accounts acc
     LEFT JOIN tools t ON t.accountId = acc.id
     LEFT JOIN activities a ON t.id = a.tool_id
       AND a.create_at BETWEEN ? AND ?
     WHERE $accountCondition
       AND a.is_transmit = 0
-      AND a.type = 'substract'
+      AND a.type = ?
       AND a.name IS NOT NULL
       AND a.name != ''
     GROUP BY category, year_index, month_index
     ''', params);
 
     final DateTime windowStart = DateTime.fromMillisecondsSinceEpoch(startTime);
-    return buildCategoryExpenses(
+    return buildCategorySummaries(
       rows: result,
       startYear: windowStart.year,
       startMonth: windowStart.month,

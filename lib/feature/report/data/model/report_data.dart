@@ -7,7 +7,10 @@ class ReportData {
   final List<MonthIncomeExpense> plannedData;
 
   /// Разбивка реальных расходов по категориям (activities.name) за 12 месяцев.
-  final List<CategoryExpense> categoryExpenses;
+  final List<CategorySummary> categoryExpenses;
+
+  /// Разбивка реальных доходов по категориям (activities.name) за 12 месяцев.
+  final List<CategorySummary> categoryIncomes;
 
   const ReportData({
     required this.summary,
@@ -15,7 +18,8 @@ class ReportData {
     required this.totalLineDataPercentage,
     required this.incomeExpenseData,
     required this.plannedData,
-    this.categoryExpenses = const <CategoryExpense>[],
+    this.categoryExpenses = const <CategorySummary>[],
+    this.categoryIncomes = const <CategorySummary>[],
   });
 
   // ✅ Фабрика для демо-данных
@@ -71,7 +75,8 @@ class ReportData {
     double? totalLineDataPercentage,
     List<MonthIncomeExpense>? incomeExpenseData,
     List<MonthIncomeExpense>? plannedData,
-    List<CategoryExpense>? categoryExpenses,
+    List<CategorySummary>? categoryExpenses,
+    List<CategorySummary>? categoryIncomes,
   }) {
     return ReportData(
       summary: summary ?? this.summary,
@@ -81,6 +86,7 @@ class ReportData {
       incomeExpenseData: incomeExpenseData ?? this.incomeExpenseData,
       plannedData: plannedData ?? this.plannedData,
       categoryExpenses: categoryExpenses ?? this.categoryExpenses,
+      categoryIncomes: categoryIncomes ?? this.categoryIncomes,
     );
   }
 }
@@ -115,20 +121,21 @@ class MonthIncomeExpense {
   });
 }
 
-/// Расходы одной категории (activities.name) за 12-месячное окно отчёта.
-class CategoryExpense {
+/// Сумма одной категории (activities.name) за 12-месячное окно отчёта.
+/// Используется и для доходов, и для расходов.
+class CategorySummary {
   final String name;
 
-  /// Сумма расходов за окно.
+  /// Сумма за окно.
   final double total;
 
-  /// Доля категории в общем расходе за окно (0..1).
+  /// Доля категории в общей сумме за окно (0..1).
   final double share;
 
-  /// Расходы по месяцам окна: индексы совпадают с [ReportData.incomeExpenseData].
+  /// Суммы по месяцам окна: индексы совпадают с [ReportData.incomeExpenseData].
   final List<double> monthly;
 
-  const CategoryExpense({
+  const CategorySummary({
     required this.name,
     required this.total,
     required this.share,
@@ -136,12 +143,12 @@ class CategoryExpense {
   });
 }
 
-/// Собирает разбивку расходов по категориям из строк SQL вида
-/// (category, year_index, month_index, expense).
+/// Собирает разбивку по категориям из строк SQL вида
+/// (category, year_index, month_index, total).
 ///
 /// [startYear]/[startMonth] — первый месяц окна отчёта (12 месяцев подряд);
 /// строки вне окна отбрасываются. Результат отсортирован по убыванию суммы.
-List<CategoryExpense> buildCategoryExpenses({
+List<CategorySummary> buildCategorySummaries({
   required List<Map<String, Object?>> rows,
   required int startYear,
   required int startMonth,
@@ -158,7 +165,8 @@ List<CategoryExpense> buildCategoryExpenses({
     final int index = year * 12 + month - windowStartIndex;
     if (index < 0 || index > 11) continue;
 
-    final double value = (row['expense'] as num?)?.toDouble() ?? 0.0;
+    final double value =
+        ((row['total'] ?? row['expense']) as num?)?.toDouble() ?? 0.0;
     final List<double> monthly = monthlyByName.putIfAbsent(
       name,
       () => List<double>.filled(12, 0.0),
@@ -173,13 +181,13 @@ List<CategoryExpense> buildCategoryExpenses({
     }
   }
 
-  final List<CategoryExpense> result = monthlyByName.entries
-      .map<CategoryExpense>((MapEntry<String, List<double>> entry) {
+  final List<CategorySummary> result = monthlyByName.entries
+      .map<CategorySummary>((MapEntry<String, List<double>> entry) {
         double total = 0.0;
         for (final double value in entry.value) {
           total += value;
         }
-        return CategoryExpense(
+        return CategorySummary(
           name: entry.key,
           total: total,
           share: grandTotal > 0 ? total / grandTotal : 0.0,
@@ -187,7 +195,7 @@ List<CategoryExpense> buildCategoryExpenses({
         );
       })
       .toList()
-    ..sort((CategoryExpense a, CategoryExpense b) => b.total.compareTo(a.total));
+    ..sort((CategorySummary a, CategorySummary b) => b.total.compareTo(a.total));
 
   return result;
 }

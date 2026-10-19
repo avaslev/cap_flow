@@ -11,13 +11,13 @@ Map<String, Object?> row(String name, String year, String month, num expense) =>
     };
 
 void main() {
-  group('buildCategoryExpenses', () {
+  group('buildCategorySummaries', () {
     // Окно отчёта: ноябрь 2025 … октябрь 2026.
     const int startYear = 2025;
     const int startMonth = 11;
 
     test('накапливает месяцы и сортирует по убыванию суммы', () {
-      final List<CategoryExpense> result = buildCategoryExpenses(
+      final List<CategorySummary> result = buildCategorySummaries(
         rows: <Map<String, Object?>>[
           row('Дача', '2025', '11', 100),
           row('Дача', '2025', '12', 300),
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('считает доли от общего расхода', () {
-      final List<CategoryExpense> result = buildCategoryExpenses(
+      final List<CategorySummary> result = buildCategorySummaries(
         rows: <Map<String, Object?>>[
           row('Дача', '2025', '11', 750),
           row('Еда', '2026', '01', 250),
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('отбрасывает строки вне окна, пустые имена и null', () {
-      final List<CategoryExpense> result = buildCategoryExpenses(
+      final List<CategorySummary> result = buildCategorySummaries(
         rows: <Map<String, Object?>>[
           row('Дача', '2025', '10', 999), // до окна
           row('Дача', '2026', '11', 999), // после окна
@@ -76,7 +76,7 @@ void main() {
     });
 
     test('одинаковые имена склеиваются, разные месяцы складываются', () {
-      final List<CategoryExpense> result = buildCategoryExpenses(
+      final List<CategorySummary> result = buildCategorySummaries(
         rows: <Map<String, Object?>>[
           row('Дача', '2026', '01', 100),
           row('Дача', '2026', '01', 200),
@@ -92,7 +92,7 @@ void main() {
 
     test('пустой результат — пустой список', () {
       expect(
-        buildCategoryExpenses(
+        buildCategorySummaries(
           rows: const <Map<String, Object?>>[],
           startYear: startYear,
           startMonth: startMonth,
@@ -102,7 +102,7 @@ void main() {
     });
 
     test('отсутствие расходов не даёт деления на ноль', () {
-      final List<CategoryExpense> result = buildCategoryExpenses(
+      final List<CategorySummary> result = buildCategorySummaries(
         rows: <Map<String, Object?>>[row('Дача', '2025', '11', 0)],
         startYear: startYear,
         startMonth: startMonth,

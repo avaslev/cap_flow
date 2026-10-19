@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
+import 'package:investflow/core/widgets/searchable_picker.dart';
 import 'package:investflow/data/models/account.dart';
 import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -88,32 +89,43 @@ Widget _reportEmptyCard(BuildContext context, String message) {
 }
 
 /// Заголовок секции отчёта: иконка + название слева, подпись справа.
-Widget _sectionTitle(BuildContext context, IconData icon, String title, {String? hint}) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Row(
-        children: [
-          Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(
+  Widget _sectionTitle(BuildContext context, IconData icon, String title, {String? hint}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-        ],
-      ),
-      if (hint != null)
-        Text(
-          hint,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
         ),
-    ],
-  );
-}
+        if (hint != null) ...[
+          const SizedBox(width: 4),
+          Flexible(
+            fit: FlexFit.loose,
+            child: Text(
+              hint,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 
 class ReportScreen extends StatelessWidget {
   final String accountId;
@@ -633,36 +645,37 @@ class ReportScreen extends StatelessWidget {
     return 1000000.0;
   }
 
-  /// Разбивка реальных расходов по категориям: список со шкалами долей.
-  Widget _buildCategoryExpenses(BuildContext context, ReportData data) {
-    final List<CategoryExpense> categories = data.categoryExpenses;
+  /// Разбивка реальных операций по категориям: список со шкалами долей.
+  Widget _buildCategoryBreakdown(
+    BuildContext context, {
+    required List<CategorySummary> categories,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required String emptyMessage,
+  }) {
     if (categories.isEmpty) {
-      return _reportEmptyCard(context, 'Нет расходов с категориями за период');
+      return _reportEmptyCard(context, emptyMessage);
     }
 
     const int maxRows = 10;
-    final List<CategoryExpense> visible = categories.take(maxRows).toList();
+    final List<CategorySummary> visible = categories.take(maxRows).toList();
     double restTotal = 0;
     double restShare = 0;
     if (categories.length > maxRows) {
-      for (final CategoryExpense c in categories.skip(maxRows)) {
+      for (final CategorySummary c in categories.skip(maxRows)) {
         restTotal += c.total;
         restShare += c.share;
       }
     }
 
     double grandTotal = 0;
-    for (final CategoryExpense c in categories) {
+    for (final CategorySummary c in categories) {
       grandTotal += c.total;
     }
 
     return _reportCard(context: context, children: [
-      _sectionTitle(
-        context,
-        Icons.category_outlined,
-        'Расходы по категориям',
-        hint: '12 месяцев',
-      ),
+      _sectionTitle(context, icon, title, hint: '12 месяцев'),
       const SizedBox(height: 4),
       Text(
         'Всего: ${formatNumber(grandTotal)}',
@@ -672,15 +685,20 @@ class ReportScreen extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 8),
-      for (final CategoryExpense c in visible)
-        _categoryRow(context, c.name, c.total, c.share),
+      for (final CategorySummary c in visible)
+        _categoryRow(context, c.name, c.total, c.share, color),
       if (categories.length > maxRows)
-        _categoryRow(context, 'Остальные', restTotal, restShare),
+        _categoryRow(context, 'Остальные', restTotal, restShare, color),
     ]);
   }
 
-  Widget _categoryRow(BuildContext context, String name, double total, double share) {
-    final Color color = Colors.red.shade600;
+  Widget _categoryRow(
+    BuildContext context,
+    String name,
+    double total,
+    double share,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -848,10 +866,44 @@ class ReportScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           // ✅ Расходы по категориям
-          _buildCategoryExpenses(context, data),
+          _buildCategoryBreakdown(
+            context,
+            categories: data.categoryExpenses,
+            title: 'Расходы по категориям',
+            icon: Icons.category_outlined,
+            color: Colors.red.shade600,
+            emptyMessage: 'Нет расходов с категориями за период',
+          ),
           const SizedBox(height: 24),
-          // ✅ Накопительный итог по выбранной категории
-          _CategoryCumulativeCard(data: data),
+          // ✅ Накопительный итог по выбранной категории расходов
+          _CategoryCumulativeCard(
+            data: data,
+            categories: data.categoryExpenses,
+            title: 'Накопительно: расходы',
+            allLabel: 'Все расходы',
+            color: Colors.red.shade600,
+            emptyMessage: 'Нет расходов с категориями за период',
+          ),
+          const SizedBox(height: 24),
+          // ✅ Доходы по категориям
+          _buildCategoryBreakdown(
+            context,
+            categories: data.categoryIncomes,
+            title: 'Доходы по категориям',
+            icon: Icons.savings_outlined,
+            color: Colors.green.shade600,
+            emptyMessage: 'Нет доходов с категориями за период',
+          ),
+          const SizedBox(height: 24),
+          // ✅ Накопительный итог по выбранной категории доходов
+          _CategoryCumulativeCard(
+            data: data,
+            categories: data.categoryIncomes,
+            title: 'Накопительно: доходы',
+            allLabel: 'Все доходы',
+            color: Colors.green.shade600,
+            emptyMessage: 'Нет доходов с категориями за период',
+          ),
           const SizedBox(height: 24),
           // ✅ План
           _buildBarChart(
@@ -876,60 +928,89 @@ class ReportScreen extends StatelessWidget {
     );
   }
 }
-/// Карточка «Накопительно»: линейный график накопленных расходов
+/// Карточка «Накопительно»: линейный график накопленных сумм
 /// выбранной категории за 12 месяцев окна отчёта.
 class _CategoryCumulativeCard extends StatefulWidget {
   final ReportData data;
+  final List<CategorySummary> categories;
+  final String title;
 
-  const _CategoryCumulativeCard({required this.data});
+  /// Подпись опции «все категории» (например, «Все расходы»).
+  final String allLabel;
+  final Color color;
+  final String emptyMessage;
+
+  const _CategoryCumulativeCard({
+    required this.data,
+    required this.categories,
+    required this.title,
+    required this.allLabel,
+    required this.color,
+    required this.emptyMessage,
+  });
 
   @override
   State<_CategoryCumulativeCard> createState() => _CategoryCumulativeCardState();
 }
 
 class _CategoryCumulativeCardState extends State<_CategoryCumulativeCard> {
+  /// null — «все категории» (суммарный график).
   String? _selected;
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = widget.data.categoryExpenses.isNotEmpty
-        ? widget.data.categoryExpenses.first.name
-        : null;
-  }
 
   @override
   void didUpdateWidget(covariant _CategoryCumulativeCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Отчёт перезагрузился — выбранная категория могла исчезнуть.
     if (_selected != null &&
-        !widget.data.categoryExpenses
-            .any((CategoryExpense c) => c.name == _selected)) {
-      _selected = widget.data.categoryExpenses.isNotEmpty
-          ? widget.data.categoryExpenses.first.name
-          : null;
+        !widget.categories.any((CategorySummary c) => c.name == _selected)) {
+      _selected = null;
     }
   }
 
-  CategoryExpense? get _category {
+  CategorySummary? get _category {
     final String? selected = _selected;
     if (selected == null) return null;
-    for (final CategoryExpense c in widget.data.categoryExpenses) {
+    for (final CategorySummary c in widget.categories) {
       if (c.name == selected) return c;
     }
     return null;
   }
 
+  /// Помесячные суммы: выбранной категории или всех сразу.
+  List<double> get _monthly {
+    final CategorySummary? category = _category;
+    if (category != null) return category.monthly;
+    final List<double> total = List<double>.filled(12, 0.0);
+    for (final CategorySummary c in widget.categories) {
+      for (int i = 0; i < total.length; i++) {
+        total[i] += c.monthly[i];
+      }
+    }
+    return total;
+  }
+
+  Future<void> _pick() async {
+    final SearchPick? pick = await showSearchablePicker(
+      context,
+      items: widget.categories.map((CategorySummary c) => c.name).toList(),
+      selected: _selected,
+      allLabel: widget.allLabel,
+      searchHint: 'Поиск категории',
+    );
+    if (pick == null) return; // закрыли без выбора
+    setState(() => _selected = pick.value);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final CategoryExpense? category = _category;
-    if (category == null) {
-      return _reportEmptyCard(context, 'Нет расходов с категориями за период');
+    if (widget.categories.isEmpty) {
+      return _reportEmptyCard(context, widget.emptyMessage);
     }
 
+    final List<double> monthly = _monthly;
     final List<double> cumulative = <double>[];
     double sum = 0;
-    for (final double value in category.monthly) {
+    for (final double value in monthly) {
       sum += value;
       cumulative.add(sum);
     }
@@ -940,69 +1021,48 @@ class _CategoryCumulativeCardState extends State<_CategoryCumulativeCard> {
     }
     final double interval = _niceInterval(maxValue);
 
-    final Color color = Colors.red.shade600;
+    final Color color = widget.color;
     final List<MonthIncomeExpense> months = widget.data.incomeExpenseData;
 
     return _reportCard(
       context: context,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+        _sectionTitle(context, Icons.show_chart, widget.title, hint: '12 месяцев'),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: _pick,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
               children: [
-                Icon(
-                  Icons.show_chart,
-                  size: 22,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Накопительно',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+                Expanded(
+                  child: Text(
+                    _selected ?? widget.allLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ],
-            ),
-            Text(
-              '12 месяцев',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selected,
-              isExpanded: true,
-              items: widget.data.categoryExpenses
-                  .map<DropdownMenuItem<String>>(
-                    (CategoryExpense c) => DropdownMenuItem<String>(
-                      value: c.name,
-                      child: Text(c.name, overflow: TextOverflow.ellipsis),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (String? value) => setState(() => _selected = value),
             ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Накоплено: ${formatNumber(category.total)}',
+          'Накоплено: ${formatNumber(sum)}',
           style: TextStyle(
             color: color,
             fontSize: 15,

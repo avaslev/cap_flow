@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/core/widgets/searchable_picker.dart';
 import 'package:investflow/data/repository/categoryRepository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investflow/feature/activity/logic/bloc.dart';
@@ -111,49 +112,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               ),
             ],
           ),
-          PopupMenuButton<String>(
-            // Фильтр по категории (дублирует выбор из формы операции).
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Icon(
-                _categoryFilter == null ? Icons.label_outline : Icons.label,
-              ),
-            ),
+          IconButton(
+            icon: Icon(_categoryFilter == null ? Icons.label_outline : Icons.label),
             tooltip: 'Фильтр по категории',
-            onSelected: (String value) {
-              setState(() {
-                _categoryFilter = value == 'all' ? null : value;
-              });
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'all',
-                child: Text('Все категории'),
-              ),
-              if (_categories.isEmpty)
-                const PopupMenuItem<String>(
-                  enabled: false,
-                  child: Text('Категорий пока нет'),
-                )
-              else
-                ..._categories.map<PopupMenuEntry<String>>(
-                  (String category) => PopupMenuItem<String>(
-                    value: category,
-                    child: SizedBox(
-                      width: 200,
-                      child: Text(
-                        category,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: _categoryFilter == category
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+            onPressed: () => _showCategorySheet(context),
           ),
         ],
       ),
@@ -367,6 +329,18 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       ],
     );
   }
+
+  Future<void> _showCategorySheet(BuildContext context) async {
+    final SearchPick? pick = await showSearchablePicker(
+      context,
+      items: _categories,
+      selected: _categoryFilter,
+      allLabel: 'Все категории',
+      searchHint: 'Поиск категории',
+    );
+    if (pick == null || !mounted) return;
+    setState(() => _categoryFilter = pick.value);
+  }
 }
 
 /// Группа операций за день.
@@ -519,4 +493,5 @@ class _ActivityListItem extends StatelessWidget {
       ),
     );
   }
+
 }
