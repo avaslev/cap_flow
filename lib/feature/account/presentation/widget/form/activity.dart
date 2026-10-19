@@ -1,3 +1,4 @@
+import 'package:investflow/data/repository/categoryRepository.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/activityState.dart';
 import 'package:investflow/feature/account/logic/activityCubit.dart';
@@ -80,6 +81,22 @@ class _ActivityFormContent extends StatefulWidget {
 
 class _ActivityFormContentState extends State<_ActivityFormContent> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  /// Уже использованные категории — подсказки для поля «Category».
+  List<String> _categories = const <String>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final List<String> categories = await CategoryRepository().getList(null, null);
+    categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    if (!mounted) return;
+    setState(() => _categories = categories);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,28 +225,53 @@ class _ActivityFormContentState extends State<_ActivityFormContent> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    initialValue: state.category,
-                    decoration: InputDecoration(
-                      labelText: 'Category',
-                      hintText: 'e.g., Salary, Gift, Refund',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.category,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    onChanged:
-                        (String value) => context
-                            .read<ActivityCubit>()
-                            .categoryChanged(value),
-                    validator: (String? value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a category';
+                  Autocomplete<String>(
+                    initialValue: TextEditingValue(text: state.category),
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<String>.empty();
                       }
-                      return null;
+                      final String query = textEditingValue.text.toLowerCase();
+                      return _categories
+                          .where((String option) =>
+                              option.toLowerCase().contains(query))
+                          .take(6);
+                    },
+                    onSelected: (String selection) => context
+                        .read<ActivityCubit>()
+                        .categoryChanged(selection),
+                    fieldViewBuilder: (
+                      BuildContext context,
+                      TextEditingController textEditingController,
+                      FocusNode focusNode,
+                      VoidCallback onFieldSubmitted,
+                    ) {
+                      return TextFormField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          labelText: 'Category',
+                          hintText: 'e.g., Salary, Gift, Refund',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.category,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        onChanged:
+                            (String value) => context
+                                .read<ActivityCubit>()
+                                .categoryChanged(value),
+                        onFieldSubmitted: (_) => onFieldSubmitted(),
+                        validator: (String? value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a category';
+                          }
+                          return null;
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: 16),

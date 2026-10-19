@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/repository/categoryRepository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investflow/feature/activity/logic/bloc.dart';
 import 'package:intl/intl.dart';
 
-/// Экран операций: месяц, поиск, фильтр по типу, группировка по дням.
+/// Экран операций: месяц, поиск, фильтр по типу, фильтр по категории,
+/// группировка по дням.
 class ActivityListScreen extends StatefulWidget {
   const ActivityListScreen({super.key});
 
@@ -33,12 +35,22 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   bool _searchActive = false;
   String _query = '';
   String? _typeFilter; // null = все; 'add' | 'substract'
+  String? _categoryFilter; // null = все категории
+  List<String> _categories = const <String>[];
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
   @override
   void initState() {
     super.initState();
     context.read<ActivityBloc>().add(ActivityListTransitionEvent());
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final List<String> categories = await CategoryRepository().getList(null, null);
+    categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    if (!mounted) return;
+    setState(() => _categories = categories);
   }
 
   void _shiftMonth(int delta) {
@@ -97,6 +109,50 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 value: 'transfer',
                 child: Text('Переводы'),
               ),
+            ],
+          ),
+          PopupMenuButton<String>(
+            // Фильтр по категории (дублирует выбор из формы операции).
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Icon(
+                _categoryFilter == null ? Icons.label_outline : Icons.label,
+              ),
+            ),
+            tooltip: 'Фильтр по категории',
+            onSelected: (String value) {
+              setState(() {
+                _categoryFilter = value == 'all' ? null : value;
+              });
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'all',
+                child: Text('Все категории'),
+              ),
+              if (_categories.isEmpty)
+                const PopupMenuItem<String>(
+                  enabled: false,
+                  child: Text('Категорий пока нет'),
+                )
+              else
+                ..._categories.map<PopupMenuEntry<String>>(
+                  (String category) => PopupMenuItem<String>(
+                    value: category,
+                    child: SizedBox(
+                      width: 200,
+                      child: Text(
+                        category,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: _categoryFilter == category
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
@@ -189,7 +245,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     );
   }
 
-  /// Фильтрация по месяцу/типу/тексту + группировка по дням.
+  /// Фильтрация по месяцу/типу/категории/тексту + группировка по дням.
   List<MapEntry<DateTime, List<Activity>>> _groupFiltered(
     List<Activity> data,
   ) {
@@ -206,6 +262,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         } else if (internal || a.type.name != _typeFilter) {
           continue;
         }
+      }
+      if (_categoryFilter != null && a.name != _categoryFilter) {
+        continue;
       }
       if (query.isNotEmpty) {
         final String name = (a.name ?? '').toLowerCase();
@@ -235,10 +294,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
     if (groups.isEmpty) {
       return Center(
-        child: Text(
-          _query.isNotEmpty || _typeFilter != null
-              ? 'Ничего не найдено'
-              : 'Операций пока нет',
+      child: Text(
+        _query.isNotEmpty || _typeFilter != null || _categoryFilter != null
+            ? 'Ничего не найдено'
+            : 'Операций пока нет',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

@@ -38,6 +38,57 @@ class ReportRepository {
         DateTime(now.year, now.month, 1).millisecondsSinceEpoch,
         DateTime(now.year, now.month + 12, 1).millisecondsSinceEpoch,
       ),
+      categoryExpenses: await _getCategoryExpenses(
+        accountId,
+        startOfYear,
+        endOfYear,
+      ),
+    );
+  }
+
+  /// Реальные расходы (без внутренних переводов) по категориям
+  /// (activities.name) за 12-месячное окно [startTime, endTime].
+  ///
+  /// Маркер прибыли/убытка (quantity = 0) несёт сумму в price —
+  /// формула совпадает с [_getIncomeExpenseData].
+  Future<List<CategoryExpense>> _getCategoryExpenses(
+    String accountId,
+    int startTime,
+    int endTime,
+  ) async {
+    final accountCondition =
+        accountId == 'total' ? "acc.excludeFromTotal = 'false'" : "acc.id = ?";
+
+    final params =
+        accountId == 'total'
+            ? [startTime, endTime]
+            : [startTime, endTime, accountId];
+
+    final result = await _database.rawQuery('''
+    SELECT
+      a.name as category,
+      strftime('%Y', datetime(a.create_at/1000, 'unixepoch')) as year_index,
+      strftime('%m', datetime(a.create_at/1000, 'unixepoch')) as month_index,
+      SUM(
+        ABS(CASE WHEN a.quantity = 0 THEN a.price ELSE a.quantity * a.price END)
+      ) as expense
+    FROM accounts acc
+    LEFT JOIN tools t ON t.accountId = acc.id
+    LEFT JOIN activities a ON t.id = a.tool_id
+      AND a.create_at BETWEEN ? AND ?
+    WHERE $accountCondition
+      AND a.is_transmit = 0
+      AND a.type = 'substract'
+      AND a.name IS NOT NULL
+      AND a.name != ''
+    GROUP BY category, year_index, month_index
+    ''', params);
+
+    final DateTime windowStart = DateTime.fromMillisecondsSinceEpoch(startTime);
+    return buildCategoryExpenses(
+      rows: result,
+      startYear: windowStart.year,
+      startMonth: windowStart.month,
     );
   }
 
