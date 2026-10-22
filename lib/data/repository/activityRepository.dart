@@ -53,4 +53,26 @@ class ActivityRepository {
     Database db = await DatabaseHelper.instance.db;
     await db.delete('activities', where: 'tool_id = ?', whereArgs: [toolId]);
   }
+
+  /// Удаляет обе половины перевода по общему id пары.
+  Future<void> deleteByTransferPairId(String pairId) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.delete(
+      'activities',
+      where: 'transfer_pair_id = ?',
+      whereArgs: [pairId],
+    );
+  }
+
+  /// Обнуляет ссылки event_id на удалённые плановые события
+  /// (иначе остаются висячие id).
+  Future<void> clearEventIds(List<String> eventIds) async {
+    if (eventIds.isEmpty) return;
+    Database db = await DatabaseHelper.instance.db;
+    final String placeholders = List<String>.filled(eventIds.length, '?').join(', ');
+    await db.rawUpdate(
+      'UPDATE activities SET event_id = NULL WHERE event_id IN ($placeholders)',
+      eventIds,
+    );
+  }
 }

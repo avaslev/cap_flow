@@ -6,6 +6,7 @@ import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/models/tools/typed_tool_mapper.dart';
 import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/repository/currencyRepository.dart';
 import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/data/repository/toolRepository.dart';
@@ -108,9 +109,12 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       // Money-тул — в дефолтной валюте из настроек.
       final String defaultCurrency = await SettingsRepository()
           .getDefaultCurrency();
+      // Имя тула по умолчанию — название валюты («Рубль», «Доллар США»).
+      final String moneyToolName =
+          await CurrencyRepository().getName(defaultCurrency);
       final Tool tool = Tool(
         id: Uuid().v7(),
-        name: 'Money',
+        name: moneyToolName,
         accountId: account.id,
         type: ToolType.money.name,
         ticker: defaultCurrency,
@@ -126,7 +130,8 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
             createAt: DateTime.now(),
             quantity: event.account.balance,
             price: 1,
-            currency: Currency.RUB,
+            // Валюта активности совпадает с валютой (ticker) Money-тула.
+            currency: Activity.currencyFromCode(defaultCurrency),
             isTransmit: true,
             name: 'Create ' + event.account.name,
           ),
@@ -144,14 +149,42 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
 
     on<ChangeAccountEvent>((event, emit) async {
       if (true == event.remove) {
+        // Полное удаление: тулы, их операции, парные половины переводов,
+        // строка счёта и плановые события (с очисткой висячих event_id).
         final tools = accountData.getToolsForAccount(event.accountId);
+
+        // Собрать id пар переводов и плановых событий этого счёта до удаления.
+        final Set<String> transferPairIds = <String>{};
+        for (final toolSummary in tools) {
+          final List<Activity> activities = await ActivityRepository()
+              .getActivityListByTool(toolSummary.id);
+          for (final Activity a in activities) {
+            if (a.transferPairId != null && a.transferPairId!.isNotEmpty) {
+              transferPairIds.add(a.transferPairId!);
+            }
+          }
+        }
+
+        // Удалить парные половины переводов (на других счетах).
+        for (final String pairId in transferPairIds) {
+          await ActivityRepository().deleteByTransferPairId(pairId);
+        }
+
+        // Тулы и их операции.
         for (final toolSummary in tools) {
           await ActivityRepository().deleteByTool(toolSummary.id);
           await ToolRepository().delete(toolSummary.id);
         }
+
         accountData.deleteAccount(event.accountId);
         await AccountRepository().delete(event.accountId);
+
+        // Плановые события счёта → собрать их id и обнулить ссылки в операциях.
+        final List<String> eventIds = await ScheduledTransactionRepository()
+            .getIdsByAccount(event.accountId);
         await ScheduledTransactionRepository().deleteByAccount(event.accountId);
+        await ActivityRepository().clearEventIds(eventIds);
+
         emit(AccountsDataState(accountData));
       } else {
         await AccountRepository().changeHideEvents(
@@ -164,6 +197,17 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         );
         emit(AccountsDataState(await _refreshAccountData()));
       }
+    });
+
+    on<ArchiveAccountEvent>((event, emit) async {
+      await AccountRepository().archive(event.accountId);
+      accountData.archiveAccount(event.accountId);
+      emit(AccountsDataState(accountData));
+    });
+
+    on<RestoreAccountEvent>((event, emit) async {
+      await AccountRepository().unarchive(event.accountId);
+      emit(AccountsDataState(await _refreshAccountData()));
     });
   }
 
@@ -183,6 +227,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
             type: AccountType.values.byName(account.type),
             hideEvents: bool.parse(account.hideEvents),
             excludeFromTotal: bool.parse(account.excludeFromTotal),
+            isArchived: account.isArchived,
           );
 
           return accountSummary;
@@ -191,6 +236,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       accountSummary.hideEvents = bool.parse(account.hideEvents);
       accountSummary.excludeFromTotal = bool.parse(account.excludeFromTotal);
       accountSummary.sortOrder = account.sortOrder;
+      accountSummary.isArchived = account.isArchived;
       accountData.addAccount(accountSummary);
     });
 

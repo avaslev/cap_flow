@@ -20,9 +20,37 @@ class AccountRepository {
 
   Future<List<Account>> geList() async {
     Database db = await DatabaseHelper.instance.db;
+    // Архивные (isArchived = 1) не попадают в основной список.
     // total (sortOrder 0) всегда первым, затем по sortOrder.
-    final actions = await db.query('accounts', orderBy: 'sortOrder, id');
+    final actions = await db.query(
+      'accounts',
+      where: 'isArchived = 0',
+      orderBy: 'sortOrder, id',
+    );
     return actions.map((actionMap) => Account.fromMap(actionMap)).toList();
+  }
+
+  /// Только скрытые (архивные) счета — для раздела «Архив».
+  Future<List<Account>> getArchivedList() async {
+    Database db = await DatabaseHelper.instance.db;
+    final actions = await db.query(
+      'accounts',
+      where: 'isArchived = 1',
+      orderBy: 'name',
+    );
+    return actions.map((actionMap) => Account.fromMap(actionMap)).toList();
+  }
+
+  /// Скрыть счёт (обратимо): помечает isArchived.
+  Future<void> archive(String id) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.update('accounts', {'isArchived': 1}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Вернуть счёт из архива.
+  Future<void> unarchive(String id) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.update('accounts', {'isArchived': 0}, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> changeSortOrder(String id, int sortOrder) async {

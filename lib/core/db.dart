@@ -86,6 +86,8 @@ Map<int, String> migrationScripts = {
     rate REAL NOT NULL
 )''',
   16: '''INSERT INTO currency_rates (code, rate) VALUES ('RUB', 1.0)''',
+  17: '''ALTER TABLE accounts ADD COLUMN isArchived INTEGER NOT NULL DEFAULT 0''',
+  18: '''ALTER TABLE activities ADD COLUMN transfer_pair_id TEXT''',
 };
 
 class DatabaseHelper {

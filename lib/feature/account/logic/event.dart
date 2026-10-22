@@ -46,3 +46,16 @@ class ChangeAccountEvent extends AccountsEvent {
   final bool remove; // New attribute to exclude from total balance calculation
   ChangeAccountEvent({required this.accountId, required this.hideEvents, required this.excludeFromTotal, required this.remove});
 }
+
+/// Скрыть счёт (архивация): данные сохраняются, счёт исчезает из
+/// списка и общего баланса. Обратимо через [RestoreAccountEvent].
+class ArchiveAccountEvent extends AccountsEvent {
+  final String accountId;
+  ArchiveAccountEvent(this.accountId);
+}
+
+/// Вернуть счёт из архива.
+class RestoreAccountEvent extends AccountsEvent {
+  final String accountId;
+  RestoreAccountEvent(this.accountId);
+}

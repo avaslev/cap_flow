@@ -247,6 +247,9 @@ class TransferCubit extends Cubit<TransferState> {
       }
 
       // add activity ti tool (source)
+      // Общий id пары переводов: обе половины (списание/зачисление)
+      // связываются им для каскадного удаления.
+      final String transferPairId = Uuid().v7();
       await ActivityRepository().insert(
         Activity(
           id: Uuid().v7(),
@@ -259,6 +262,7 @@ class TransferCubit extends Cubit<TransferState> {
           isTransmit: true,
           name: name,
           comment: comment,
+          transferPairId: transferPairId,
         ),
       );
       if (commission > 0)
@@ -288,6 +292,7 @@ class TransferCubit extends Cubit<TransferState> {
           isTransmit: true,
           name: targetName,
           comment: comment,
+          transferPairId: transferPairId,
         ),
       );
 

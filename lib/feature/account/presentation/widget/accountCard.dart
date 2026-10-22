@@ -268,9 +268,9 @@ class AccountCard extends StatelessWidget {
                     _editIcon(
                       context,
                       icon: Icons.delete_forever,
-                      tooltip: 'Удалить счёт',
+                      tooltip: 'Управление счётом',
                       color: colorScheme.error,
-                      onPressed: () => _confirmDelete(context, accountBloc),
+                      onPressed: () => _showManageSheet(context, accountBloc),
                     ),
                   ],
                 ),
@@ -330,47 +330,94 @@ class AccountCard extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(
+  /// Нижняя шторка управления счётом: архив, полное удаление или отмена.
+  Future<void> _showManageSheet(
     BuildContext context,
     AccountsBloc accountBloc,
   ) async {
-    final bool? confirm = await showDialog<bool>(
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final _ManageAction? action = await showModalBottomSheet<_ManageAction>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Удаление счёта'),
-          content: Text(
-            'Удалить счёт «${account.name}» вместе с тулами и операциями? '
-            'Действие необратимо.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(
-                'Удалить',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                child: Text(
+                  'Счёт «${account.name}»',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-          ],
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Text(
+                  'Выберите действие. Полное удаление необратимо и стирает '
+                  'операции из истории и статистики по всем месяцам. '
+                  'Архивация сохраняет данные — счёт можно вернуть.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: const Text('Положить в архив'),
+                subtitle: const Text('Скрыть из списка и баланса, данные сохранить'),
+                onTap: () =>
+                    Navigator.pop(sheetContext, _ManageAction.archive),
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_forever, color: colorScheme.error),
+                title: Text(
+                  'Удалить полностью',
+                  style: TextStyle(color: colorScheme.error),
+                ),
+                subtitle: const Text(
+                  'Убрать счёт, тулы, операции и парные переводы. '
+                  'Восстановить можно только из резервной копии',
+                ),
+                onTap: () => Navigator.pop(sheetContext, _ManageAction.delete),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: const Text('Отмена'),
+                onTap: () => Navigator.pop(sheetContext, _ManageAction.cancel),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         );
       },
     );
-    if (confirm == true && context.mounted) {
-      accountBloc.add(
-        ChangeAccountEvent(
-          accountId: account.id,
-          hideEvents: account.hideEvents,
-          excludeFromTotal: account.excludeFromTotal,
-          remove: true,
-        ),
-      );
-      Toast.show(context, 'Счёт «${account.name}» удалён');
-    } else {
-      accountBloc.add(DisableEditModeAccountCardEvent(account.id));
+
+    if (!context.mounted) return;
+    switch (action) {
+      case _ManageAction.archive:
+        accountBloc.add(ArchiveAccountEvent(account.id));
+        Toast.show(context, 'Счёт «${account.name}» в архиве');
+      case _ManageAction.delete:
+        accountBloc.add(
+          ChangeAccountEvent(
+            accountId: account.id,
+            hideEvents: account.hideEvents,
+            excludeFromTotal: account.excludeFromTotal,
+            remove: true,
+          ),
+        );
+        Toast.show(context, 'Счёт «${account.name}» удалён');
+      case _ManageAction.cancel:
+      case null:
+        accountBloc.add(DisableEditModeAccountCardEvent(account.id));
     }
   }
 }
+
+/// Действие в шторке управления счётом.
+enum _ManageAction { archive, delete, cancel }

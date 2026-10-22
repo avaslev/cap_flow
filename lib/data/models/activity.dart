@@ -1,7 +1,17 @@
 enum ActivityType {add, substract}
-enum Currency {RUB, USD}
+enum Currency {RUB, USD, EUR, CNY}
 
 class Activity {
+  /// Код валюты (RUB/USD/EUR/CNY) → значение enum.
+  /// Неизвестный код приводится к RUB, чтобы `fromMap` не падал на старых
+  /// или будущих записях.
+  static Currency currencyFromCode(String? code) {
+    for (final Currency c in Currency.values) {
+      if (c.name == code) return c;
+    }
+    return Currency.RUB;
+  }
+
   /// Маркер реализованной прибыли: quantity = 0, сумма в price.
   static const String investmentGainName = 'Доход от продажи';
 
@@ -21,6 +31,8 @@ class Activity {
   final String? eventId; // Новое свойство
   final double? interestAmount; // кредит: процентная часть платежа
   final double? principalAmount; // кредит: часть платежа, гасящая тело
+  /// Общий id пары переводов (обе половины: списание и зачисление).
+  final String? transferPairId;
 
   Activity({
     required this.id,
@@ -36,6 +48,7 @@ class Activity {
     this.name,
     this.comment,
     this.eventId, // Добавлено в конструктор
+    this.transferPairId,
   });
 
   Map<String, dynamic> toMap() {
@@ -53,6 +66,7 @@ class Activity {
       'event_id': eventId, // Добавлено в метод toMap
       'interestAmount': interestAmount,
       'principalAmount': principalAmount,
+      'transfer_pair_id': transferPairId,
     };
   }
 
@@ -71,6 +85,7 @@ class Activity {
       eventId: map['event_id']?.toString(), // Добавлено в метод fromMap
       interestAmount: (map['interestAmount'] as num?)?.toDouble(),
       principalAmount: (map['principalAmount'] as num?)?.toDouble(),
+      transferPairId: map['transfer_pair_id']?.toString(),
     );
   }
 }

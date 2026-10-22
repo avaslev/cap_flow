@@ -33,6 +33,9 @@ class AccountSummary {
   /// Порядок сортировки (total всегда первым, sortOrder 0 у total).
   int sortOrder;
 
+  /// Скрытый (архивный) счёт: не в списке и не в Total.
+  bool isArchived;
+
   AccountSummary({
     this.id = '',
     required this.name,
@@ -47,6 +50,7 @@ class AccountSummary {
     this.periodIncome = 0.0,
     this.periodExpense = 0.0,
     this.sortOrder = 0,
+    this.isArchived = false,
   });
 }
 
@@ -695,6 +699,25 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     }
     _deletableAccountId = null; // Exit delete mode
     _updateTotalBalance(); // Recalculate total balance
+  }
+
+  /// Помечает счёт архивным и убирает из активного списка (Total пересчитается).
+  /// Данные счёта (тулы/операции) сохраняются — восстановимо.
+  void archiveAccount(String accountId) {
+    if (accountId == 'total') {
+      debugPrint('Cannot archive "Total Balance" account.');
+      return;
+    }
+    final int accountPage = _accounts.indexWhere(
+      (AccountSummary acc) => acc.id == accountId,
+    );
+    if (accountPage < 0) return;
+    _accounts.removeAt(accountPage);
+    if (_activeAccountId == accountId && _accounts.isNotEmpty) {
+      _activeAccountId = _accounts[accountPage - 1].id;
+    }
+    _deletableAccountId = null;
+    _updateTotalBalance();
   }
 
   /// Adds a new account.

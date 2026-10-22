@@ -285,6 +285,42 @@ void main() {
       data.setActiveAccount('a'); // same id → deletable mode preserved
       expect(data.isAccountDeletable('a'), isTrue);
     });
+
+    test('archiveAccount removes account from list and Total', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a'), _account('b')]);
+      data.addTool(_moneyTool('a-cash', 'a', quantity: 100, currentValue: 100));
+      data.addTool(_moneyTool('b-cash', 'b', quantity: 50, currentValue: 50));
+      expect(data.getAccountById('total')!.balance, 150.0);
+
+      data.archiveAccount('a');
+
+      // Счёт исчез из списка, но данные тулов остались в памяти.
+      expect(data.getAccountById('a'), isNull);
+      expect(data.tools.containsKey('a-cash'), isTrue);
+      // Total пересчитан без скрытого счёта.
+      expect(data.getAccountById('total')!.balance, 50.0);
+    });
+
+    test('archiveAccount cannot archive total', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.archiveAccount('total');
+      expect(data.getAccountById('total'), isNotNull);
+    });
+
+    test('deleteAccount removes account, tools and events of that account', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a'), _account('b')]);
+      data.addTool(_moneyTool('a-cash', 'a', quantity: 100, currentValue: 100));
+      data.addTool(_moneyTool('b-cash', 'b', quantity: 50, currentValue: 50));
+
+      data.deleteAccount('a');
+
+      expect(data.getAccountById('a'), isNull);
+      // Тулы удалённого счёта убраны, чужие — на месте.
+      expect(data.getAccountById('total')!.balance, 50.0);
+    });
   });
 
   group('Liabilities (M4: typed tools)', () {

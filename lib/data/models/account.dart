@@ -7,6 +7,7 @@ class Account {
   final String hideEvents; // New attribute to hide events for this account
   final String excludeFromTotal; // New attribute to exclude from total balance calculation
   final int sortOrder; // Порядок сортировки счетов (total всегда первый)
+  final bool isArchived; // Скрытый (архивный) счёт: не в списке и не в Total
 
   Account({
     required this.id,
@@ -16,6 +17,7 @@ class Account {
     required this.hideEvents,
     required this.excludeFromTotal,
     this.sortOrder = 0,
+    this.isArchived = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +29,7 @@ class Account {
       'hideEvents': hideEvents,
       'excludeFromTotal': excludeFromTotal,
       'sortOrder': sortOrder,
+      'isArchived': isArchived ? 1 : 0,
     };
   }
 
@@ -41,6 +44,7 @@ class Account {
       // Порядок счёта (стрелки перестановки) — иначе после перезапуска
       // сортировка падает в fallback по id и порядок «слетает».
       sortOrder: int.tryParse(map['sortOrder']?.toString() ?? '') ?? 0,
+      isArchived: map['isArchived']?.toString() == '1',
     );
   }
 }

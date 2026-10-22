@@ -1,6 +1,5 @@
 import 'package:investflow/core/db.dart';
 import 'package:investflow/data/models/scheduledTransaction.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ScheduledTransactionRepository {
@@ -40,6 +39,19 @@ class ScheduledTransactionRepository {
       whereArgs: [accountId],
     );
     return rows.map((e) => ScheduledTransaction.fromMap(e)).toList();
+  }
+
+  /// Только id плановых событий счёта — для очистки висячих event_id
+  /// в операциях перед удалением счёта.
+  Future<List<String>> getIdsByAccount(String accountId) async {
+    final db = await DatabaseHelper.instance.db;
+    final rows = await db.query(
+      'scheduled_transactions',
+      columns: ['id'],
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+    );
+    return rows.map((Map<String, Object?> e) => e['id'].toString()).toList();
   }
 
   /// Возвращает все запланированные транзакции, которые должны быть

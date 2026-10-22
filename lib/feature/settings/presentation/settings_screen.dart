@@ -15,6 +15,9 @@ import 'package:investflow/data/repository/settingsRepository.dart';
 import 'package:investflow/feature/auth/presentation/pin_screen.dart';
 import 'package:investflow/feature/auth/logic/auth_session.dart';
 import 'package:investflow/data/repository/currencyRepository.dart';
+import 'package:investflow/data/models/account.dart';
+import 'package:investflow/data/repository/accountRepository.dart';
+import 'package:investflow/feature/settings/presentation/archived_accounts_screen.dart';
 
 /// Экран настроек: каркас разделов (внешний вид, данные, о приложении).
 /// Переключение темы — рабочее (светлая/тёмная/системная, сохраняется в БД).
@@ -33,11 +36,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pinEnabled = false;
   int _pinTimeout = 60;
 
+  List<Account> _archivedAccounts = <Account>[];
+
   @override
   void initState() {
     super.initState();
     _loadCurrencies();
     _loadPin();
+    _loadArchived();
+  }
+
+  Future<void> _loadArchived() async {
+    final List<Account> list = await AccountRepository().getArchivedList();
+    if (mounted) {
+      setState(() => _archivedAccounts = list);
+    }
+  }
+
+  Future<void> _openArchive(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ArchivedAccountsScreen(),
+      ),
+    );
+    // Вернувшись из архива, обновить счётчик скрытых счетов.
+    await _loadArchived();
   }
 
   Future<void> _loadPin() async {
@@ -310,6 +333,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── Архив ───
+          _sectionHeader(context, 'Архив'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: Icon(
+                Icons.inventory_2_outlined,
+                color: colorScheme.primary,
+              ),
+              title: const Text('Архивные счета'),
+              subtitle: Text(
+                _archivedAccounts.isEmpty
+                    ? 'Нет скрытых счетов'
+                    : 'Скрыто: ${_archivedAccounts.length}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openArchive(context),
             ),
           ),
           const SizedBox(height: 24),
