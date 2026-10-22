@@ -22,14 +22,21 @@ class TransferForm extends StatelessWidget {
     final List<ToolSummary> initialMoneyTools = accountData.allMoneyTools
         .where((ToolSummary tool) => !tool.isClosed)
         .toList();
+    // Деньги активного счёта; если их нет (активный — total или архивный) —
+    // берём первый доступный money-тул, чтобы не падать на `.first`.
+    final List<ToolSummary> activeMoneyTools = accountData
+        .getMoneyToolsForAccount(accountData.activeAccountId);
+    final ToolSummary? currentTool = activeMoneyTools.isNotEmpty
+        ? activeMoneyTools.first
+        : (initialMoneyTools.isNotEmpty ? initialMoneyTools.first : null);
+    if (currentTool == null) {
+      return const SizedBox.shrink();
+    }
 
     return BlocProvider<TransferCubit>(
       create:
           (BuildContext context) => TransferCubit(
-            currentTool:
-                accountData
-                    .getMoneyToolsForAccount(accountData.activeAccountId)
-                    .first,
+            currentTool: currentTool,
             initialMoneyTools: initialMoneyTools,
             accounts: accountData.accounts,
           ),
@@ -154,13 +161,15 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                                   tool.id != state.selectedToToolId,
                             )
                             .map<DropdownMenuItem<String>>((ToolSummary tool) {
-                              final String accountName = state.accounts
-                                  .where(
-                                    (AccountSummary account) =>
-                                        account.id == tool.accountId,
-                                  )
-                                  .first
-                                  .name;
+                              final String accountName =
+                                  state.accounts
+                                      .where(
+                                        (AccountSummary account) =>
+                                            account.id == tool.accountId,
+                                      )
+                                      .firstOrNull
+                                      ?.name ??
+                                  '—';
                               return DropdownMenuItem<String>(
                                 value: tool.id,
                                 child: Text(
@@ -201,13 +210,15 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                                   tool.id != state.selectedFromToolId,
                             )
                             .map<DropdownMenuItem<String>>((ToolSummary tool) {
-                              final String accountName = state.accounts
-                                  .where(
-                                    (AccountSummary account) =>
-                                        account.id == tool.accountId,
-                                  )
-                                  .first
-                                  .name;
+                              final String accountName =
+                                  state.accounts
+                                      .where(
+                                        (AccountSummary account) =>
+                                            account.id == tool.accountId,
+                                      )
+                                      .firstOrNull
+                                      ?.name ??
+                                  '—';
                               return DropdownMenuItem<String>(
                                 value: tool.id,
                                 child: Text(

@@ -201,7 +201,8 @@ class TransferCubit extends Cubit<TransferState> {
       }
       final String? comment =
           state.comment.trim().isEmpty ? null : state.comment.trim();
-      final double commission = double.parse(state.commission ?? '0');
+      final double commission =
+          double.tryParse(state.commission?.trim() ?? '') ?? 0;
       // Имя от лица каждой стороны: на странице тула направление читается однозначно.
       final String namePrefix = state.isCrossCurrency ? 'Обмен' : 'Перевод';
       final String name = '$namePrefix на ${_getToolName(state.selectedToToolId!)}';

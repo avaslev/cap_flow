@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:investflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -331,69 +333,19 @@ class AccountCard extends StatelessWidget {
   }
 
   /// Нижняя шторка управления счётом: архив, полное удаление или отмена.
+  /// Безвозвратное удаление защищено от случайного нажатия: нужно подтвердить
+  /// его тремя тапами подряд, иначе счётчик сбрасывается по таймеру.
   Future<void> _showManageSheet(
     BuildContext context,
     AccountsBloc accountBloc,
   ) async {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final _ManageAction? action = await showModalBottomSheet<_ManageAction>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-                child: Text(
-                  'Счёт «${account.name}»',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text(
-                  'Выберите действие. Полное удаление необратимо и стирает '
-                  'операции из истории и статистики по всем месяцам. '
-                  'Архивация сохраняет данные — счёт можно вернуть.',
-                  style: TextStyle(fontSize: 13),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.inventory_2_outlined),
-                title: const Text('Положить в архив'),
-                subtitle: const Text('Скрыть из списка и баланса, данные сохранить'),
-                onTap: () =>
-                    Navigator.pop(sheetContext, _ManageAction.archive),
-              ),
-              ListTile(
-                leading: Icon(Icons.delete_forever, color: colorScheme.error),
-                title: Text(
-                  'Удалить полностью',
-                  style: TextStyle(color: colorScheme.error),
-                ),
-                subtitle: const Text(
-                  'Убрать счёт, тулы, операции и парные переводы. '
-                  'Восстановить можно только из резервной копии',
-                ),
-                onTap: () => Navigator.pop(sheetContext, _ManageAction.delete),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.close),
-                title: const Text('Отмена'),
-                onTap: () => Navigator.pop(sheetContext, _ManageAction.cancel),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
+        return _ManageAccountSheet(account: account);
       },
     );
 
@@ -416,6 +368,127 @@ class AccountCard extends StatelessWidget {
       case null:
         accountBloc.add(DisableEditModeAccountCardEvent(account.id));
     }
+  }
+}
+
+/// Шторка управления счётом. Полное удаление требует трёх подтверждений
+/// подряд: после каждого тапа показывается тостер с обратным отсчётом.
+class _ManageAccountSheet extends StatefulWidget {
+  final AccountSummary account;
+
+  const _ManageAccountSheet({required this.account});
+
+  @override
+  State<_ManageAccountSheet> createState() => _ManageAccountSheetState();
+}
+
+class _ManageAccountSheetState extends State<_ManageAccountSheet> {
+  /// Сколько нажатий нужно ещё для безвозвратного удаления.
+  static const int _requiredTaps = 3;
+  /// Окно, за которое счётчик сбрасывается (сек).
+  static const int _confirmWindowSeconds = 5;
+  /// Высота нижней шторки — тост показывается над ней.
+  static const double _sheetHeight = 330;
+
+  int _tapsLeft = _requiredTaps;
+  Timer? _resetTimer;
+
+  @override
+  void dispose() {
+    _resetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onDeleteTap() {
+    setState(() => _tapsLeft--);
+    if (_tapsLeft <= 0) {
+      _resetTimer?.cancel();
+      Navigator.pop(context, _ManageAction.delete);
+      return;
+    }
+    Toast.show(
+      context,
+      'Ещё $_tapsLeft ${_plural(_tapsLeft)} для удаления',
+      error: true,
+      countdown: const Duration(seconds: _confirmWindowSeconds),
+      bottomOffset: _sheetHeight,
+    );
+    _resetTimer?.cancel();
+    _resetTimer = Timer(const Duration(seconds: _confirmWindowSeconds), () {
+      if (!mounted) return;
+      setState(() => _tapsLeft = _requiredTaps);
+    });
+  }
+
+  static String _plural(int n) {
+    if (n >= 5) return 'нажатий';
+    if (n == 1) return 'нажатие';
+    return 'нажатия';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+            child: Text(
+              'Счёт «${widget.account.name}»',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Text(
+              'Выберите действие. Полное удаление необратимо и стирает '
+              'операции из истории и статистики по всем месяцам. '
+              'Архивация сохраняет данные — счёт можно вернуть.',
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: const Text('Положить в архив'),
+            subtitle: const Text('Скрыть из списка и баланса, данные сохранить'),
+            onTap: () => Navigator.pop(context, _ManageAction.archive),
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_forever, color: colorScheme.error),
+            title: Text(
+              'Удалить полностью',
+              style: TextStyle(color: colorScheme.error),
+            ),
+            subtitle: Text(
+              _tapsLeft == _requiredTaps
+                  ? 'Убрать счёт, тулы, операции и парные переводы. '
+                        'Восстановить можно только из резервной копии. '
+                        'Требуется $_requiredTaps нажатия'
+                  : 'Нажмите ещё $_tapsLeft ${_plural(_tapsLeft)}, '
+                        'чтобы удалить безвозвратно',
+              style: TextStyle(
+                color: _tapsLeft == _requiredTaps
+                    ? null
+                    : colorScheme.error,
+              ),
+            ),
+            onTap: _onDeleteTap,
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.close),
+            title: const Text('Отмена'),
+            onTap: () => Navigator.pop(context, _ManageAction.cancel),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
   }
 }
 

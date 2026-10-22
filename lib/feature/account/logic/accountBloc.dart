@@ -151,13 +151,17 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       if (true == event.remove) {
         // Полное удаление: тулы, их операции, парные половины переводов,
         // строка счёта и плановые события (с очисткой висячих event_id).
-        final tools = accountData.getToolsForAccount(event.accountId);
+        // Все тулы счёта из БД (включая скрытые: инвест-тула с нулевым
+        // количеством и т.п.) — иначе операции на них не будут найдены.
+        final List<Tool> allTools = await ToolRepository().geListByAccount(
+          event.accountId,
+        );
 
-        // Собрать id пар переводов и плановых событий этого счёта до удаления.
+        // Собрать id пар переводов этого счёта до удаления.
         final Set<String> transferPairIds = <String>{};
-        for (final toolSummary in tools) {
+        for (final Tool tool in allTools) {
           final List<Activity> activities = await ActivityRepository()
-              .getActivityListByTool(toolSummary.id);
+              .getActivityListByTool(tool.id);
           for (final Activity a in activities) {
             if (a.transferPairId != null && a.transferPairId!.isNotEmpty) {
               transferPairIds.add(a.transferPairId!);
@@ -171,9 +175,9 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         }
 
         // Тулы и их операции.
-        for (final toolSummary in tools) {
-          await ActivityRepository().deleteByTool(toolSummary.id);
-          await ToolRepository().delete(toolSummary.id);
+        for (final Tool tool in allTools) {
+          await ActivityRepository().deleteByTool(tool.id);
+          await ToolRepository().delete(tool.id);
         }
 
         accountData.deleteAccount(event.accountId);
