@@ -51,6 +51,40 @@ class Activity {
     this.transferPairId,
   });
 
+  Activity copyWith({
+    String? id,
+    String? toolId,
+    ActivityType? type,
+    DateTime? createAt,
+    double? quantity,
+    double? price,
+    Currency? currency,
+    bool? isTransmit,
+    String? name,
+    String? comment,
+    String? eventId,
+    double? interestAmount,
+    double? principalAmount,
+    String? transferPairId,
+  }) {
+    return Activity(
+      id: id ?? this.id,
+      toolId: toolId ?? this.toolId,
+      type: type ?? this.type,
+      createAt: createAt ?? this.createAt,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      currency: currency ?? this.currency,
+      isTransmit: isTransmit ?? this.isTransmit,
+      name: name ?? this.name,
+      comment: comment ?? this.comment,
+      eventId: eventId ?? this.eventId,
+      interestAmount: interestAmount ?? this.interestAmount,
+      principalAmount: principalAmount ?? this.principalAmount,
+      transferPairId: transferPairId ?? this.transferPairId,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,

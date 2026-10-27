@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:investflow/core/utils/formatCurrency.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/core/widgets/searchable_picker.dart';
+import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/categoryRepository.dart';
 import 'package:go_router/go_router.dart';
+import 'package:investflow/feature/activity/logic/activity_rows.dart';
 import 'package:investflow/feature/activity/logic/bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -39,12 +44,26 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   String? _categoryFilter; // null = все категории
   List<String> _categories = const <String>[];
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  late final StreamSubscription<void> _activityChanges;
 
   @override
   void initState() {
     super.initState();
     context.read<ActivityBloc>().add(ActivityListTransitionEvent());
     _loadCategories();
+    // Undo удаления вставляет запись уже после возврата с деталей —
+    // перечитываем список, чтобы восстановленная операция появилась.
+    _activityChanges = ActivityRepository.changes.listen((_) {
+      if (mounted) {
+        context.read<ActivityBloc>().add(ActivityListTransitionEvent());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _activityChanges.cancel();
+    super.dispose();
   }
 
   Future<void> _loadCategories() async {
@@ -196,7 +215,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   );
                 }
                 if (state is ActivityListLoaded) {
-                  return _buildList(context, state.data);
+                  return _buildList(context, state);
                 }
                 return const SizedBox.shrink();
               },
@@ -208,50 +227,81 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   /// Фильтрация по месяцу/типу/категории/тексту + группировка по дням.
-  List<MapEntry<DateTime, List<Activity>>> _groupFiltered(
-    List<Activity> data,
+  List<MapEntry<DateTime, List<ActivityRow>>> _groupFiltered(
+    List<ActivityRow> rows,
+    Map<String, Tool> toolsById,
   ) {
-    final String query = _query.trim().toLowerCase();
-    final Map<DateTime, List<Activity>> grouped = <DateTime, List<Activity>>{};
-    for (final Activity a in data) {
-      if (_month.year != a.createAt.year || _month.month != a.createAt.month) {
-        continue;
-      }
-      final bool internal = a.isTransmit;
-      if (_typeFilter != null) {
-        if (_typeFilter == 'transfer') {
-          if (!internal) continue;
-        } else if (internal || a.type.name != _typeFilter) {
-          continue;
-        }
-      }
-      if (_categoryFilter != null && a.name != _categoryFilter) {
-        continue;
-      }
-      if (query.isNotEmpty) {
-        final String name = (a.name ?? '').toLowerCase();
-        final String comment = (a.comment ?? '').toLowerCase();
-        if (!name.contains(query) && !comment.contains(query)) {
-          continue;
-        }
-      }
+    final Map<DateTime, List<ActivityRow>> grouped =
+        <DateTime, List<ActivityRow>>{};
+    for (final ActivityRow row in rows) {
+      if (!_matchesFilters(row, toolsById)) continue;
       final DateTime day = DateTime(
-        a.createAt.year,
-        a.createAt.month,
-        a.createAt.day,
+        row.date.year,
+        row.date.month,
+        row.date.day,
       );
-      grouped.putIfAbsent(day, () => <Activity>[]).add(a);
+      grouped.putIfAbsent(day, () => <ActivityRow>[]).add(row);
     }
     final List<DateTime> keys = grouped.keys.toList()
       ..sort((DateTime a, DateTime b) => b.compareTo(a));
-    return <MapEntry<DateTime, List<Activity>>>[
-      for (final DateTime k in keys) MapEntry<DateTime, List<Activity>>(k, grouped[k]!),
+    return <MapEntry<DateTime, List<ActivityRow>>>[
+      for (final DateTime k in keys)
+        MapEntry<DateTime, List<ActivityRow>>(
+          k,
+          grouped[k]!
+            ..sort(
+              (ActivityRow a, ActivityRow b) => b.date.compareTo(a.date),
+            ),
+        ),
     ];
   }
 
-  Widget _buildList(BuildContext context, List<Activity> data) {
-    final List<MapEntry<DateTime, List<Activity>>> groups = _groupFiltered(
-      data,
+  bool _matchesFilters(ActivityRow row, Map<String, Tool> toolsById) {
+    if (_month.year != row.date.year || _month.month != row.date.month) {
+      return false;
+    }
+    final String query = _query.trim().toLowerCase();
+
+    if (row is TransferActivityRow) {
+      if (_typeFilter != null && _typeFilter != 'transfer') return false;
+      if (_categoryFilter != null) return false;
+      if (query.isEmpty) return true;
+      return _containsText(row.from, query) ||
+          _containsText(row.to, query) ||
+          _containsText(row.commission, query) ||
+          (toolsById[row.from.toolId]?.name ?? '')
+              .toLowerCase()
+              .contains(query) ||
+          (toolsById[row.to.toolId]?.name ?? '')
+              .toLowerCase()
+              .contains(query);
+    }
+
+    final Activity a = (row as SingleActivityRow).activity;
+    if (_typeFilter != null) {
+      if (_typeFilter == 'transfer') {
+        if (!a.isTransmit) return false;
+      } else if (a.isTransmit || a.type.name != _typeFilter) {
+        return false;
+      }
+    }
+    if (_categoryFilter != null && a.name != _categoryFilter) return false;
+    if (query.isEmpty) return true;
+    return _containsText(a, query) ||
+        (toolsById[a.toolId]?.name ?? '').toLowerCase().contains(query);
+  }
+
+  bool _containsText(Activity? a, String query) {
+    if (a == null) return false;
+    return (a.name ?? '').toLowerCase().contains(query) ||
+        (a.comment ?? '').toLowerCase().contains(query);
+  }
+
+  Widget _buildList(BuildContext context, ActivityListLoaded state) {
+    final List<ActivityRow> rows = buildActivityRows(state.data);
+    final List<MapEntry<DateTime, List<ActivityRow>>> groups = _groupFiltered(
+      rows,
+      state.toolsById,
     );
 
     if (groups.isEmpty) {
@@ -271,13 +321,15 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     // (переводы между своими счетами не влияют).
     double income = 0;
     double expense = 0;
-    for (final MapEntry<DateTime, List<Activity>> g in groups) {
-      for (final Activity a in g.value) {
-        if (a.isTransmit) continue;
-        if (a.type == ActivityType.add) {
-          income += a.price * a.quantity;
-        } else {
-          expense -= a.price * a.quantity;
+    for (final MapEntry<DateTime, List<ActivityRow>> g in groups) {
+      for (final ActivityRow row in g.value) {
+        for (final Activity a in row.activities) {
+          if (a.isTransmit) continue;
+          if (a.type == ActivityType.add) {
+            income += a.price * a.quantity;
+          } else {
+            expense -= a.price * a.quantity;
+          }
         }
       }
     }
@@ -302,8 +354,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             ),
           ),
         ),
-        for (final MapEntry<DateTime, List<Activity>> g in groups)
-          _DayGroup(date: g.key, actions: g.value),
+        for (final MapEntry<DateTime, List<ActivityRow>> g in groups)
+          _DayGroup(
+            date: g.key,
+            rows: g.value,
+            toolsById: state.toolsById,
+          ),
         const SizedBox(height: 24),
       ],
     );
@@ -346,9 +402,14 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 /// Группа операций за день.
 class _DayGroup extends StatelessWidget {
   final DateTime date;
-  final List<Activity> actions;
+  final List<ActivityRow> rows;
+  final Map<String, Tool> toolsById;
 
-  const _DayGroup({required this.date, required this.actions});
+  const _DayGroup({
+    required this.date,
+    required this.rows,
+    required this.toolsById,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -356,13 +417,15 @@ class _DayGroup extends StatelessWidget {
     // Переводы между своими счетами не влияют на доход/расход дня.
     double dayIncome = 0;
     double dayExpense = 0;
-    for (final Activity a in actions) {
-      if (a.isTransmit) continue;
-      final double v = a.price * a.quantity;
-      if (a.type == ActivityType.add) {
-        dayIncome += v;
-      } else {
-        dayExpense += v;
+    for (final ActivityRow row in rows) {
+      for (final Activity a in row.activities) {
+        if (a.isTransmit) continue;
+        final double v = a.price * a.quantity;
+        if (a.type == ActivityType.add) {
+          dayIncome += v;
+        } else {
+          dayExpense += v;
+        }
       }
     }
 
@@ -408,8 +471,11 @@ class _DayGroup extends StatelessWidget {
             ],
           ),
         ),
-        ...actions
-            .map<Widget>((Activity a) => _ActivityListItem(activity: a))
+        ...rows
+            .map<Widget>(
+              (ActivityRow row) =>
+                  _ActivityListItem(row: row, toolsById: toolsById),
+            )
             .toList(),
         const Divider(height: 1.0, indent: 16.0, endIndent: 16.0),
       ],
@@ -417,11 +483,30 @@ class _DayGroup extends StatelessWidget {
   }
 }
 
-/// Строка операции.
+/// Строка операции: одиночная запись или объединённый перевод.
 class _ActivityListItem extends StatelessWidget {
+  final ActivityRow row;
+  final Map<String, Tool> toolsById;
+
+  const _ActivityListItem({required this.row, required this.toolsById});
+
+  @override
+  Widget build(BuildContext context) {
+    final ActivityRow current = row;
+    if (current is TransferActivityRow) {
+      return _TransferActivityListItem(row: current, toolsById: toolsById);
+    }
+    return _SingleActivityListItem(
+      activity: (current as SingleActivityRow).activity,
+    );
+  }
+}
+
+/// Строка обычной операции.
+class _SingleActivityListItem extends StatelessWidget {
   final Activity activity;
 
-  const _ActivityListItem({required this.activity});
+  const _SingleActivityListItem({required this.activity});
 
   @override
   Widget build(BuildContext context) {
@@ -435,8 +520,13 @@ class _ActivityListItem extends StatelessWidget {
         : activity.price * activity.quantity;
 
     return InkWell(
-      onTap: () {
-        context.push('/activities/${activity.id}');
+      onTap: () async {
+        await context.push('/activities/${activity.id}');
+        // Возвращаемся с деталей: данные могли измениться (в т.ч. обе
+        // половины перевода) — перечитываем список.
+        if (context.mounted) {
+          context.read<ActivityBloc>().add(ActivityListTransitionEvent());
+        }
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -493,5 +583,96 @@ class _ActivityListItem extends StatelessWidget {
       ),
     );
   }
-
 }
+
+/// Строка объединённого перевода: откуда → куда, сумма, комиссия.
+class _TransferActivityListItem extends StatelessWidget {
+  final TransferActivityRow row;
+  final Map<String, Tool> toolsById;
+
+  const _TransferActivityListItem({
+    required this.row,
+    required this.toolsById,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Tool? fromTool = toolsById[row.from.toolId];
+    final Tool? toTool = toolsById[row.to.toolId];
+    final String fromName = fromTool?.name ?? 'счёт';
+    final String toName = toTool?.name ?? 'счёт';
+    final String? fromTicker = fromTool?.ticker;
+    final String? toTicker = toTool?.ticker;
+
+    final List<String> subtitle = <String>[];
+    if (fromTicker != null &&
+        toTicker != null &&
+        fromTicker != toTicker) {
+      subtitle.add(
+        '${_formatAmount(row.from.quantity)} $fromTicker → '
+        '${_formatAmount(row.to.quantity)} $toTicker',
+      );
+    }
+    final String? comment = row.from.comment;
+    if (comment != null && comment.isNotEmpty) subtitle.add(comment);
+    if (row.commission != null) {
+      final Activity commission = row.commission!;
+      subtitle.add('Комиссия: ${formatCurrency(commission.price * commission.quantity)}');
+    }
+    final String title = switch (row.kind) {
+      TransferKind.purchase => 'Покупка: ${toTool?.name ?? 'инструмент'}',
+      TransferKind.sale => 'Продажа: ${fromTool?.name ?? 'инструмент'}',
+      TransferKind.transfer => 'Перевод: $fromName → $toName',
+    };
+
+    return InkWell(
+      onTap: () async {
+        await context.push('/activities/${row.from.id}');
+        if (context.mounted) {
+          context.read<ActivityBloc>().add(ActivityListTransitionEvent());
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.swap_horiz, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 16.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  for (final String line in subtitle)
+                    Text(
+                      line,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                ],
+              ),
+            ),
+            Text(
+              formatCurrency(row.rubAmount),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatAmount(double value) =>
+    NumberFormat('#,##0.##', 'ru').format(value);

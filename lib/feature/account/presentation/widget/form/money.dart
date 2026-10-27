@@ -285,21 +285,34 @@ class _MoneyFormState extends State<MoneyForm> {
 
       final DateTime now = DateTime.now();
       final String openName = 'Открытие «$name»';
+      // Общий id пары: списание с источника и зачисление на новый тул —
+      // одна строка перевода в «Активности».
+      final String? transferPairId =
+          sourceTool != null ? const Uuid().v7() : null;
 
       // Внутренний обмен: RUB-эквивалент списывается с money-тула-источника.
       if (sourceTool != null) {
         final double rubEquivalent = amount * rate;
+        // Источник пишем в его валюте: quantity × price = RUB-эквивалент,
+        // чтобы пара читалась и редактировалась так же, как обычный перевод.
+        final double derivedRate = sourceTool.quantity > 0
+            ? sourceTool.currentValue / sourceTool.quantity
+            : 1;
+        final double sourceRate = derivedRate > 0 && derivedRate.isFinite
+            ? derivedRate
+            : 1;
         await ActivityRepository().insert(
           Activity(
             id: const Uuid().v7(),
             toolId: sourceTool.id,
             type: ActivityType.substract,
             createAt: now,
-            quantity: rubEquivalent,
-            price: 1,
+            quantity: rubEquivalent / sourceRate,
+            price: sourceRate,
             currency: Currency.RUB,
             isTransmit: true,
             name: openName,
+            transferPairId: transferPairId,
           ),
         );
       }
@@ -317,6 +330,7 @@ class _MoneyFormState extends State<MoneyForm> {
           currency: Currency.RUB,
           isTransmit: true,
           name: openName,
+          transferPairId: transferPairId,
         ),
       );
 

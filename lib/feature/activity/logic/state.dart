@@ -13,12 +13,40 @@ final class ActivityInitial extends ActivityState {}
 final class ActivityListLoaded extends ActivityState {
   final List<Activity> data;
   final Map<DateTime, List<Activity>> grouped;
-  ActivityListLoaded({required this.data, required this.grouped});
+  final Map<String, Tool> toolsById;
+
+  ActivityListLoaded({
+    required this.data,
+    required this.grouped,
+    this.toolsById = const <String, Tool>{},
+  });
 }
 
 final class ActivityLoaded extends ActivityState {
   final Activity data;
-  ActivityLoaded({required this.data});
+
+  /// Вторая половина перевода (если открыта половина пары).
+  final Activity? counterpart;
+
+  /// Комиссия перевода (если есть).
+  final Activity? commission;
+
+  ActivityLoaded({
+    required this.data,
+    this.counterpart,
+    this.commission,
+  });
+
+  bool get isTransferPair => counterpart != null;
+
+  /// Смысл пары: перевод, покупка или продажа.
+  TransferKind get transferKind {
+    final Activity? other = counterpart;
+    if (other == null) return TransferKind.transfer;
+    final Activity from = data.type == ActivityType.substract ? data : other;
+    final Activity to = data.type == ActivityType.substract ? other : data;
+    return transferKindOf(from, to);
+  }
 }
  
 class ActivityError extends ActivityState {

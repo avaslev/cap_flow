@@ -1,6 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:investflow/data/models/activity.dart';
+import 'package:investflow/data/models/tool.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
+import 'package:investflow/data/repository/toolRepository.dart';
+import 'package:investflow/feature/activity/logic/activity_rows.dart';
 import 'package:meta/meta.dart';
 
 // Importing the parts for event and state definitions
@@ -21,6 +24,10 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
   ) async {
     try {
       final list = await ActivityRepository().getActivityList();
+      final List<Tool> tools = await ToolRepository().geList();
+      final Map<String, Tool> toolsById = <String, Tool>{
+        for (final Tool tool in tools) tool.id: tool,
+      };
       final Map<DateTime, List<Activity>> grouped = <DateTime, List<Activity>>{};
       for (final Activity action in list) {
         final DateTime date = DateTime(action.createAt.year, action.createAt.month, action.createAt.day);
@@ -34,7 +41,13 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
           ..sort((a, b) => b.createAt.compareTo(a.createAt));
         sortedGrouped[key] = sortedActivities;
       }
-      emit(ActivityListLoaded(data: list, grouped: sortedGrouped));
+      emit(
+        ActivityListLoaded(
+          data: list,
+          grouped: sortedGrouped,
+          toolsById: toolsById,
+        ),
+      );
     } catch (e) {
       emit(ActivityError(message: 'Не удалось загрузить операции: $e'));
     }
@@ -45,10 +58,33 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     Emitter<ActivityState> emit,
   ) async {
     try {
-      final Activity activity = await ActivityRepository().getById(
-        event.activityId,
+      final ActivityRepository repository = ActivityRepository();
+      final Activity activity = await repository.getById(event.activityId);
+
+      Activity? counterpart;
+      Activity? commission;
+      final String? pairId = activity.transferPairId;
+      if (pairId != null && pairId.isNotEmpty && activity.isTransmit) {
+        final List<Activity> group = await repository.getByTransferPairId(
+          pairId,
+        );
+        for (final Activity a in group) {
+          if (a.id == activity.id) continue;
+          if (!a.isTransmit) {
+            commission ??= a;
+          } else if (a.type != activity.type) {
+            counterpart ??= a;
+          }
+        }
+      }
+
+      emit(
+        ActivityLoaded(
+          data: activity,
+          counterpart: counterpart,
+          commission: commission,
+        ),
       );
-      emit(ActivityLoaded(data: activity));
     } catch (e) {
       emit(ActivityError(message: 'Не удалось загрузить операцию: $e'));
     }

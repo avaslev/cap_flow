@@ -219,6 +219,9 @@ class _DepositFormState extends State<DepositForm> {
       );
       await ToolRepository().insert(depositTool);
 
+      // Общий id пары: деньги → депозит — одна строка перевода.
+      final String transferPairId = const Uuid().v7();
+
       // Money leaves the source cash tool (replay keeps it consistent).
       await ActivityRepository().insert(
         Activity(
@@ -232,6 +235,7 @@ class _DepositFormState extends State<DepositForm> {
           // Внутреннее перемещение (деньги → депозит), не расход.
           isTransmit: true,
           name: 'Открытие депозита «$name»',
+          transferPairId: transferPairId,
         ),
       );
       // Principal lands on the deposit tool.
@@ -247,6 +251,7 @@ class _DepositFormState extends State<DepositForm> {
           // Внутреннее перемещение — не доход.
           isTransmit: true,
           name: 'Открытие депозита',
+          transferPairId: transferPairId,
         ),
       );
 

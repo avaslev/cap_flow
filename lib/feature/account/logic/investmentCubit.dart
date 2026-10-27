@@ -818,6 +818,8 @@ class InvestmentCubit extends Cubit<InvestmentState> {
     }
 
     final instrumentCost = quantity * price;
+    // Общий id пары: деньги → инструмент — одна строка покупки.
+    final String transferPairId = Uuid().v7();
 
     // Add Activity record for money tool change (money out)
     await ActivityRepository().insert(
@@ -831,6 +833,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         currency: Currency.RUB,
         isTransmit: true, // внутренний обмен, не расход
         name: 'Buy $name (money out)',
+        transferPairId: transferPairId,
       ),
     );
 
@@ -847,6 +850,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           currency: Currency.RUB,
           isTransmit: false,
           name: 'Commission for $name',
+          transferPairId: transferPairId,
         ),
       );
     }
@@ -887,6 +891,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           currency: Currency.RUB,
           isTransmit: true, // внутренний обмен, не доход
           name: 'Buy $name',
+          transferPairId: transferPairId,
         ),
       );
       final double newQty = existingTool.quantity + quantity;
@@ -945,6 +950,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           currency: Currency.RUB,
           isTransmit: true, // внутренний обмен, не доход
           name: 'Buy $name',
+          transferPairId: transferPairId,
         ),
       );
       await _ensureIncomeSchedule(
@@ -980,6 +986,9 @@ class InvestmentCubit extends Cubit<InvestmentState> {
       throw Exception('Insufficient quantity of $ticker to sell');
     }
 
+    // Общий id пары: инструмент → деньги — одна строка продажи.
+    final String transferPairId = Uuid().v7();
+
     // Add Activity record for money tool change (money in from sale)
     await ActivityRepository().insert(
       Activity(
@@ -992,6 +1001,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         currency: Currency.RUB,
         isTransmit: true, // внутренний обмен, не доход
         name: 'Sell $name (money in)',
+        transferPairId: transferPairId,
       ),
     );
 
@@ -1026,6 +1036,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
           currency: Currency.RUB,
           isTransmit: false,
           name: 'Commission for $name',
+          transferPairId: transferPairId,
         ),
       );
     }
@@ -1050,6 +1061,7 @@ class InvestmentCubit extends Cubit<InvestmentState> {
         currency: Currency.RUB,
         isTransmit: true, // внутренний обмен, не расход
         name: 'Sell $name',
+        transferPairId: transferPairId,
       ),
     );
 

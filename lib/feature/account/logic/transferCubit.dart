@@ -4,6 +4,7 @@ import 'package:investflow/data/repository/toolRepository.dart';
 import 'package:investflow/data/repository/activityRepository.dart';
 import 'package:investflow/data/repository/currencyRepository.dart';
 import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
+import 'package:investflow/core/utils/transferRates.dart';
 import 'package:investflow/feature/account/data/accountDataState.dart';
 import 'package:investflow/feature/account/data/transferState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -70,13 +71,6 @@ class TransferCubit extends Cubit<TransferState> {
       if (t.id == toolId) return t.ticker ?? 'RUB';
     }
     return null;
-  }
-
-  /// Курс валюты к дефолтной; дефолтная = 1.
-  Future<double> _rateToDefault(String ticker) async {
-    final String def = await _currencyRepository.getDefaultCurrency();
-    if (ticker == def) return 1;
-    return _currencyRepository.getRate(ticker);
   }
 
   /// Updates the comment in the state.
@@ -213,38 +207,29 @@ class TransferCubit extends Cubit<TransferState> {
       final Tool fromTool = await _toolRepository.get(state.selectedFromToolId!);
       final Tool toTool = await _toolRepository.get(state.selectedToToolId!);
       final String defCurrency = await _currencyRepository.getDefaultCurrency();
-      double fromRate = await _rateToDefault(fromTool.ticker ?? defCurrency);
-      double toRate = await _rateToDefault(toTool.ticker ?? defCurrency);
+      final String ft = fromTool.ticker ?? defCurrency;
+      final String tt = toTool.ticker ?? defCurrency;
 
+      double fromRate;
+      double toRate;
       if (state.isCrossCurrency) {
-        // Курс обмена из введённых сумм (FROM за 1 TO). Цены сторон
-        // обязаны давать одинаковый рублёвый эквивалент:
+        // Цены сторон обязаны давать одинаковый рублёвый эквивалент:
         // quantity_from × fromRate = quantity_to × toRate.
-        final double manualRate = amount / amountTo;
-        final String ft = fromTool.ticker ?? defCurrency;
-        final String tt = toTool.ticker ?? defCurrency;
-        if (ft == defCurrency) {
-          // FROM — дефолтная: эквивалент задаёт сумма списания.
-          fromRate = 1;
-          toRate = 1 / manualRate;
-        } else if (tt == defCurrency) {
-          // TO — дефолтная: эквивалент задаёт сумма зачисления.
-          toRate = 1;
-          fromRate = manualRate;
-        } else if (fromRate > 0) {
-          toRate = fromRate * manualRate;
-        } else if (toRate > 0) {
-          fromRate = toRate / manualRate;
-        } else {
-          fromRate = 1;
-          toRate = manualRate;
-        }
-        if (fromRate > 0) {
-          await _currencyRepository.setRate(ft, fromRate);
-        }
-        if (toRate > 0) {
-          await _currencyRepository.setRate(tt, toRate);
-        }
+        final TransferRate rates = await resolveTransferRates(
+          fromTicker: ft,
+          toTicker: tt,
+          amountFrom: amount,
+          amountTo: amountTo,
+          currencyRepository: _currencyRepository,
+        );
+        fromRate = rates.fromRate;
+        toRate = rates.toRate;
+      } else {
+        fromRate = ft == defCurrency
+            ? 1
+            : await _currencyRepository.getRate(ft);
+        if (fromRate <= 0 || !fromRate.isFinite) fromRate = 1;
+        toRate = fromRate;
       }
 
       // add activity ti tool (source)
@@ -279,6 +264,7 @@ class TransferCubit extends Cubit<TransferState> {
             isTransmit: false,
             name: 'Commission',
             comment: '${name}',
+            transferPairId: transferPairId,
           ),
         );
       await ActivityRepository().insert(

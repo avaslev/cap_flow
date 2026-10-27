@@ -77,6 +77,9 @@ class _OtherFormState extends State<OtherForm> {
 
       final DateTime now = DateTime.now();
       final String openName = 'Актив «$name»';
+      // Общий id пары: деньги → актив — одна строка перевода.
+      final String? transferPairId =
+          moneyTool != null ? const Uuid().v7() : null;
 
       // Внутреннее перемещение при покупке актива (если указан источник).
       if (moneyTool != null) {
@@ -91,6 +94,7 @@ class _OtherFormState extends State<OtherForm> {
             currency: Currency.RUB,
             isTransmit: true,
             name: 'Покупка актива «$name»',
+            transferPairId: transferPairId,
           ),
         );
       }
@@ -108,6 +112,7 @@ class _OtherFormState extends State<OtherForm> {
           // Внутреннее перемещение (деньги → актив), не доход.
           isTransmit: true,
           name: openName,
+          transferPairId: transferPairId,
         ),
       );
 

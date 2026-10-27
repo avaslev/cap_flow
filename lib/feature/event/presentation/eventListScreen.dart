@@ -646,6 +646,9 @@ class _EventCard extends StatelessWidget {
           ..showSnackBar(
             SnackBar(
               content: Text('Событие "${event.name}" удалено'),
+              // Снекбар с action по умолчанию не закрывается сам.
+              persist: false,
+              duration: const Duration(seconds: 5),
               action: SnackBarAction(
                 label: 'Отменить',
                 onPressed: () =>

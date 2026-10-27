@@ -6,6 +6,7 @@ import 'dart:io' show Directory, File;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:investflow/core/utils/transferPairBackfill.dart';
 
 Map<int, String> migrationScripts = {
   1: '''CREATE TABLE activities (
@@ -88,6 +89,22 @@ Map<int, String> migrationScripts = {
   16: '''INSERT INTO currency_rates (code, rate) VALUES ('RUB', 1.0)''',
   17: '''ALTER TABLE accounts ADD COLUMN isArchived INTEGER NOT NULL DEFAULT 0''',
   18: '''ALTER TABLE activities ADD COLUMN transfer_pair_id TEXT''',
+  // Бэкфилл: пары «Открытие «<валюта>»», созданные money-формой с переводом
+  // с основного тула (списание + зачисление в одну миллисекунду), получают
+  // общий id, чтобы в «Активности» это была одна строка перевода.
+  19: '''UPDATE activities
+SET transfer_pair_id = 'legacy-' || create_at || '-' || name
+WHERE transfer_pair_id IS NULL
+  AND is_transmit = 1
+  AND name LIKE 'Открытие «%»'
+  AND EXISTS (
+    SELECT 1 FROM activities b
+    WHERE b.transfer_pair_id IS NULL
+      AND b.is_transmit = 1
+      AND b.name = activities.name
+      AND b.create_at = activities.create_at
+      AND b.type <> activities.type
+  )''',
 };
 
 class DatabaseHelper {
@@ -161,6 +178,9 @@ class DatabaseHelper {
         }
       },
     );
+    // Связываем старые пары «создание тула с переводом» (депозит, кредит,
+    // актив, money) — идемпотентно, только untagged transmit-записи.
+    await backfillTransferPairs(db);
     return db;
   }
 }

@@ -154,6 +154,9 @@ class _CreditFormState extends State<CreditForm> {
       );
       await ToolRepository().insert(creditTool);
 
+      // Общий id пары: кредит → деньги — одна строка перевода.
+      final String transferPairId = const Uuid().v7();
+
       // Выдача кредита — внутреннее перемещение, не доход:
       // деньги приходуют на money-тул.
       await ActivityRepository().insert(
@@ -167,6 +170,7 @@ class _CreditFormState extends State<CreditForm> {
           currency: Currency.RUB,
           isTransmit: true,
           name: 'Получение кредита «$name»',
+          transferPairId: transferPairId,
         ),
       );
       // Обязательство: кредит-тул уходит в минус (replay: 0 − amount).
@@ -181,6 +185,7 @@ class _CreditFormState extends State<CreditForm> {
           currency: Currency.RUB,
           isTransmit: true,
           name: 'Получение кредита «$name»',
+          transferPairId: transferPairId,
         ),
       );
 
