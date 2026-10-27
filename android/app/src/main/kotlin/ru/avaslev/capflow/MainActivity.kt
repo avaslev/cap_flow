@@ -1,4 +1,4 @@
-package ru.onlamp.investflow
+package ru.avaslev.capflow
 
 import android.content.Intent
 import android.net.Uri
