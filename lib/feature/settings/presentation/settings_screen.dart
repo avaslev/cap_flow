@@ -18,6 +18,7 @@ import 'package:investflow/data/repository/currencyRepository.dart';
 import 'package:investflow/data/models/account.dart';
 import 'package:investflow/data/repository/accountRepository.dart';
 import 'package:investflow/feature/settings/presentation/archived_accounts_screen.dart';
+import 'package:investflow/feature/settings/presentation/widgets/update_section.dart';
 
 /// Экран настроек: каркас разделов (внешний вид, данные, о приложении).
 /// Переключение темы — рабочее (светлая/тёмная/системная, сохраняется в БД).
@@ -360,41 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // ─── О приложении ───
           _sectionHeader(context, 'О приложении'),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'InvestFlow',
-                          style: Theme.of(context).textTheme.titleSmall!
-                              .copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          'Версия 1.0.0',
-                          style: Theme.of(context).textTheme.bodySmall!
-                              .copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          const UpdateSection(),
           const SizedBox(height: 24),
         ],
       ),

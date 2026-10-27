@@ -1,0 +1,6 @@
+# Скопируйте в android/key.properties и заполните для release-сборок.
+# Файл key.properties и сам keystore в git не попадают (см. android/.gitignore).
+storeFile=../upload-keystore.jks
+storePassword=CHANGE_ME
+keyAlias=investflow
+keyPassword=CHANGE_ME
