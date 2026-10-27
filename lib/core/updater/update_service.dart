@@ -58,7 +58,7 @@ class UpdateService {
       final HttpClientRequest request = await client.getUrl(uri);
       request.headers.set(
         HttpHeaders.userAgentHeader,
-        'InvestFlow-Updater',
+        'CapFlow-Updater',
       );
       if (github) {
         request.headers.set(
@@ -135,7 +135,7 @@ class UpdateService {
       );
       request.headers.set(
         HttpHeaders.userAgentHeader,
-        'InvestFlow-Updater',
+        'CapFlow-Updater',
       );
       final HttpClientResponse response = await request.close().timeout(
         const Duration(seconds: 30),

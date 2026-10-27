@@ -1,4 +1,4 @@
-package com.example.investflow
+package ru.onlamp.investflow
 
 import android.content.Intent
 import android.net.Uri

@@ -188,7 +188,7 @@ class _UpdateSectionState extends State<UpdateSection> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'InvestFlow',
+                        'CapFlow',
                         style: Theme.of(context).textTheme.titleSmall!
                             .copyWith(fontWeight: FontWeight.w600),
                       ),
