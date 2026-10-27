@@ -46,3 +46,8 @@ app.*.map.json
 /android/app/release
 /android/build/
 test/fixtures/
+
+# Local-only docs and tooling config
+config.json
+REFACTORING_PLAN.md
+RELEASE_PLAN.md
