@@ -2,16 +2,16 @@ import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/core/widgets/searchable_picker.dart';
-import 'package:investflow/data/models/account.dart';
-import 'package:investflow/data/repository/accountRepository.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/core/widgets/searchable_picker.dart';
+import 'package:capflow/data/models/account.dart';
+import 'package:capflow/data/repository/accountRepository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/feature/report/data/model/report_data.dart';
-import 'package:investflow/feature/report/logic/bloc.dart';
-import 'package:investflow/feature/report/logic/reportEvent.dart';
-import 'package:investflow/feature/report/logic/reportState.dart';
-import 'package:investflow/feature/report/presentation/widgets/legendWidget.dart';
+import 'package:capflow/feature/report/data/model/report_data.dart';
+import 'package:capflow/feature/report/logic/bloc.dart';
+import 'package:capflow/feature/report/logic/reportEvent.dart';
+import 'package:capflow/feature/report/logic/reportState.dart';
+import 'package:capflow/feature/report/presentation/widgets/legendWidget.dart';
 
 /// Подпись месяца для оси X вида "01.26" (12 месяцев окна отчёта).
 String formatMonth(int monthOffset) {

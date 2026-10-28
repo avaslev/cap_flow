@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/data/models/account.dart';
-import 'package:investflow/data/models/activity.dart';
+import 'package:capflow/data/models/account.dart';
+import 'package:capflow/data/models/activity.dart';
 
 /// Раунд-трип новых полей: архивация счёта и связка пар переводов.
 void main() {

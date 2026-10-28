@@ -1,5 +1,5 @@
-import 'package:investflow/core/db.dart';
-import 'package:investflow/data/models/tool.dart';
+import 'package:capflow/core/db.dart';
+import 'package:capflow/data/models/tool.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ToolRepository {

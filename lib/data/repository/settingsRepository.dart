@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:investflow/core/db.dart';
+import 'package:capflow/core/db.dart';
 
 /// Хранилище настроек приложения (key-value в БД).
 class SettingsRepository {

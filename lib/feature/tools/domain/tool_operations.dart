@@ -1,4 +1,4 @@
-import 'package:investflow/data/models/tools/typed_tool.dart';
+import 'package:capflow/data/models/tools/typed_tool.dart';
 
 /// Operations allowed on a tool, by kind.
 enum ToolOperationType {

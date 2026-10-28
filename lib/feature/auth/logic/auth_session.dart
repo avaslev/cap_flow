@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:flutter/widgets.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
 
 /// Сессия приложения: вход и блокировка кодом (PIN).
 class AuthSession extends ChangeNotifier {

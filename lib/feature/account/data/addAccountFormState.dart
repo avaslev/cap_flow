@@ -1,5 +1,5 @@
 // DATA_MODEL for AddAccountForm's internal state
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 
 class AddAccountFormState {
   final String name;

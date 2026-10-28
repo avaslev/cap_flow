@@ -1,4 +1,4 @@
-import 'package:investflow/data/repository/currencyRepository.dart';
+import 'package:capflow/data/repository/currencyRepository.dart';
 
 /// Курсы перевода к дефолтной валюте.
 ///

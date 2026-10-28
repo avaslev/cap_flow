@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/feature/report/data/repository/report.dart';
-import 'package:investflow/feature/report/logic/reportEvent.dart';
-import 'package:investflow/feature/report/logic/reportState.dart';
+import 'package:capflow/feature/report/data/repository/report.dart';
+import 'package:capflow/feature/report/logic/reportEvent.dart';
+import 'package:capflow/feature/report/logic/reportState.dart';
 
 class ReportBloc extends Bloc<ReportEvent, ReportState> {
   ReportRepository _repository = ReportRepository();

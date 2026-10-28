@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/core/updater/update_info.dart';
+import 'package:capflow/core/updater/update_info.dart';
 
 void main() {
   group('normalizeVersion', () {

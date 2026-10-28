@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/core/utils/calculateNextOccurrence.dart';
-import 'package:investflow/feature/event/data/event.dart';
-import 'package:investflow/feature/event/data/wallet.dart';
-import 'package:investflow/feature/event/logic/eventBloc.dart';
-import 'package:investflow/feature/event/logic/eventEvent.dart';
-import 'package:investflow/feature/event/logic/eventCubit.dart';
-import 'package:investflow/feature/event/logic/eventState.dart';
+import 'package:capflow/core/utils/calculateNextOccurrence.dart';
+import 'package:capflow/feature/event/data/event.dart';
+import 'package:capflow/feature/event/data/wallet.dart';
+import 'package:capflow/feature/event/logic/eventBloc.dart';
+import 'package:capflow/feature/event/logic/eventEvent.dart';
+import 'package:capflow/feature/event/logic/eventCubit.dart';
+import 'package:capflow/feature/event/logic/eventState.dart';
 
 class FinancialEventForm extends StatelessWidget {
   final String accountId;

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
-import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/presentation/widget/form/investment.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_bloc.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_event.dart';
 
 /// Открыть форму покупки/продажи биржевого инструмента снизу поверх
 /// детального экрана. Данные счёта грузятся свежим AccountsBloc,

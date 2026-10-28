@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
-import 'package:investflow/data/models/tools/typed_tool.dart';
-import 'package:investflow/feature/tools/domain/credit_schedule.dart';
-import 'package:investflow/feature/tools/domain/tool_operations.dart';
-import 'package:investflow/feature/tools/domain/tool_valuation.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/typed_tool.dart';
+import 'package:capflow/feature/tools/domain/credit_schedule.dart';
+import 'package:capflow/feature/tools/domain/tool_operations.dart';
+import 'package:capflow/feature/tools/domain/tool_valuation.dart';
 
 /// M3 tests: valuation strategies, credit schedule math, allowed operations.
 

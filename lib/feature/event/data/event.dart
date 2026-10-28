@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
 
 /// Enum representing the type of a financial event.
 enum FinancialEventType {

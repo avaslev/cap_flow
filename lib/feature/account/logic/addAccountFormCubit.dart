@@ -1,5 +1,5 @@
-import 'package:investflow/feature/account/data/accountDataState.dart' show AccountType;
-import 'package:investflow/feature/account/data/addAccountFormState.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart' show AccountType;
+import 'package:capflow/feature/account/data/addAccountFormState.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AddAccountFormCubit extends Cubit<AddAccountFormState> {

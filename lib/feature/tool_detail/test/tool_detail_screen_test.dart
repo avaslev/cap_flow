@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/feature/tool_detail/presentation/tool_detail_screen.dart';
+import 'package:capflow/feature/tool_detail/presentation/tool_detail_screen.dart';
 
 void main() {
   group('ToolDetailScreen', () {

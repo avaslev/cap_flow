@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/feature/activity/logic/activity_rows.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/feature/activity/logic/activity_rows.dart';
 
 Activity _act({
   required String id,

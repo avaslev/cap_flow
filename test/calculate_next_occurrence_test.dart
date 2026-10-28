@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/core/utils/calculateNextOccurrence.dart';
+import 'package:capflow/core/utils/calculateNextOccurrence.dart';
 
 /// Тесты квартального и полугодового повторений (купоны облигаций),
 /// добавленных для дивидендно-купонного планировщика.

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/data/models/account.dart';
-import 'package:investflow/data/repository/accountRepository.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/data/models/account.dart';
+import 'package:capflow/data/repository/accountRepository.dart';
 
 /// Список скрытых (архивных) счетов с возможностью восстановления.
 /// Счётчик архивных записей может быть большим — список ленивый

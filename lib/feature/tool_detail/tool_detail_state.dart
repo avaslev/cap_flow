@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
+import 'package:capflow/feature/tool_detail/data/tool_detail_models.dart';
 
 /// Abstract class representing the state of the ToolDetail BLoC.
 abstract class ToolDetailState extends Equatable {

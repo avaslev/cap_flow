@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/data/models/scheduledTransaction.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/repository/categoryRepository.dart';
-import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/event/data/event.dart';
-import 'package:investflow/feature/event/data/wallet.dart';
-import 'package:investflow/feature/event/logic/eventEvent.dart';
-import 'package:investflow/feature/event/logic/eventState.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/repository/categoryRepository.dart';
+import 'package:capflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/event/data/event.dart';
+import 'package:capflow/feature/event/data/wallet.dart';
+import 'package:capflow/feature/event/logic/eventEvent.dart';
+import 'package:capflow/feature/event/logic/eventState.dart';
 
 
 // Bloc

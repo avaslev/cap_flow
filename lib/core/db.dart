@@ -6,7 +6,7 @@ import 'dart:io' show Directory, File;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:investflow/core/utils/transferPairBackfill.dart';
+import 'package:capflow/core/utils/transferPairBackfill.dart';
 
 Map<int, String> migrationScripts = {
   1: '''CREATE TABLE activities (

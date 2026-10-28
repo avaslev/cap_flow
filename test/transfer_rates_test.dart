@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/core/utils/transferRates.dart';
+import 'package:capflow/core/utils/transferRates.dart';
 
 void main() {
   group('computeTransferRate', () {

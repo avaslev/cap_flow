@@ -1,6 +1,6 @@
 // States
-import 'package:investflow/feature/event/data/event.dart';
-import 'package:investflow/feature/event/data/wallet.dart';
+import 'package:capflow/feature/event/data/event.dart';
+import 'package:capflow/feature/event/data/wallet.dart';
 
 /// Represents the possible states of the form submission process.
 enum FormStatus { initial, loading, success, failure, validationError }

@@ -1,15 +1,15 @@
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/data/activityState.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
-import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
-import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
-import 'package:investflow/feature/account/presentation/widget/form/credit.dart';
-import 'package:investflow/feature/account/presentation/widget/form/money.dart';
-import 'package:investflow/feature/account/presentation/widget/form/other.dart';
-import 'package:investflow/feature/account/presentation/widget/form/deposit.dart';
-import 'package:investflow/feature/account/presentation/widget/form/investment.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/activityState.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/presentation/widget/form/activity.dart';
+import 'package:capflow/feature/account/presentation/widget/form/transfer.dart';
+import 'package:capflow/feature/account/presentation/widget/form/credit.dart';
+import 'package:capflow/feature/account/presentation/widget/form/money.dart';
+import 'package:capflow/feature/account/presentation/widget/form/other.dart';
+import 'package:capflow/feature/account/presentation/widget/form/deposit.dart';
+import 'package:capflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// A modal bottom sheet for selecting a financial action.

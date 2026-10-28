@@ -1,5 +1,5 @@
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
 
 /// Предпочтительный money-тул: с тикером дефолтной валюты из настроек
 /// (среди открытых). Если такого нет — первый в списке. null — список пуст.

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/feature/account/logic/investmentCubit.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/logic/investmentCubit.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 import 'package:intl/intl.dart';
 
 class AddInvestmentOperationForm extends StatelessWidget {

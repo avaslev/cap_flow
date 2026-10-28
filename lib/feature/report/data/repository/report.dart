@@ -1,7 +1,7 @@
-import 'package:investflow/core/db.dart';
-import 'package:investflow/core/utils/calculateNextOccurrence.dart';
-import 'package:investflow/data/models/scheduledTransaction.dart';
-import 'package:investflow/feature/report/data/model/report_data.dart';
+import 'package:capflow/core/db.dart';
+import 'package:capflow/core/utils/calculateNextOccurrence.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
+import 'package:capflow/feature/report/data/model/report_data.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 

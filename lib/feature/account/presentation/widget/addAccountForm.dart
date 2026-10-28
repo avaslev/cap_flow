@@ -1,9 +1,9 @@
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/data/addAccountFormState.dart';
-import 'package:investflow/feature/account/logic/addAccountFormCubit.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/addAccountFormState.dart';
+import 'package:capflow/feature/account/logic/addAccountFormCubit.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Helper function to get display name for AccountType.

@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/core/scaffold.dart';
-import 'package:investflow/core/theme/appTheme.dart';
-import 'package:investflow/core/theme/theme_cubit.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
-import 'package:investflow/feature/account/presentation/accountsScreen.dart';
-import 'package:investflow/feature/tool_detail/presentation/tool_detail_screen.dart';
-import 'package:investflow/feature/activity/logic/bloc.dart';
-import 'package:investflow/feature/activity/presentation/detailScreen.dart';
-import 'package:investflow/feature/activity/presentation/listScreen.dart';
+import 'package:capflow/core/scaffold.dart';
+import 'package:capflow/core/theme/appTheme.dart';
+import 'package:capflow/core/theme/theme_cubit.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/presentation/accountsScreen.dart';
+import 'package:capflow/feature/tool_detail/presentation/tool_detail_screen.dart';
+import 'package:capflow/feature/activity/logic/bloc.dart';
+import 'package:capflow/feature/activity/presentation/detailScreen.dart';
+import 'package:capflow/feature/activity/presentation/listScreen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:investflow/feature/event/logic/eventBloc.dart';
-import 'package:investflow/feature/event/presentation/eventListScreen.dart';
-import 'package:investflow/feature/report/logic/bloc.dart';
-import 'package:investflow/feature/report/presentation/screen.dart';
+import 'package:capflow/feature/event/logic/eventBloc.dart';
+import 'package:capflow/feature/event/presentation/eventListScreen.dart';
+import 'package:capflow/feature/report/logic/bloc.dart';
+import 'package:capflow/feature/report/presentation/screen.dart';
 
-import 'package:investflow/feature/auth/logic/auth_session.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
-import 'package:investflow/feature/settings/presentation/settings_screen.dart';
-import 'package:investflow/feature/auth/presentation/sign_in_screen.dart';
-import 'package:investflow/feature/auth/presentation/pin_screen.dart';
-import 'package:investflow/core/widgets/fade_transition_page.dart';
+import 'package:capflow/feature/auth/logic/auth_session.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
+import 'package:capflow/feature/settings/presentation/settings_screen.dart';
+import 'package:capflow/feature/auth/presentation/sign_in_screen.dart';
+import 'package:capflow/feature/auth/presentation/pin_screen.dart';
+import 'package:capflow/core/widgets/fade_transition_page.dart';
 
 final appShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'app shell');
 

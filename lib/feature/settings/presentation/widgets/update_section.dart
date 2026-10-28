@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:investflow/core/updater/apk_installer.dart';
-import 'package:investflow/core/updater/update_info.dart';
-import 'package:investflow/core/updater/update_service.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/updater/apk_installer.dart';
+import 'package:capflow/core/updater/update_info.dart';
+import 'package:capflow/core/updater/update_service.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Карточка «О приложении»: версия и ручная проверка обновлений.

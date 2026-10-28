@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
-import 'package:investflow/feature/auth/logic/auth_session.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
+import 'package:capflow/feature/auth/logic/auth_session.dart';
 
 /// Режимы экрана кода.
 enum PinScreenMode {

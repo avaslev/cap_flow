@@ -1,9 +1,9 @@
-import 'package:investflow/data/repository/categoryRepository.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/data/activityState.dart';
-import 'package:investflow/feature/account/logic/activityCubit.dart';
+import 'package:capflow/data/repository/categoryRepository.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/activityState.dart';
+import 'package:capflow/feature/account/logic/activityCubit.dart';
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 

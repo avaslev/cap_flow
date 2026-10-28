@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
-import 'package:investflow/data/models/tools/typed_tool.dart';
-import 'package:investflow/feature/tools/domain/tool_valuation.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/typed_tool.dart';
+import 'package:capflow/feature/tools/domain/tool_valuation.dart';
 
-export 'package:investflow/data/models/tools/tool_kind.dart';
+export 'package:capflow/data/models/tools/tool_kind.dart';
 
 /// Enum for different types of financial accounts.
 enum AccountType {

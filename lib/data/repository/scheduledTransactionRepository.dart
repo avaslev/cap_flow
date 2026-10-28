@@ -1,5 +1,5 @@
-import 'package:investflow/core/db.dart';
-import 'package:investflow/data/models/scheduledTransaction.dart';
+import 'package:capflow/core/db.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ScheduledTransactionRepository {

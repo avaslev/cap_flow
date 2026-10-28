@@ -1,13 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/feature/account/data/activityState.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
-import 'package:investflow/feature/account/presentation/widget/form/activity.dart';
-import 'package:investflow/feature/account/presentation/widget/form/transfer.dart';
-import 'package:investflow/widgets/itemAvatar.dart';
-import 'package:investflow/widgets/itemValue.dart';
+import 'package:capflow/feature/account/data/activityState.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/presentation/widget/form/activity.dart';
+import 'package:capflow/feature/account/presentation/widget/form/transfer.dart';
+import 'package:capflow/widgets/itemAvatar.dart';
+import 'package:capflow/widgets/itemValue.dart';
 
 /// A widget to display a list of financial events.
 class EventList extends StatelessWidget {

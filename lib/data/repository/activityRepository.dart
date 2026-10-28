@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:investflow/core/db.dart';
-import 'package:investflow/data/models/activity.dart';
+import 'package:capflow/core/db.dart';
+import 'package:capflow/data/models/activity.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ActivityRepository {

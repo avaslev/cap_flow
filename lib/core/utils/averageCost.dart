@@ -1,4 +1,4 @@
-import 'package:investflow/data/models/activity.dart';
+import 'package:capflow/data/models/activity.dart';
 
 /// Результат расчёта средней цены позиции по истории активити.
 class AverageCostResult {

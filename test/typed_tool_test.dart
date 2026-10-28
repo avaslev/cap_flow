@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
-import 'package:investflow/data/models/tools/typed_tool.dart';
-import 'package:investflow/data/models/tools/typed_tool_mapper.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/typed_tool.dart';
+import 'package:capflow/data/models/tools/typed_tool_mapper.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 
 /// M2 tests: DB row ↔ typed domain model mapping and ToolSummary building.
 

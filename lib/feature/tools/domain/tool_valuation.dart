@@ -1,6 +1,6 @@
-import 'package:investflow/data/models/tools/tool_kind.dart';
-import 'package:investflow/data/models/tools/typed_tool.dart';
-import 'package:investflow/feature/tools/domain/credit_schedule.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/typed_tool.dart';
+import 'package:capflow/feature/tools/domain/credit_schedule.dart';
 
 /// Valuation strategies per tool kind. All values are in account currency
 /// (RUB equivalent).

@@ -1,4 +1,4 @@
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 
 /// Represents the possible states of the form submission process.
 enum ActivityStateType { add, substract }

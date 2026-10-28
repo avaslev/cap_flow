@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/tools/domain/credit_schedule.dart';
-import 'package:investflow/data/repository/currencyRepository.dart';
-import 'package:investflow/feature/tools/domain/tool_valuation.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
-import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
-import 'package:investflow/feature/tool_detail/data/tool_detail_repository.dart';
-import 'package:investflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
-import 'package:investflow/feature/tool_detail/presentation/components/other_sell_sheet.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/tools/domain/credit_schedule.dart';
+import 'package:capflow/data/repository/currencyRepository.dart';
+import 'package:capflow/feature/tools/domain/tool_valuation.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_bloc.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_event.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_state.dart';
+import 'package:capflow/feature/tool_detail/data/tool_detail_models.dart';
+import 'package:capflow/feature/tool_detail/data/tool_detail_repository.dart';
+import 'package:capflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
+import 'package:capflow/feature/tool_detail/presentation/components/other_sell_sheet.dart';
 
 /// Детальный экран инструмента: hero-блок (сумма, чипы валюты/типа) и
 /// «наезжающий» лист с деталями, кнопками действий и плитками разделов

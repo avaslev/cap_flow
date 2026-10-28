@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
 
 /// Управляет режимом темы приложения (системная/светлая/тёмная)
 /// с сохранением выбора в БД.

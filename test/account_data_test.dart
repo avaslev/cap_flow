@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 
 /// M1 characterization tests for [AccountData].
 ///

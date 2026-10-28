@@ -1,4 +1,4 @@
-import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
 
 /// Sealed base for typed tools.
 ///

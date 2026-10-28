@@ -1,6 +1,6 @@
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
-import 'package:investflow/data/models/tools/typed_tool.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/typed_tool.dart';
 
 /// Maps DB tool rows to typed domain models and back.
 ///

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/core/utils/averageCost.dart';
-import 'package:investflow/data/models/activity.dart';
+import 'package:capflow/core/utils/averageCost.dart';
+import 'package:capflow/data/models/activity.dart';
 
 /// Тесты расчёта средней цены позиции (average cost) из истории активити.
 /// Формула используется для реализованной прибыли/убытка при продаже.

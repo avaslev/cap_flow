@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/core/utils/getAccountIcon.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/core/utils/getAccountIcon.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
 
 import '../../../../core/utils/formatCurrency.dart';
 

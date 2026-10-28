@@ -1,9 +1,9 @@
 import 'package:bloc/bloc.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/activity/logic/activity_rows.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/activity/logic/activity_rows.dart';
 import 'package:meta/meta.dart';
 
 // Importing the parts for event and state definitions

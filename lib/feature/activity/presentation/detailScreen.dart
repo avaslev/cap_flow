@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/account/presentation/widget/form/activityEdit.dart';
-import 'package:investflow/feature/activity/logic/activity_rows.dart';
-import 'package:investflow/feature/activity/logic/bloc.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/account/presentation/widget/form/activityEdit.dart';
+import 'package:capflow/feature/activity/logic/activity_rows.dart';
+import 'package:capflow/feature/activity/logic/bloc.dart';
 import 'package:intl/intl.dart';
 
 /// Детальная страница операции.

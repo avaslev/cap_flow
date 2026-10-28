@@ -1,5 +1,5 @@
-import 'package:investflow/core/db.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:capflow/core/db.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Справочник валют и курсов к дефолтной валюте.

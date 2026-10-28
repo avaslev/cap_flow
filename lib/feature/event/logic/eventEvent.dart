@@ -1,7 +1,7 @@
 // FinancialEvent Bloc
 // Events
 
-import 'package:investflow/feature/event/data/event.dart';
+import 'package:capflow/feature/event/data/event.dart';
 
 abstract class FinancialEventEvent {
   const FinancialEventEvent();

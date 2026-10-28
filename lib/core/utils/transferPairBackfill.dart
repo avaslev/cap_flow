@@ -1,4 +1,4 @@
-import 'package:investflow/data/models/activity.dart';
+import 'package:capflow/data/models/activity.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Связывает старые пары «создание тула с переводом с основного» общим

@@ -1,5 +1,5 @@
 
-import 'package:investflow/feature/report/data/model/report_data.dart';
+import 'package:capflow/feature/report/data/model/report_data.dart';
 
 abstract class ReportState {
   const ReportState();

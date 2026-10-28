@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/data/models/account.dart';
-import 'package:investflow/data/repository/accountRepository.dart';
-import 'package:investflow/feature/event/data/event.dart';
-import 'package:investflow/feature/event/data/wallet.dart';
-import 'package:investflow/feature/event/logic/eventBloc.dart';
-import 'package:investflow/feature/event/logic/eventEvent.dart';
-import 'package:investflow/feature/event/logic/eventState.dart';
-import 'package:investflow/feature/event/presentation/form/eventForm.dart';
-import 'package:investflow/widgets/itemAvatar.dart';
-import 'package:investflow/widgets/itemValue.dart';
+import 'package:capflow/data/models/account.dart';
+import 'package:capflow/data/repository/accountRepository.dart';
+import 'package:capflow/feature/event/data/event.dart';
+import 'package:capflow/feature/event/data/wallet.dart';
+import 'package:capflow/feature/event/logic/eventBloc.dart';
+import 'package:capflow/feature/event/logic/eventEvent.dart';
+import 'package:capflow/feature/event/logic/eventState.dart';
+import 'package:capflow/feature/event/presentation/form/eventForm.dart';
+import 'package:capflow/widgets/itemAvatar.dart';
+import 'package:capflow/widgets/itemValue.dart';
 
 class FinancialEventOverviewPage extends StatefulWidget {
   final String accountId;

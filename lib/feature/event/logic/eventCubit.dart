@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/core/utils/calculateNextOccurrence.dart';
-import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
-import 'package:investflow/feature/event/data/event.dart';
-import 'package:investflow/feature/event/logic/eventState.dart';
+import 'package:capflow/core/utils/calculateNextOccurrence.dart';
+import 'package:capflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:capflow/feature/event/data/event.dart';
+import 'package:capflow/feature/event/logic/eventState.dart';
 import 'package:uuid/uuid.dart';
 
 class FinancialEventCubit extends Cubit<FinancialEventEditState> {

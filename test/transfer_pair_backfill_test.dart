@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/core/utils/transferPairBackfill.dart';
-import 'package:investflow/data/models/activity.dart';
+import 'package:capflow/core/utils/transferPairBackfill.dart';
+import 'package:capflow/data/models/activity.dart';
 
 Activity _act({
   required String id,

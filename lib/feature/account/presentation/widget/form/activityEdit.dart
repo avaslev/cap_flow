@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/core/utils/transferRates.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/activity/logic/activity_rows.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/transferRates.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/activity/logic/activity_rows.dart';
 import 'package:intl/intl.dart';
 
 /// Модальное окно редактирования операции.

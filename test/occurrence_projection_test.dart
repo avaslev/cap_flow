@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/core/utils/calculateNextOccurrence.dart';
+import 'package:capflow/core/utils/calculateNextOccurrence.dart';
 
 /// M-tests: projection of recurring occurrences (used by the report plan).
 

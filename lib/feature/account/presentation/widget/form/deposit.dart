@@ -1,20 +1,20 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/core/utils/selectDefaultMoneyTool.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/core/utils/selectDefaultMoneyTool.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:investflow/data/models/scheduledTransaction.dart';
-import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
-import 'package:investflow/feature/tools/domain/tool_valuation.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
-import 'package:investflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
+import 'package:capflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:capflow/feature/tools/domain/tool_valuation.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/feature/account/logic/accountBloc.dart';
 import 'package:uuid/uuid.dart';
 
 /// Modal bottom sheet for opening a deposit: principal is deducted from a

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/feature/report/data/model/report_data.dart';
+import 'package:capflow/feature/report/data/model/report_data.dart';
 
 /// Строки SQL вида (category, year_index, month_index, expense).
 Map<String, Object?> row(String name, String year, String month, num expense) =>

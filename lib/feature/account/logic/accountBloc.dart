@@ -1,16 +1,16 @@
 import 'package:bloc/bloc.dart';
-import 'package:investflow/data/models/account.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/models/scheduledTransaction.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/models/tools/typed_tool_mapper.dart';
-import 'package:investflow/data/repository/accountRepository.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/currencyRepository.dart';
-import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/feature/account/data/accountDataState.dart';
+import 'package:capflow/data/models/account.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/models/tools/typed_tool_mapper.dart';
+import 'package:capflow/data/repository/accountRepository.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/currencyRepository.dart';
+import 'package:capflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/feature/account/data/accountDataState.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_bloc.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_event.dart';
-import 'package:investflow/feature/tool_detail/tool_detail_state.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_bloc.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_event.dart';
+import 'package:capflow/feature/tool_detail/tool_detail_state.dart';
 
 void main() {
   group('ToolDetailBloc', () {

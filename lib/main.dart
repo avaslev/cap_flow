@@ -6,9 +6,9 @@ import 'dart:io' show Platform;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:investflow/core/db.dart';
-import 'package:investflow/core/theme/theme_cubit.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
+import 'package:capflow/core/db.dart';
+import 'package:capflow/core/theme/theme_cubit.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/feature/tool_detail/data/tool_detail_repository.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/feature/tool_detail/data/tool_detail_repository.dart';
 
 /// Форма продажи актива «прочее». Пользователь указывает цену продажи,
 /// из неё считается реализованная прибыль/убыток (цена − себестоимость),

@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/core/utils/formatCurrency.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/core/widgets/searchable_picker.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/categoryRepository.dart';
+import 'package:capflow/core/utils/formatCurrency.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/core/widgets/searchable_picker.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/categoryRepository.dart';
 import 'package:go_router/go_router.dart';
-import 'package:investflow/feature/activity/logic/activity_rows.dart';
-import 'package:investflow/feature/activity/logic/bloc.dart';
+import 'package:capflow/feature/activity/logic/activity_rows.dart';
+import 'package:capflow/feature/activity/logic/bloc.dart';
 import 'package:intl/intl.dart';
 
 /// Экран операций: месяц, поиск, фильтр по типу, фильтр по категории,

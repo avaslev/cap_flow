@@ -1,13 +1,13 @@
-import 'package:investflow/data/repository/toolRepository.dart';
-import 'package:investflow/data/models/tool.dart';
-import 'package:investflow/data/models/activity.dart';
-import 'package:investflow/data/repository/activityRepository.dart';
-import 'package:investflow/data/repository/scheduledTransactionRepository.dart';
-import 'package:investflow/core/utils/averageCost.dart';
-import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/repository/toolRepository.dart';
+import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/repository/activityRepository.dart';
+import 'package:capflow/data/repository/scheduledTransactionRepository.dart';
+import 'package:capflow/core/utils/averageCost.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
 import 'package:uuid/uuid.dart';
-import 'package:investflow/feature/tools/domain/tool_valuation.dart';
-import 'package:investflow/feature/tool_detail/data/tool_detail_models.dart';
+import 'package:capflow/feature/tools/domain/tool_valuation.dart';
+import 'package:capflow/feature/tool_detail/data/tool_detail_models.dart';
 import 'package:uuid/uuid.dart';
 
 /// Repository for tool detail operations.

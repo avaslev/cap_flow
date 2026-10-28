@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:investflow/data/models/tools/tool_kind.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
 
 /// Result of splitting a credit payment into interest and principal parts.
 class CreditPaymentSplit {
