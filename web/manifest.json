@@ -1,6 +1,6 @@
-{
-    "name": "InvestFlow",
-    "short_name": "InvestFlow",
+ {
+    "name": "CapFlow",
+    "short_name": "CapFlow",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

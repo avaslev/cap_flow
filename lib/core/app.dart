@@ -26,19 +26,19 @@ import 'package:capflow/core/widgets/fade_transition_page.dart';
 
 final appShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'app shell');
 
-class InvestApp extends StatefulWidget {
+ class CapApp extends StatefulWidget {
   /// Счётчик полных перезапусков UI (после восстановления БД).
   static final ValueNotifier<int> restartSignal = ValueNotifier<int>(0);
 
   final ThemeCubit themeCubit;
 
-  const InvestApp({super.key, required this.themeCubit});
+  const CapApp({super.key, required this.themeCubit});
 
   @override
-  State<InvestApp> createState() => _InvestAppState();
+  State<CapApp> createState() => _CapAppState();
 }
 
-class _InvestAppState extends State<InvestApp> with WidgetsBindingObserver {
+ class _CapAppState extends State<CapApp> with WidgetsBindingObserver {
   final AuthSession auth = AuthSession();
 
   /// Время последнего свайпа «назад» на главном экране (окно выхода 2 с).
@@ -125,7 +125,7 @@ class _InvestAppState extends State<InvestApp> with WidgetsBindingObserver {
             GoRouterState state,
             Widget child,
           ) {
-            return InvestflowScaffold(
+            return CapflowScaffold(
               selectedIndex: switch (state.uri.path) {
                 var p when p.startsWith('/accounts') => 0,
                 var p when p.startsWith('/activities') => 1,
@@ -284,14 +284,14 @@ class _InvestAppState extends State<InvestApp> with WidgetsBindingObserver {
     );
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return BlocProvider<ThemeCubit>.value(
       value: widget.themeCubit,
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (BuildContext context, ThemeMode themeMode) {
           return ValueListenableBuilder<int>(
-          valueListenable: InvestApp.restartSignal,
+          valueListenable: CapApp.restartSignal,
           builder: (BuildContext context, int restartCount, Widget? _) {
           return MaterialApp.router(
             key: ValueKey<int>(restartCount),

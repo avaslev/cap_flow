@@ -2,15 +2,15 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:adaptive_navigation/adaptive_navigation.dart';
+ import 'package:adaptive_navigation/adaptive_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class InvestflowScaffold extends StatelessWidget {
+class CapflowScaffold extends StatelessWidget {
   final Widget child;
   final int selectedIndex;
 
-  const InvestflowScaffold({
+   const CapflowScaffold({
     required this.child,
     required this.selectedIndex,
     super.key,
