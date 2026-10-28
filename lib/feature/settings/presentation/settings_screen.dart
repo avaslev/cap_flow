@@ -3,22 +3,22 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:investflow/core/utils/toast.dart';
-import 'package:investflow/core/app.dart';
-import 'package:investflow/core/db.dart';
+import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/core/app.dart';
+import 'package:capflow/core/db.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:investflow/core/theme/theme_cubit.dart';
-import 'package:investflow/data/repository/settingsRepository.dart';
-import 'package:investflow/feature/auth/presentation/pin_screen.dart';
-import 'package:investflow/feature/auth/logic/auth_session.dart';
-import 'package:investflow/data/repository/currencyRepository.dart';
-import 'package:investflow/data/models/account.dart';
-import 'package:investflow/data/repository/accountRepository.dart';
-import 'package:investflow/feature/settings/presentation/archived_accounts_screen.dart';
-import 'package:investflow/feature/settings/presentation/widgets/update_section.dart';
+import 'package:capflow/core/theme/theme_cubit.dart';
+import 'package:capflow/data/repository/settingsRepository.dart';
+import 'package:capflow/feature/auth/presentation/pin_screen.dart';
+import 'package:capflow/feature/auth/logic/auth_session.dart';
+import 'package:capflow/data/repository/currencyRepository.dart';
+import 'package:capflow/data/models/account.dart';
+import 'package:capflow/data/repository/accountRepository.dart';
+import 'package:capflow/feature/settings/presentation/archived_accounts_screen.dart';
+import 'package:capflow/feature/settings/presentation/widgets/update_section.dart';
 
 /// Экран настроек: каркас разделов (внешний вид, данные, о приложении).
 /// Переключение темы — рабочее (светлая/тёмная/системная, сохраняется в БД).
