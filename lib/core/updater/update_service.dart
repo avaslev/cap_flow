@@ -124,7 +124,7 @@ class UpdateService {
       await dir.create(recursive: true);
     }
     final File target = File(
-      p.join(dir.path, 'investflow-${info.version}.apk'),
+      p.join(dir.path, 'capflow-${info.version}.apk'),
     );
 
     final HttpClient client = HttpClient()

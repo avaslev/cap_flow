@@ -388,12 +388,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final DatabaseHelper dbHelper = DatabaseHelper.instance;
       // Чекпоинт WAL, чтобы снять полную копию.
       await dbHelper.backupTo(
-        join(await getDatabasesPath(), 'backups', 'investflow_last.db'),
+        join(await getDatabasesPath(), 'backups', 'capflow_last.db'),
       );
       final Uint8List bytes = await File(await dbHelper.dbPath).readAsBytes();
       final String stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final Uri? saved = await FilePicker.saveFile(
-        fileName: 'investflow_$stamp.db',
+        fileName: 'capflow_$stamp.db',
         bytes: bytes,
         dialogTitle: 'Сохранить резервную копию',
       );

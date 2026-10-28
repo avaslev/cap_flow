@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 class ApkInstaller {
   const ApkInstaller._();
 
-  static const MethodChannel _channel = MethodChannel('investflow/updater');
+  static const MethodChannel _channel = MethodChannel('capflow/updater');
 
   /// Разрешена ли установка из этого приложения (Android 8+).
   static Future<bool> canInstall() async {
