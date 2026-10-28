@@ -459,7 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
       // Полный перезапуск UI: новые bloc'ы читают восстановленную базу.
-      InvestApp.restartSignal.value++;
+      CapApp.restartSignal.value++;
     } catch (e) {
       if (context.mounted) {
         Toast.show(context, 'Не удалось восстановить копию: $e', error: true);

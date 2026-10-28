@@ -24,7 +24,7 @@ void main() async {
   final ThemeCubit themeCubit = ThemeCubit(SettingsRepository());
   await themeCubit.load();
 
-  runApp(InvestApp(themeCubit: themeCubit));
+  runApp(CapApp(themeCubit: themeCubit));
 }
 
 const double windowWidth = 1400;
