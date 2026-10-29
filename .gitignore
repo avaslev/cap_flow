@@ -51,3 +51,6 @@ test/fixtures/
 config.json
 REFACTORING_PLAN.md
 RELEASE_PLAN.md
+
+# Keystore files
+keystore/
