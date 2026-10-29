@@ -114,23 +114,30 @@ lib/
    git add pubspec.yaml
    git commit -m "chore: bump version to $(grep '^version:' pubspec.yaml | sed 's/version: //')"
    ```
-3. Push изменений и создайте тег автоматически:
+3. Создайте и запушите тег:
    ```bash
-   git push hub
-   gh release create "$(grep '^version:' pubspec.yaml | sed 's/version: //')"
+   git tag "v$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1)"
+   git push hub && git push hub --tags
    ```
 
 ### Настройка подписи APK
 
 Для выпуска подписанных APK требуется создать секреты в GitHub:
 
-1. Поместите `keystore/upload-keystore.jks` в репозиторий как секрет `ANDROID_KEYSTORE_BASE64`
-2. Создайте секреты:
+1. Создайте файл `keystore/upload-keystore.jks` (JKS формат, SHA256, одинаковые пароли для store и key)
+2. Base64-кодируйте keystore и создайте секрет `ANDROID_KEYSTORE_BASE64`
+3. Создайте секреты в GitHub:
    - `ANDROID_KEYSTORE_PASSWORD` — пароль от keystore
    - `ANDROID_KEY_ALIAS` — алиас ключа
    - `ANDROID_KEY_PASSWORD` — пароль ключа
 
-Сгенерированный в папке `keystore/upload-keystore.jks` keystore можно использовать для тестов, но для релизов добавьте его в секреты (base64-кодирование).
+Для создания keystore используйте:
+```bash
+keytool -genkeypair -v -keystore keystore/upload-keystore.jks \
+  -alias capflow-key -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass <пароль> -keypass <пароль> \
+  -dname "CN=CapFlow,O=CapFlow,C=RU" -sigalg SHA256withRSA -storetype JKS
+```
 
 Пайплайн автоматически:
 - Запустит тесты
