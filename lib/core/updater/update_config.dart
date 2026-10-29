@@ -9,12 +9,12 @@ class UpdateConfig {
 
   static const String owner = String.fromEnvironment(
     'UPDATE_REPO_OWNER',
-    defaultValue: 'alexey',
+    defaultValue: 'avaslev',
   );
 
   static const String repo = String.fromEnvironment(
     'UPDATE_REPO_NAME',
-    defaultValue: 'invest-flow',
+    defaultValue: 'cap_flow',
   );
 
   /// Прямая ссылка на JSON-манифест (переопределяет GitHub API).
