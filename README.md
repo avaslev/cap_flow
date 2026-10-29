@@ -110,7 +110,7 @@ lib/
    ```
 3. Создайте и запушите тег:
    ```bash
-   git tag "v$(grep '^version:' pubspec.yaml | sed 's/version: //')"
+   git tag "v$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1 | tr -d ' ')"
    git push hub && git push hub --tags
    ```
 
