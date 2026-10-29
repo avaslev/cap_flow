@@ -101,7 +101,7 @@ lib/
 
 1. Откройте `pubspec.yaml` и обновите версию:
    ```yaml
-   version: 1.2.3+4  # имя_тега+номер_билда
+   version: 1.0.5
    ```
 2. Закоммитьте изменения:
    ```bash
@@ -110,7 +110,7 @@ lib/
    ```
 3. Создайте и запушите тег:
    ```bash
-   git tag "v$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1 | tr -d ' ')"
+   git tag "v$(grep '^version:' pubspec.yaml | sed 's/version: //')"
    git push hub && git push hub --tags
    ```
 
@@ -119,8 +119,7 @@ lib/
 Для выпуска подписанных APK требуется создать секреты в GitHub:
 
 1. Создайте файл `keystore/upload-keystore.jks` (JKS формат, SHA256, одинаковые пароли для store и key)
-2. Base64-кодируйте keystore и создайте секрет `ANDROID_KEYSTORE_BASE64`
-3. Создайте секреты в GitHub:
+2. Создайте секреты в GitHub:
    - `ANDROID_KEYSTORE_PASSWORD` — пароль от keystore
    - `ANDROID_KEY_ALIAS` — алиас ключа
    - `ANDROID_KEY_PASSWORD` — пароль ключа

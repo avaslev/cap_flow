@@ -50,6 +50,7 @@ jobs:
           flutter build apk --release
           --build-name="${GITHUB_REF_NAME#v}"
           --build-number="$GITHUB_RUN_NUMBER"
+          --build-number="$GITHUB_RUN_NUMBER"
 
       - name: Cleanup keystore
         if: always()
