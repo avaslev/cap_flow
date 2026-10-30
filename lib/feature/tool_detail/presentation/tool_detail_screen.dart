@@ -14,6 +14,7 @@ import 'package:capflow/feature/tool_detail/tool_detail_event.dart';
 import 'package:capflow/feature/tool_detail/tool_detail_state.dart';
 import 'package:capflow/feature/tool_detail/data/tool_detail_models.dart';
 import 'package:capflow/feature/tool_detail/data/tool_detail_repository.dart';
+import 'package:capflow/feature/tool_detail/presentation/components/credit_payment_sheet.dart';
 import 'package:capflow/feature/tool_detail/presentation/components/investment_form_sheet.dart';
 import 'package:capflow/feature/tool_detail/presentation/components/other_sell_sheet.dart';
 
@@ -69,9 +70,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     final Color barColor =
         Color.lerp(Colors.transparent, colorScheme.surface, _scrollFraction)!;
     final Color barForeground =
-        Color.lerp(colorScheme.onPrimaryContainer, colorScheme.onSurface, _scrollFraction)!;
+        Color.lerp(
+          colorScheme.onPrimaryContainer,
+          colorScheme.onSurface,
+          _scrollFraction,
+        )!;
     return BlocProvider<ToolDetailBloc>(
-      create: (_) => ToolDetailBloc()..add(LoadToolDetail(widget.accountId, widget.toolId)),
+      create:
+          (_) =>
+              ToolDetailBloc()
+                ..add(LoadToolDetail(widget.accountId, widget.toolId)),
       child: Scaffold(
         // Body уходит под аппбар, а аппбар прозрачный — градиент
         // верхнего блока продолжается до края экрана.
@@ -182,9 +190,10 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
             Text(
               '${tool.percentageChange >= 0 ? '+' : ''}${tool.percentageChange.toStringAsFixed(2)}%',
               style: TextStyle(
-                color: tool.percentageChange >= 0
-                    ? Colors.green
-                    : colorScheme.error,
+                color:
+                    tool.percentageChange >= 0
+                        ? Colors.green
+                        : colorScheme.error,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -340,15 +349,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
         children: <Widget>[
           Expanded(
             child: FilledButton.icon(
-              onPressed: () => showInvestmentFormSheet(
-                context,
-                accountId: tool.accountId,
-                toolId: tool.id,
-                investmentType: type,
-                operationType: InvestmentOperationType.buy,
-                presetTicker: tool.ticker,
-                presetName: tool.name,
-              ),
+              onPressed:
+                  () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: type,
+                    operationType: InvestmentOperationType.buy,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
               icon: const Icon(Icons.add),
               label: const Text('Купить'),
             ),
@@ -356,15 +366,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () => showInvestmentFormSheet(
-                context,
-                accountId: tool.accountId,
-                toolId: tool.id,
-                investmentType: type,
-                operationType: InvestmentOperationType.sell,
-                presetTicker: tool.ticker,
-                presetName: tool.name,
-              ),
+              onPressed:
+                  () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: type,
+                    operationType: InvestmentOperationType.sell,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
               icon: const Icon(Icons.sell),
               label: const Text('Продать'),
               style: ElevatedButton.styleFrom(
@@ -376,20 +387,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
         ],
       ),
       const SizedBox(height: 20),
-      ..._tilesSection(
-        tool,
-        context,
-        <Widget>[
-          _activitiesTile(context, tool),
-          if (!isCrypto)
-            _tile(
-              context,
-              icon: Icons.insights_outlined,
-              label: 'Динамика',
-              onTap: () {},
-            ),
-        ],
-      ),
+      ..._tilesSection(tool, context, <Widget>[
+        _activitiesTile(context, tool),
+        if (!isCrypto)
+          _tile(
+            context,
+            icon: Icons.insights_outlined,
+            label: 'Динамика',
+            onTap: () {},
+          ),
+      ]),
       // Мок-график как фактура (только акции).
       if (!isCrypto) ...<Widget>[
         _sectionTitle(context, 'Динамика'),
@@ -435,15 +442,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
         children: <Widget>[
           Expanded(
             child: FilledButton.icon(
-              onPressed: () => showInvestmentFormSheet(
-                context,
-                accountId: tool.accountId,
-                toolId: tool.id,
-                investmentType: ToolType.bonds,
-                operationType: InvestmentOperationType.buy,
-                presetTicker: tool.ticker,
-                presetName: tool.name,
-              ),
+              onPressed:
+                  () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: ToolType.bonds,
+                    operationType: InvestmentOperationType.buy,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
               icon: const Icon(Icons.add),
               label: const Text('Купить'),
             ),
@@ -451,15 +459,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () => showInvestmentFormSheet(
-                context,
-                accountId: tool.accountId,
-                toolId: tool.id,
-                investmentType: ToolType.bonds,
-                operationType: InvestmentOperationType.sell,
-                presetTicker: tool.ticker,
-                presetName: tool.name,
-              ),
+              onPressed:
+                  () => showInvestmentFormSheet(
+                    context,
+                    accountId: tool.accountId,
+                    toolId: tool.id,
+                    investmentType: ToolType.bonds,
+                    operationType: InvestmentOperationType.sell,
+                    presetTicker: tool.ticker,
+                    presetName: tool.name,
+                  ),
               icon: const Icon(Icons.sell),
               label: const Text('Продать'),
               style: ElevatedButton.styleFrom(
@@ -567,9 +576,10 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
   List<Widget> _creditSections(ToolDetailDisplay tool, BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final double debt = tool.currentValue.abs();
-    final CreditPaymentType? paymentType = tool.creditPaymentType == null
-        ? null
-        : CreditPaymentType.values.byName(tool.creditPaymentType!);
+    final CreditPaymentType? paymentType =
+        tool.creditPaymentType == null
+            ? null
+            : CreditPaymentType.values.byName(tool.creditPaymentType!);
     return <Widget>[
       _sectionTitle(context, 'Детали'),
       _detailsCard(<Widget>[
@@ -599,29 +609,39 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
           ),
       ], context),
       _sectionTitle(context, 'Действия'),
-      ElevatedButton.icon(
-        onPressed: () => _confirmCloseCredit(context, tool),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.error,
-          foregroundColor: colorScheme.onError,
-        ),
-        icon: const Icon(Icons.delete_outline, size: 20),
-        label: const Text('Погасить кредит'),
-      ),
-      const SizedBox(height: 20),
-      ..._tilesSection(
-        tool,
-        context,
-        <Widget>[
-          _activitiesTile(context, tool),
-          _tile(
-            context,
-            icon: Icons.calendar_month_outlined,
-            label: 'График платежей',
-            onTap: () => _openCreditSchedule(context, tool),
+      Row(
+        children: <Widget>[
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: () => _showCreditPaymentSheet(context, tool),
+              icon: const Icon(Icons.payments_outlined, size: 20),
+              label: const Text('Сделать платёж'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => _confirmCloseCredit(context, tool),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              icon: const Icon(Icons.delete_outline, size: 20),
+              label: const Text('Погасить кредит'),
+            ),
           ),
         ],
       ),
+      const SizedBox(height: 20),
+      ..._tilesSection(tool, context, <Widget>[
+        _activitiesTile(context, tool),
+        _tile(
+          context,
+          icon: Icons.calendar_month_outlined,
+          label: 'График платежей',
+          onTap: () => _openCreditSchedule(context, tool),
+        ),
+      ]),
     ];
   }
 
@@ -716,11 +736,17 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
             width: 140,
             child: Text(
               label,
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
             ),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
@@ -772,9 +798,9 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               Icon(
@@ -801,7 +827,6 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
   // ─────────────────────── ДИНАМИКА (мок) ───────────────────────
 
   Widget _mockChartCard(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -837,17 +862,17 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive
-              ? colorScheme.primary
-              : colorScheme.surfaceContainerHighest,
+          color:
+              isActive
+                  ? colorScheme.primary
+                  : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           period,
           style: TextStyle(
-            color: isActive
-                ? colorScheme.onPrimary
-                : colorScheme.onSurfaceVariant,
+            color:
+                isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
             fontSize: 12,
           ),
         ),
@@ -917,16 +942,16 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      final double payout =
-          await ToolDetailRepository().closeDepositAndTransferToMoney(
-        depositToolId: tool.id,
-        depositName: tool.name,
-        accountId: tool.accountId,
-        principal: tool.currentValue,
-        interestRate: tool.interestRate ?? 0,
-        startDate: tool.startDate ?? DateTime.now(),
-        endDate: tool.endDate,
-      );
+      final double payout = await ToolDetailRepository()
+          .closeDepositAndTransferToMoney(
+            depositToolId: tool.id,
+            depositName: tool.name,
+            accountId: tool.accountId,
+            principal: tool.currentValue,
+            interestRate: tool.interestRate ?? 0,
+            startDate: tool.startDate ?? DateTime.now(),
+            endDate: tool.endDate,
+          );
       Toast.show(
         context,
         'Депозит закрыт: ${formatCurrency(payout)} зачислено в деньги счёта',
@@ -935,6 +960,24 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     } catch (e) {
       Toast.show(context, 'Не удалось закрыть депозит: $e');
     }
+  }
+
+  Future<void> _showCreditPaymentSheet(
+    BuildContext context,
+    ToolDetailDisplay tool,
+  ) async {
+    final double? paid = await showCreditPaymentSheet(
+      context,
+      accountId: widget.accountId,
+      toolId: widget.toolId,
+      toolName: tool.name,
+      outstanding: tool.currentValue.abs(),
+    );
+    if (paid == null || !context.mounted) return;
+    Toast.show(context, 'Платёж проведён: ${formatCurrency(paid)}');
+    context.read<ToolDetailBloc>().add(
+      LoadToolDetail(widget.accountId, widget.toolId),
+    );
   }
 
   Future<void> _confirmCloseCredit(
@@ -969,11 +1012,14 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     try {
       final double paid = await ToolDetailRepository()
           .closeCreditAndRemoveSchedule(
-        creditToolId: tool.id,
-        creditName: tool.name,
-        accountId: tool.accountId,
+            creditToolId: tool.id,
+            creditName: tool.name,
+            accountId: tool.accountId,
+          );
+      Toast.show(
+        context,
+        'Кредит закрыт: погашено ${paid.toStringAsFixed(2)} ₽',
       );
-      Toast.show(context, 'Кредит закрыт: погашено ${paid.toStringAsFixed(2)} ₽');
       Navigator.of(context).pop();
     } catch (e) {
       Toast.show(context, 'Не удалось закрыть кредит: $e');
@@ -984,8 +1030,6 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     BuildContext context,
     ToolDetailDisplay tool,
   ) async {
-    final List<Map<String, Object?>> currencies = await CurrencyRepository()
-        .getList();
     final List<Tool> moneyTools = await ToolDetailRepository()
         .getAccountMoneyTools(tool.accountId, excludeToolId: tool.id);
     if (!context.mounted) return;
@@ -994,9 +1038,10 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
       return;
     }
 
-    final double impliedRate = tool.quantity.abs() > 0
-        ? tool.currentValue.abs() / tool.quantity.abs()
-        : 0;
+    final double impliedRate =
+        tool.quantity.abs() > 0
+            ? tool.currentValue.abs() / tool.quantity.abs()
+            : 0;
     final double savedRate = await CurrencyRepository().getRate(
       tool.ticker ?? '',
     );
@@ -1028,16 +1073,19 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Куда перевести',
                     ),
-                    items: moneyTools
-                        .map(
-                          (Tool t) => DropdownMenuItem<String>(
-                            value: t.id,
-                            child: Text('${t.name} (${t.id.substring(0, 8)})'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (String? v) =>
-                        setDialogState(() => targetToolId = v),
+                    items:
+                        moneyTools
+                            .map(
+                              (Tool t) => DropdownMenuItem<String>(
+                                value: t.id,
+                                child: Text(
+                                  '${t.name} (${t.id.substring(0, 8)})',
+                                ),
+                              ),
+                            )
+                            .toList(),
+                    onChanged:
+                        (String? v) => setDialogState(() => targetToolId = v),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -1071,21 +1119,21 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     if (confirmed != true || targetToolId == null || !context.mounted) return;
 
     try {
-      final double rate = double.tryParse(
-        rateController.text.replaceAll(',', '.'),
-      )!;
+      final double rate =
+          double.tryParse(rateController.text.replaceAll(',', '.'))!;
       final double rubValue = tool.currentValue.abs();
-      final double transferred =
-          await ToolDetailRepository().closeMoneyToolAndTransfer(
-        toolId: tool.id,
-        toolName: tool.name,
-        accountId: tool.accountId,
-        targetToolId: targetToolId!,
-        quantityInCurrency: tool.quantity.abs(),
-        rate: rate,
-        rubValue: rubValue,
-        closeName: 'Обмен «${tool.name}» по курсу ${rate.toStringAsFixed(2)}',
-      );
+      final double transferred = await ToolDetailRepository()
+          .closeMoneyToolAndTransfer(
+            toolId: tool.id,
+            toolName: tool.name,
+            accountId: tool.accountId,
+            targetToolId: targetToolId!,
+            quantityInCurrency: tool.quantity.abs(),
+            rate: rate,
+            rubValue: rubValue,
+            closeName:
+                'Обмен «${tool.name}» по курсу ${rate.toStringAsFixed(2)}',
+          );
       Toast.show(
         context,
         'Тул закрыт: ${transferred.toStringAsFixed(2)} ₽ переведено',
@@ -1108,71 +1156,72 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
     final double rate = tool.interestRate ?? 0;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => Scaffold(
-          appBar: AppBar(title: const Text('График платежей')),
-          body: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            padding: const EdgeInsets.all(16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const <DataColumn>[
-                  DataColumn(label: Text('№')),
-                  DataColumn(label: Text('Платёж')),
-                  DataColumn(label: Text('Проценты')),
-                  DataColumn(label: Text('Тело')),
-                ],
-                rows: <DataRow>[
-                  for (int n = 1; n <= term; n++)
-                    DataRow(
-                      cells: <DataCell>[
-                        DataCell(Text('$n')),
-                        DataCell(
-                          Text(
-                            formatCurrency(
-                              creditPaymentSplit(
-                                paymentType: paymentType,
-                                loanAmount: debt,
-                                annualRate: rate,
-                                termMonths: term,
-                                paymentNumber: n,
-                              ).payment,
+        builder:
+            (BuildContext context) => Scaffold(
+              appBar: AppBar(title: const Text('График платежей')),
+              body: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const <DataColumn>[
+                      DataColumn(label: Text('№')),
+                      DataColumn(label: Text('Платёж')),
+                      DataColumn(label: Text('Проценты')),
+                      DataColumn(label: Text('Тело')),
+                    ],
+                    rows: <DataRow>[
+                      for (int n = 1; n <= term; n++)
+                        DataRow(
+                          cells: <DataCell>[
+                            DataCell(Text('$n')),
+                            DataCell(
+                              Text(
+                                formatCurrency(
+                                  creditPaymentSplit(
+                                    paymentType: paymentType,
+                                    loanAmount: debt,
+                                    annualRate: rate,
+                                    termMonths: term,
+                                    paymentNumber: n,
+                                  ).payment,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            formatCurrency(
-                              creditPaymentSplit(
-                                paymentType: paymentType,
-                                loanAmount: debt,
-                                annualRate: rate,
-                                termMonths: term,
-                                paymentNumber: n,
-                              ).interest,
+                            DataCell(
+                              Text(
+                                formatCurrency(
+                                  creditPaymentSplit(
+                                    paymentType: paymentType,
+                                    loanAmount: debt,
+                                    annualRate: rate,
+                                    termMonths: term,
+                                    paymentNumber: n,
+                                  ).interest,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            formatCurrency(
-                              creditPaymentSplit(
-                                paymentType: paymentType,
-                                loanAmount: debt,
-                                annualRate: rate,
-                                termMonths: term,
-                                paymentNumber: n,
-                              ).principal,
+                            DataCell(
+                              Text(
+                                formatCurrency(
+                                  creditPaymentSplit(
+                                    paymentType: paymentType,
+                                    loanAmount: debt,
+                                    annualRate: rate,
+                                    termMonths: term,
+                                    paymentNumber: n,
+                                  ).principal,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
       ),
     );
   }
@@ -1222,9 +1271,7 @@ class _ToolDetailScreenState extends State<ToolDetailScreen> {
           amount,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isFinal
-                ? colorScheme.primary
-                : colorScheme.onSurfaceVariant,
+            color: isFinal ? colorScheme.primary : colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -1287,9 +1334,10 @@ class ToolActivitiesScreen extends StatelessWidget {
               final Activity activity = activities[index];
               final bool isAdd = activity.type == ActivityType.add;
               // Маркер прибыль/убыток (quantity = 0) несёт сумму в price.
-              final double value = activity.quantity == 0
-                  ? activity.price
-                  : activity.price * activity.quantity;
+              final double value =
+                  activity.quantity == 0
+                      ? activity.price
+                      : activity.price * activity.quantity;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
@@ -1323,10 +1371,11 @@ class ToolActivitiesScreen extends StatelessWidget {
 class _ChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = Colors.green;
+    final Paint paint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = Colors.green;
 
     final Path path = Path();
     const int points = 50;
@@ -1344,9 +1393,10 @@ class _ChartPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    final Paint fillPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = Colors.green.withValues(alpha: 0.1);
+    final Paint fillPaint =
+        Paint()
+          ..style = PaintingStyle.fill
+          ..color = Colors.green.withValues(alpha: 0.1);
     canvas.drawPath(path, fillPaint);
   }
 

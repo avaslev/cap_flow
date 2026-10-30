@@ -8,7 +8,6 @@ import 'package:capflow/data/models/tools/tool_kind.dart';
 import 'package:uuid/uuid.dart';
 import 'package:capflow/feature/tools/domain/tool_valuation.dart';
 import 'package:capflow/feature/tool_detail/data/tool_detail_models.dart';
-import 'package:uuid/uuid.dart';
 
 /// Repository for tool detail operations.
 ///
@@ -33,8 +32,8 @@ class ToolDetailRepository {
     double currentValue = 0.0;
 
     for (final activity in activities) {
-      final quantityChange = activity.quantity *
-          (activity.type == ActivityType.add ? 1 : -1);
+      final quantityChange =
+          activity.quantity * (activity.type == ActivityType.add ? 1 : -1);
       final valueChange = activity.price * quantityChange;
 
       totalQuantity += quantityChange;
@@ -45,20 +44,24 @@ class ToolDetailRepository {
     double percentageChange = 0.0;
     if (tool.type == 'STOCK' && activities.isNotEmpty) {
       // Get the last activity for price comparison
-      final sortedActivities = List<Activity>.from(activities)..sort(
-        (a, b) => b.createAt.compareTo(a.createAt),
-      );
+      final sortedActivities = List<Activity>.from(activities)
+        ..sort((a, b) => b.createAt.compareTo(a.createAt));
       final latestActivity = sortedActivities.first;
 
       // Calculate percentage change from initial to current value
       if (totalQuantity > 0 && latestActivity.price > 0) {
         final avgPrice = currentValue / totalQuantity;
-        final initialPrice = latestActivity.price; // Simplified - using latest price as reference
+        final initialPrice =
+            latestActivity
+                .price; // Simplified - using latest price as reference
         percentageChange = ((avgPrice - initialPrice) / initialPrice) * 100;
       }
     } else if (tool.type == 'BOND' && totalQuantity > 0) {
       // For bonds, calculate yield based on current value vs face value
-      percentageChange = ((currentValue / totalQuantity) - (tool.faceValue ?? 0)) / (tool.faceValue ?? 0) * 100;
+      percentageChange =
+          ((currentValue / totalQuantity) - (tool.faceValue ?? 0)) /
+          (tool.faceValue ?? 0) *
+          100;
     }
 
     return ToolDetailDisplay(
@@ -75,6 +78,9 @@ class ToolDetailRepository {
       interestRate: tool.interestRate,
       faceValue: tool.faceValue,
       paymentDayOfMonth: tool.paymentDayOfMonth,
+      loanStartDate: tool.startDate,
+      loanTermMonths: tool.termMonths,
+      creditPaymentType: tool.payType,
     );
   }
 
@@ -103,9 +109,8 @@ class ToolDetailRepository {
     DateTime? endDate,
   }) async {
     final List<Tool> accountTools = await _repo.geListByAccount(accountId);
-    final List<Tool> moneyTools = accountTools
-        .where((Tool t) => t.type == ToolType.money.name)
-        .toList();
+    final List<Tool> moneyTools =
+        accountTools.where((Tool t) => t.type == ToolType.money.name).toList();
     if (moneyTools.isEmpty) {
       throw Exception('На счёте нет денежного тула для зачисления.');
     }
@@ -170,9 +175,8 @@ class ToolDetailRepository {
     required String accountId,
   }) async {
     final List<Tool> accountTools = await _repo.geListByAccount(accountId);
-    final List<Tool> moneyTools = accountTools
-        .where((Tool t) => t.type == ToolType.money.name)
-        .toList();
+    final List<Tool> moneyTools =
+        accountTools.where((Tool t) => t.type == ToolType.money.name).toList();
     if (moneyTools.isEmpty) {
       throw Exception('На счёте нет денежного тула для списания.');
     }
@@ -183,7 +187,8 @@ class ToolDetailRepository {
         .getActivityListByTool(creditToolId);
     double outstanding = 0;
     for (final Activity a in creditActivities) {
-      outstanding += (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
+      outstanding +=
+          (a.type == ActivityType.add ? 1 : -1) * a.price * a.quantity;
     }
     outstanding = outstanding.abs();
 
@@ -226,6 +231,85 @@ class ToolDetailRepository {
     return outstanding;
   }
 
+  /// Ручной платёж по кредиту: [principal] гасит тело (перевод
+  /// money-тул → кредит-тул), [interest] списывается как расход.
+  ///
+  /// Планировщик намеренно не меняется: события кредита остаются как есть.
+  /// Возвращает фактически списанную сумму (тело + проценты).
+  Future<double> payCreditPayment({
+    required String creditToolId,
+    required String creditName,
+    required String accountId,
+    required String moneyToolId,
+    required DateTime date,
+    required double principal,
+    required double interest,
+  }) async {
+    final double body = _round2(principal);
+    final double fee = _round2(interest);
+    if (body < 0 || fee < 0 || body + fee <= 0) {
+      throw ArgumentError('Суммы платежа должны быть неотрицательными');
+    }
+
+    final Tool moneyTool = await _repo.get(moneyToolId);
+    if (moneyTool.accountId != accountId ||
+        moneyTool.type != ToolType.money.name) {
+      throw Exception('Денежный тул не найден на счёте.');
+    }
+
+    final String transferPairId = const Uuid().v7();
+    final String transferName = 'Платёж по кредиту «$creditName»';
+
+    final List<Activity> activities = <Activity>[
+      if (body > 0)
+        Activity(
+          id: const Uuid().v7(),
+          toolId: moneyToolId,
+          type: ActivityType.substract,
+          createAt: date,
+          quantity: body,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: true,
+          name: transferName,
+          principalAmount: body,
+          transferPairId: transferPairId,
+        ),
+      if (body > 0)
+        Activity(
+          id: const Uuid().v7(),
+          toolId: creditToolId,
+          type: ActivityType.add,
+          createAt: date,
+          quantity: body,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: true,
+          name: 'Погашение тела кредита «$creditName»',
+          principalAmount: body,
+          transferPairId: transferPairId,
+        ),
+      if (fee > 0)
+        Activity(
+          id: const Uuid().v7(),
+          toolId: moneyToolId,
+          type: ActivityType.substract,
+          createAt: date,
+          quantity: fee,
+          price: 1,
+          currency: Currency.RUB,
+          isTransmit: false,
+          name: 'Проценты по кредиту «$creditName»',
+          interestAmount: fee,
+        ),
+    ];
+
+    await _activityRepo.insertAll(activities);
+    return _round2(body + fee);
+  }
+
+  double _round2(double value) => (value * 100).roundToDouble() / 100;
+
   /// Продажа актива «прочее» за [salePrice]: деньги зачисляются на первый
   /// money-тул счёта, актив списывается по себестоимости, реализованная
   /// прибыль/убыток пишется маркером (как при продаже ценных бумаг), затем
@@ -238,8 +322,9 @@ class ToolDetailRepository {
     required double salePrice,
     DateTime? date,
   }) async {
-    final List<Activity> activities = await _activityRepo
-        .getActivityListByTool(toolId);
+    final List<Activity> activities = await _activityRepo.getActivityListByTool(
+      toolId,
+    );
     // Себестоимость позиции (переоценки нет — это стоимость заведения).
     final AverageCostResult avg = computeAverageCost(activities);
     double costPrice = avg.avgCost;
@@ -254,9 +339,8 @@ class ToolDetailRepository {
     final double qty = avg.quantity > 0 ? avg.quantity : 1;
 
     final List<Tool> accountTools = await _repo.geListByAccount(accountId);
-    final List<Tool> moneyTools = accountTools
-        .where((Tool t) => t.type == ToolType.money.name)
-        .toList();
+    final List<Tool> moneyTools =
+        accountTools.where((Tool t) => t.type == ToolType.money.name).toList();
     if (moneyTools.isEmpty) {
       throw Exception('На счёте нет денежного тула для зачисления.');
     }
@@ -309,9 +393,10 @@ class ToolDetailRepository {
           price: realized.abs(),
           currency: Currency.RUB,
           isTransmit: false,
-          name: isGain
-              ? '${Activity.investmentGainName} $toolName'
-              : '${Activity.investmentLossName} $toolName',
+          name:
+              isGain
+                  ? '${Activity.investmentGainName} $toolName'
+                  : '${Activity.investmentLossName} $toolName',
         ),
       );
     }
@@ -322,16 +407,22 @@ class ToolDetailRepository {
     return realized;
   }
 
-  /// Деньги-тулы счёта (кроме исключённого).
+  /// Деньги-тулы счёта (кроме исключённого и закрытых).
+  /// Если задан [currency], остаются только тулы в этой валюте
+  /// (нет тикера — значит RUB).
   Future<List<Tool>> getAccountMoneyTools(
     String accountId, {
     String? excludeToolId,
+    String? currency,
   }) async {
     final List<Tool> tools = await _repo.geListByAccount(accountId);
     return tools
         .where(
           (Tool t) =>
-              t.type == ToolType.money.name && t.id != excludeToolId,
+              t.type == ToolType.money.name &&
+              !t.isClosed &&
+              t.id != excludeToolId &&
+              (currency == null || (t.ticker ?? 'RUB') == currency),
         )
         .toList();
   }
@@ -421,7 +512,9 @@ class ToolDetailRepository {
 
   /// Activities of a tool, newest first.
   Future<List<Activity>> getActivitiesForTool(String toolId) async {
-    final List<Activity> list = await _activityRepo.getActivityListByTool(toolId);
+    final List<Activity> list = await _activityRepo.getActivityListByTool(
+      toolId,
+    );
     final List<Activity> sorted = List<Activity>.from(list)
       ..sort((Activity a, Activity b) => b.createAt.compareTo(a.createAt));
     return sorted;
