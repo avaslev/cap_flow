@@ -9,7 +9,6 @@ import 'package:capflow/feature/account/presentation/widget/form/other.dart';
 import 'package:capflow/feature/account/presentation/widget/form/deposit.dart';
 import 'package:capflow/feature/account/presentation/widget/form/investment.dart';
 import 'package:flutter/material.dart';
-import 'package:capflow/core/utils/toast.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// A modal bottom sheet for selecting a financial action.
@@ -48,10 +47,11 @@ class ActionSelectionBottomSheet extends StatelessWidget {
           showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
-            builder: (BuildContext context) => BlocProvider<AccountsBloc>.value(
-              value: accountsBloc,
-              child: form,
-            ),
+            builder:
+                (BuildContext context) => BlocProvider<AccountsBloc>.value(
+                  value: accountsBloc,
+                  child: form,
+                ),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
             ),
@@ -93,7 +93,13 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                     "Доход (Income)",
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  onTap: () => _onTap(ActivityForm(accountData: accountData, activityStateType: ActivityStateType.add,)),
+                  onTap:
+                      () => _onTap(
+                        ActivityForm(
+                          accountData: accountData,
+                          activityStateType: ActivityStateType.add,
+                        ),
+                      ),
                 ),
                 ListTile(
                   leading: Icon(
@@ -104,7 +110,13 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                     "Расход (Expense)",
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  onTap: () => _onTap(ActivityForm(accountData: accountData, activityStateType: ActivityStateType.substract,)),
+                  onTap:
+                      () => _onTap(
+                        ActivityForm(
+                          accountData: accountData,
+                          activityStateType: ActivityStateType.substract,
+                        ),
+                      ),
                 ),
                 if (hasMoneyTools) // Conditionally show Transfer action
                   ListTile(
@@ -268,11 +280,14 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                       "Купить Акции (Buy Stocks)",
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.buy,
-                        investmentType: ToolType.stocks,
-                      )),
+                    onTap:
+                        () => _onTap(
+                          AddInvestmentOperationForm(
+                            accountId: activeAccountId,
+                            operationType: InvestmentOperationType.buy,
+                            investmentType: ToolType.stocks,
+                          ),
+                        ),
                   ),
                   // New: Bond Actions
                   ListTile(
@@ -284,11 +299,14 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                       "Купить Облигации (Buy Bonds)",
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.buy,
-                        investmentType: ToolType.bonds,
-                      )),
+                    onTap:
+                        () => _onTap(
+                          AddInvestmentOperationForm(
+                            accountId: activeAccountId,
+                            operationType: InvestmentOperationType.buy,
+                            investmentType: ToolType.bonds,
+                          ),
+                        ),
                   ),
                 ],
                 // NEW: Cryptocurrency Actions
@@ -302,28 +320,16 @@ class ActionSelectionBottomSheet extends StatelessWidget {
                       "Купить Криптовалюту (Buy Crypto)",
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    onTap: () => _onTap(AddInvestmentOperationForm(
-                        accountId: activeAccountId,
-                        operationType: InvestmentOperationType.buy,
-                        investmentType: ToolType.cryptocurrency,
-                      )),
+                    onTap:
+                        () => _onTap(
+                          AddInvestmentOperationForm(
+                            accountId: activeAccountId,
+                            operationType: InvestmentOperationType.buy,
+                            investmentType: ToolType.cryptocurrency,
+                          ),
+                        ),
                   ),
                 ],
-                ListTile(
-                  leading: Icon(
-                    Icons.list_alt,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  title: Text(
-                    "Посмотреть активности по счету",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close the bottom sheet
-                    Toast.show(context, 'View account activities selected');
-                    // TODO: Implement navigation to All Events screen (or specific account events)
-                  },
-                ),
                 const SizedBox(height: 8.0), // Some bottom padding
               ],
             ),
