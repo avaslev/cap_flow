@@ -15,11 +15,11 @@ enum AccountType {
 /// Data model for an account summary.
 class AccountSummary {
   final String id;
-  final String name;
+  String name; // Made mutable to allow renaming the account
   double balance; // Made mutable to allow updates
   double dailyChangeAmount;
   double dailyChangePercentage;
-  final int colorValue;
+  int colorValue; // Made mutable to allow changing the card color
   final AccountType type;
   bool hideEvents; // New attribute to hide events for this account
   bool
@@ -729,6 +729,23 @@ List<ToolSummary> getToolsForAccount(String accountId) {
 
     _updateTotalBalance(); // Recalculates total and notifies listeners
     // Notify for accounts list change
+  }
+
+  /// Обновляет отображаемые настройки счёта и пересчитывает Total.
+  void updateAccountDetails(
+    String accountId, {
+    required String name,
+    required int colorValue,
+    required bool hideEvents,
+    required bool excludeFromTotal,
+  }) {
+    final AccountSummary? account = getAccountById(accountId);
+    if (account == null || accountId == 'total') return;
+    account.name = name;
+    account.colorValue = colorValue;
+    account.hideEvents = hideEvents;
+    account.excludeFromTotal = excludeFromTotal;
+    _updateTotalBalance();
   }
 
   /// Removes a tool by id from the in-memory list.

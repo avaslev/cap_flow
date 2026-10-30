@@ -53,6 +53,28 @@ class AccountRepository {
     await db.update('accounts', {'isArchived': 0}, where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Обновить название, цвет и флаги отображения счёта.
+  Future<void> updateAccountDetails(
+    String id, {
+    required String name,
+    required int colorValue,
+    required bool hideEvents,
+    required bool excludeFromTotal,
+  }) async {
+    Database db = await DatabaseHelper.instance.db;
+    await db.update(
+      'accounts',
+      {
+        'name': name,
+        'colorValue': colorValue,
+        'hideEvents': hideEvents.toString(),
+        'excludeFromTotal': excludeFromTotal.toString(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> changeSortOrder(String id, int sortOrder) async {
     Database db = await DatabaseHelper.instance.db;
     await db.update('accounts', {'sortOrder': sortOrder}, where: 'id = ?', whereArgs: [id]);

@@ -18,9 +18,12 @@ String _getAccountTypeDisplayName(AccountType type) {
   }
 }
 
-/// A modal bottom sheet for creating a new account.
+/// A modal bottom sheet for creating a new account or editing an existing one.
 class AddAccountForm extends StatefulWidget {
-  const AddAccountForm({super.key});
+  /// When set, the form edits this account's name and color.
+  final AccountSummary? account;
+
+  const AddAccountForm({super.key, this.account});
 
   @override
   State<AddAccountForm> createState() => _AddAccountFormState();
@@ -134,6 +137,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final bool isEditing = widget.account != null;
     // Access AccountsBloc from the current context, which should now have it provided
     // in the MultiBlocProvider from the AccountHomePage's _showAddAccountSheet.
     final AccountsBloc accountBloc = BlocProvider.of<AccountsBloc>(context);
@@ -165,7 +169,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Text(
-                  'Новый счёт',
+                  isEditing ? 'Редактировать счёт' : 'Новый счёт',
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
@@ -191,66 +195,68 @@ class _AddAccountFormState extends State<AddAccountForm> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _balanceController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                  signed: true,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Начальный баланс',
-                  hintText: 'например, 1000.50 или -500.00',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+              if (!isEditing) ...<Widget>[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _balanceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
                   ),
-                  prefixIcon: Icon(
-                    Icons.currency_ruble,
-                    color: colorScheme.onSurfaceVariant,
+                  decoration: InputDecoration(
+                    labelText: 'Начальный баланс',
+                    hintText: 'например, 1000.50 или -500.00',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.currency_ruble,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
+                  validator: (String? value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Введите начальный баланс';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Введите корректное число';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Введите начальный баланс';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Введите корректное число';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Тип счёта:',
-                style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Выбор типа через нижнюю шторку: оверлей-меню Dropdown
-              // неустойчиво к смене высоты шторки (клавиатура/скролл).
-              TextFormField(
-                readOnly: true,
-                controller: TextEditingController(
-                  text: _getAccountTypeDisplayName(
-                    formState.selectedAccountType,
+                const SizedBox(height: 24),
+                Text(
+                  'Тип счёта:',
+                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurface,
                   ),
                 ),
-                decoration: InputDecoration(
-                  labelText: 'Тип',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+                const SizedBox(height: 12),
+                // Выбор типа через нижнюю шторку: оверлей-меню Dropdown
+                // неустойчиво к смене высоты шторки (клавиатура/скролл).
+                TextFormField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: _getAccountTypeDisplayName(
+                      formState.selectedAccountType,
+                    ),
                   ),
-                  prefixIcon: Icon(
-                    Icons.category,
-                    color: colorScheme.onSurfaceVariant,
+                  decoration: InputDecoration(
+                    labelText: 'Тип',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.category,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
-                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                  onTap: () => _pickAccountType(context, formState),
                 ),
-                onTap: () => _pickAccountType(context, formState),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
               SwitchListTile(
                 title: Text(
                   'Скрыть события счёта',
@@ -342,39 +348,51 @@ class _AddAccountFormState extends State<AddAccountForm> {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Get final values from the cubit state
-                    final String name = formState.name;
-                    final double initialBalance = double.parse(
-                      formState.balanceText,
-                    );
-
+                  if (!_formKey.currentState!.validate()) return;
+                  final String name = formState.name.trim();
+                  if (isEditing) {
                     accountBloc.add(
-                      AddAccountEvent(
-                        AccountSummary(
-                          name: name,
-                          balance: initialBalance,
-                          dailyChangeAmount: 0,
-                          dailyChangePercentage: 0,
-                          colorValue: formState.selectedColorValue,
-                          type: formState.selectedAccountType,
-                          hideEvents: formState.hideEvents,
-                          excludeFromTotal: formState.excludeFromTotal,
-                        ),
+                      UpdateAccountEvent(
+                        accountId: widget.account!.id,
+                        name: name,
+                        colorValue: formState.selectedColorValue,
+                        hideEvents: formState.hideEvents,
+                        excludeFromTotal: formState.excludeFromTotal,
                       ),
                     );
-
-                    Toast.show(context, 'Счёт «$name» создан');
-                    Navigator.pop(context); // Close the bottom sheet
+                    Toast.show(context, 'Счёт «$name» обновлён');
+                    Navigator.pop(context);
+                    return;
                   }
+                  final double initialBalance = double.parse(
+                    formState.balanceText,
+                  );
+
+                  accountBloc.add(
+                    AddAccountEvent(
+                      AccountSummary(
+                        name: name,
+                        balance: initialBalance,
+                        dailyChangeAmount: 0,
+                        dailyChangePercentage: 0,
+                        colorValue: formState.selectedColorValue,
+                        type: formState.selectedAccountType,
+                        hideEvents: formState.hideEvents,
+                        excludeFromTotal: formState.excludeFromTotal,
+                      ),
+                    ),
+                  );
+
+                  Toast.show(context, 'Счёт «$name» создан');
+                  Navigator.pop(context); // Close the bottom sheet
                 },
                 icon: Icon(
-                  Icons.add_card,
+                  isEditing ? Icons.save : Icons.add_card,
                   color: colorScheme.onPrimary,
                   size: 20,
                 ),
                 label: Text(
-                  'Создать счёт',
+                  isEditing ? 'Сохранить' : 'Создать счёт',
                   style: Theme.of(context).textTheme.labelLarge!.copyWith(
                     color: colorScheme.onPrimary,
                     fontWeight: FontWeight.w600,

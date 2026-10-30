@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:capflow/feature/account/data/accountDataState.dart';
 import 'package:capflow/feature/account/logic/accountBloc.dart';
+import 'package:capflow/feature/account/data/addAccountFormState.dart';
 import 'package:capflow/feature/account/logic/addAccountFormCubit.dart';
 import 'package:capflow/feature/account/presentation/widget/accountCard.dart';
 import 'package:capflow/feature/account/presentation/widget/actionSelectionBottomSheet.dart';
@@ -145,6 +146,10 @@ class _AccountListScreenState extends State<AccountListScreen> {
                               () => accountBloc.add(
                                 MoveAccountEvent(account.id, up: false),
                               ),
+                          onEdit: () => _showAddAccountForm(
+                            context,
+                            account: account,
+                          ),
                         ),
                       ),
                     );
@@ -315,8 +320,14 @@ class _AccountListScreenState extends State<AccountListScreen> {
     );
   }
 
-  void _showAddAccountForm(BuildContext context) {
+  void _showAddAccountForm(
+    BuildContext context, {
+    AccountSummary? account,
+  }) {
     final AccountsBloc accountsBloc = context.read<AccountsBloc>();
+    final AddAccountFormState initialState = account == null
+        ? const AddAccountFormState()
+        : AddAccountFormState.fromAccount(account);
 
     showModalBottomSheet<void>(
       context: context,
@@ -328,13 +339,14 @@ class _AccountListScreenState extends State<AccountListScreen> {
         return MultiBlocProvider(
           providers: <BlocProvider<dynamic>>[
             BlocProvider<AddAccountFormCubit>(
-              create: (BuildContext context) => AddAccountFormCubit(),
+              create: (BuildContext context) =>
+                  AddAccountFormCubit(initialState),
             ),
             BlocProvider<AccountsBloc>.value(
               value: accountsBloc, // Re-provide the existing AccountsBloc
             ),
           ],
-          child: const AddAccountForm(),
+          child: AddAccountForm(account: account),
         );
       },
     );

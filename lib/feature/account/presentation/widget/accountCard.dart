@@ -20,6 +20,7 @@ class AccountCard extends StatelessWidget {
   final bool canMoveDown;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
+  final VoidCallback? onEdit;
 
   const AccountCard({
     super.key,
@@ -30,6 +31,7 @@ class AccountCard extends StatelessWidget {
     this.canMoveDown = false,
     this.onMoveUp,
     this.onMoveDown,
+    this.onEdit,
   });
 
   IconData _toolIcon(ToolType type) {
@@ -114,7 +116,7 @@ class AccountCard extends StatelessWidget {
                       ),
                     ),
                     // Reserve space for the edit overlay controls.
-                    if (editMode) const SizedBox(width: 96),
+                    if (editMode) const SizedBox(width: 64),
                   ],
                 ),
                 const Spacer(),
@@ -214,7 +216,7 @@ class AccountCard extends StatelessWidget {
               ],
             ),
             // Edit controls: overlay, no layout shift.
-            // Edit controls: статусы и удаление — сверху справа,
+            // Редактирование и удаление — сверху справа,
             // перемещение — стрелки в нижнем правом углу (overlay, без сдвига).
             if (editMode)
               Positioned(
@@ -225,47 +227,10 @@ class AccountCard extends StatelessWidget {
                   children: <Widget>[
                     _editIcon(
                       context,
-                      icon: account.excludeFromTotal
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      tooltip: account.excludeFromTotal
-                          ? 'Исключён из Total'
-                          : 'Исключить из Total',
-                      color: account.excludeFromTotal
-                          ? colorScheme.error
-                          : textColor,
-                      onPressed: () {
-                        accountBloc.add(
-                          ChangeAccountEvent(
-                            accountId: account.id,
-                            hideEvents: account.hideEvents,
-                            excludeFromTotal: !account.excludeFromTotal,
-                            remove: false,
-                          ),
-                        );
-                      },
-                    ),
-                    _editIcon(
-                      context,
-                      icon: account.hideEvents
-                          ? Icons.notifications_off
-                          : Icons.notifications,
-                      tooltip: account.hideEvents
-                          ? 'События скрыты'
-                          : 'Скрыть события',
-                      color: account.hideEvents
-                          ? colorScheme.error
-                          : textColor,
-                      onPressed: () {
-                        accountBloc.add(
-                          ChangeAccountEvent(
-                            accountId: account.id,
-                            hideEvents: !account.hideEvents,
-                            excludeFromTotal: account.excludeFromTotal,
-                            remove: false,
-                          ),
-                        );
-                      },
+                      icon: Icons.edit,
+                      tooltip: 'Редактировать счёт',
+                      color: textColor,
+                      onPressed: onEdit,
                     ),
                     _editIcon(
                       context,

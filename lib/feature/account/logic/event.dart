@@ -39,6 +39,23 @@ class MoveAccountEvent extends AccountsEvent {
   MoveAccountEvent(this.accountId, {required this.up});
 }
 
+/// Изменить настройки счёта: название, цвет и флаги отображения.
+class UpdateAccountEvent extends AccountsEvent {
+  final String accountId;
+  final String name;
+  final int colorValue;
+  final bool hideEvents;
+  final bool excludeFromTotal;
+
+  UpdateAccountEvent({
+    required this.accountId,
+    required this.name,
+    required this.colorValue,
+    required this.hideEvents,
+    required this.excludeFromTotal,
+  });
+}
+
 class ChangeAccountEvent extends AccountsEvent {
   final String accountId;
   final bool hideEvents; // New attribute to hide events for this account

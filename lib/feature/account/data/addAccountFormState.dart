@@ -18,6 +18,17 @@ class AddAccountFormState {
     this.excludeFromTotal = false,
   });
 
+  /// Начальное состояние формы для редактирования существующего счёта.
+  factory AddAccountFormState.fromAccount(AccountSummary account) {
+    return AddAccountFormState(
+      name: account.name,
+      selectedColorValue: account.colorValue,
+      selectedAccountType: account.type,
+      hideEvents: account.hideEvents,
+      excludeFromTotal: account.excludeFromTotal,
+    );
+  }
+
   AddAccountFormState copyWith({
     String? name,
     String? balanceText,

@@ -203,6 +203,27 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       }
     });
 
+    on<UpdateAccountEvent>((event, emit) async {
+      if (event.accountId == 'total') return;
+      final String name = event.name.trim();
+      if (name.isEmpty) return;
+      await AccountRepository().updateAccountDetails(
+        event.accountId,
+        name: name,
+        colorValue: event.colorValue,
+        hideEvents: event.hideEvents,
+        excludeFromTotal: event.excludeFromTotal,
+      );
+      accountData.updateAccountDetails(
+        event.accountId,
+        name: name,
+        colorValue: event.colorValue,
+        hideEvents: event.hideEvents,
+        excludeFromTotal: event.excludeFromTotal,
+      );
+      emit(AccountsDataState(accountData));
+    });
+
     on<ArchiveAccountEvent>((event, emit) async {
       await AccountRepository().archive(event.accountId);
       accountData.archiveAccount(event.accountId);
@@ -237,6 +258,8 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           return accountSummary;
         },
       );
+      accountSummary.name = account.name;
+      accountSummary.colorValue = account.colorValue;
       accountSummary.hideEvents = bool.parse(account.hideEvents);
       accountSummary.excludeFromTotal = bool.parse(account.excludeFromTotal);
       accountSummary.sortOrder = account.sortOrder;

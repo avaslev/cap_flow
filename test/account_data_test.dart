@@ -422,6 +422,42 @@ void main() {
 
   });
 
+  group('updateAccountDetails', () {
+    test('updates name, color and flags and recalculates Total', () {
+      final AccountData data = AccountData();
+      data.addAccounts([_account('a')]);
+      data.addTool(_moneyTool('a-cash', 'a', currentValue: 100));
+      expect(data.getAccountById('total')!.balance, 100.0);
+
+      data.updateAccountDetails(
+        'a',
+        name: 'Переименован',
+        colorValue: 0xFF28A745,
+        hideEvents: true,
+        excludeFromTotal: true,
+      );
+
+      final AccountSummary account = data.getAccountById('a')!;
+      expect(account.name, 'Переименован');
+      expect(account.colorValue, 0xFF28A745);
+      expect(account.hideEvents, isTrue);
+      expect(account.excludeFromTotal, isTrue);
+      expect(data.getAccountById('total')!.balance, 0.0);
+    });
+
+    test('cannot update total', () {
+      final AccountData data = AccountData();
+      data.updateAccountDetails(
+        'total',
+        name: 'Новое имя',
+        colorValue: 0xFF000000,
+        hideEvents: true,
+        excludeFromTotal: true,
+      );
+      expect(data.getAccountById('total')!.name, 'Total Balance');
+    });
+  });
+
   group('Tool lookups', () {
     test('getMoneyToolsForAccount returns only money tools', () {
       final AccountData data = AccountData();
