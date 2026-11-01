@@ -104,10 +104,19 @@ class ActivityCubit extends Cubit<ActivityState> {
           state.comment.trim().isEmpty ? null : state.comment.trim();
 
       // K4: если событие привязано к credit-тулу — платёж по кредиту.
-      // Считаем сплит проценты/тело от текущего остатка долга.
+      // K3-события (с destinationWalletId) уже разделены при создании
+      // кредита: сумма события — чистое тело, проценты списываются
+      // отдельным expense-событием. Сплит нужен только старым событиям,
+      // где сумма была аннуитетом целиком (проценты + тело).
+      //
+      // Тело гасится парой записей (перевод money-тул → кредит-тул с
+      // общим transferPairId, как в payCreditPayment): список показывает
+      // её строкой «Перевод», отчёты не считают расходом. Проценты —
+      // отдельный расход с маркером interestAmount.
       double? interestAmount;
       double? principalAmount;
       String? linkedCreditToolId;
+      String? linkedCreditToolName;
       if (state.eventId != null) {
         try {
           final ScheduledTransaction st =
@@ -116,6 +125,7 @@ class ActivityCubit extends Cubit<ActivityState> {
             final Tool linkedTool = await _toolRepo.get(st.depositToolId!);
             if (linkedTool.type == ToolType.credit.name) {
               linkedCreditToolId = linkedTool.id;
+              linkedCreditToolName = linkedTool.name;
               final List<Activity> creditActivities =
                   await ActivityRepository()
                       .getActivityListByTool(linkedTool.id);
@@ -126,11 +136,16 @@ class ActivityCubit extends Cubit<ActivityState> {
                     a.quantity;
               }
               outstanding = outstanding.abs();
-              final double monthlyRate =
-                  (linkedTool.interestRate ?? 0) / 100 / 12;
-              interestAmount = outstanding * monthlyRate;
-              principalAmount =
-                  (amount - interestAmount).clamp(0.0, outstanding);
+              if (st.destinationWalletId != null) {
+                principalAmount = amount.clamp(0.0, outstanding);
+              } else {
+                final double monthlyRate =
+                    (linkedTool.interestRate ?? 0) / 100 / 12;
+                final double fee =
+                    (outstanding * monthlyRate).clamp(0.0, amount);
+                interestAmount = fee > 0 ? fee : null;
+                principalAmount = (amount - fee).clamp(0.0, outstanding);
+              }
             }
           }
         } catch (_) {
@@ -138,42 +153,81 @@ class ActivityCubit extends Cubit<ActivityState> {
         }
       }
 
-      // add activity ti tool
-      await ActivityRepository().insert(
-          Activity(
-            id: Uuid().v7(),
-            toolId: state.selectedMoneyToolId!,
-            type: switch (state.activityType) {
-              ActivityStateType.add => ActivityType.add,
-              ActivityStateType.substract => ActivityType.substract,
-            },
-            createAt: state.selectedDate,
-            quantity: amount,
-            price: 1,
-            currency: Currency.RUB,
-            isTransmit: false,
-            name: category,
-            comment: comment,
-            interestAmount: interestAmount,
-            principalAmount: principalAmount,
-          ),
-        );
+      final bool isCreditPayment = linkedCreditToolId != null;
+      final String? transferPairId = isCreditPayment ? Uuid().v7() : null;
 
-      // K4: тело кредита гасится — долг (кредит-тул) уменьшается.
-      if (linkedCreditToolId != null && principalAmount != null && principalAmount > 0) {
+      // add activity ti tool
+      if (!isCreditPayment) {
         await ActivityRepository().insert(
-          Activity(
-            id: Uuid().v7(),
-            toolId: linkedCreditToolId,
-            type: ActivityType.add,
-            createAt: state.selectedDate,
-            quantity: principalAmount,
-            price: 1,
-            currency: Currency.RUB,
-            isTransmit: true,
-            name: 'Погашение тела кредита',
-          ),
-        );
+            Activity(
+              id: Uuid().v7(),
+              toolId: state.selectedMoneyToolId!,
+              type: switch (state.activityType) {
+                ActivityStateType.add => ActivityType.add,
+                ActivityStateType.substract => ActivityType.substract,
+              },
+              createAt: state.selectedDate,
+              quantity: amount,
+              price: 1,
+              currency: Currency.RUB,
+              isTransmit: false,
+              name: category,
+              comment: comment,
+            ),
+          );
+      } else {
+        // Тело кредита — перевод money-тул → кредит-тул.
+        if (principalAmount != null && principalAmount > 0) {
+          await ActivityRepository().insert(
+            Activity(
+              id: Uuid().v7(),
+              toolId: state.selectedMoneyToolId!,
+              type: ActivityType.substract,
+              createAt: state.selectedDate,
+              quantity: principalAmount,
+              price: 1,
+              currency: Currency.RUB,
+              isTransmit: true,
+              name: category,
+              comment: comment,
+              principalAmount: principalAmount,
+              transferPairId: transferPairId,
+            ),
+          );
+          await ActivityRepository().insert(
+            Activity(
+              id: Uuid().v7(),
+              toolId: linkedCreditToolId,
+              type: ActivityType.add,
+              createAt: state.selectedDate,
+              quantity: principalAmount,
+              price: 1,
+              currency: Currency.RUB,
+              isTransmit: true,
+              name: 'Погашение тела кредита «$linkedCreditToolName»',
+              principalAmount: principalAmount,
+              transferPairId: transferPairId,
+            ),
+          );
+        }
+        // Проценты (только legacy-события) — отдельный расход.
+        if (interestAmount != null && interestAmount > 0) {
+          await ActivityRepository().insert(
+            Activity(
+              id: Uuid().v7(),
+              toolId: state.selectedMoneyToolId!,
+              type: ActivityType.substract,
+              createAt: state.selectedDate,
+              quantity: interestAmount,
+              price: 1,
+              currency: Currency.RUB,
+              isTransmit: false,
+              name: 'Проценты по кредиту «$linkedCreditToolName»',
+              comment: comment,
+              interestAmount: interestAmount,
+            ),
+          );
+        }
       }
 
       if (state.eventId != null) {
