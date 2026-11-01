@@ -64,6 +64,7 @@ class Event {
   final double amount;
   final String accountId; // To link events to specific accounts
   final String toolId; // To link events to specific accounts
+  final String? destinationToolId; // Recipient tool for transfers
   final String? depositToolId; // Credit tool for credit payment events
   final DateTime date; // Date of the event
 
@@ -76,9 +77,13 @@ class Event {
     required this.amount,
     required this.accountId,
     required this.toolId,
+    this.destinationToolId,
     this.depositToolId,
     required this.date,
   });
+
+  bool get isTransfer =>
+      eventType == 'transfer' || eventType == 'interAccountTransfer';
 }
 
 /// Enum for investment operation type (buy or sell).
@@ -179,71 +184,71 @@ class ToolSummary {
   }) {
     return switch (tool) {
       DepositTool t => ToolSummary(
-          id: t.id,
-          name: t.name,
-          quantity: quantity,
-          percentageChange: percentageChange,
-          accountId: t.accountId,
-          type: t.kind,
-          currentValue: currentValue,
-          ticker: t.ticker,
-          startDate: t.startDate,
-          endDate: t.endDate,
-          payoutType: t.payoutType,
-          withdrawalToolId: t.withdrawalToolId,
-          interestRate: t.interestRate,
-          isClosed: t.isClosed,
-        ),
+        id: t.id,
+        name: t.name,
+        quantity: quantity,
+        percentageChange: percentageChange,
+        accountId: t.accountId,
+        type: t.kind,
+        currentValue: currentValue,
+        ticker: t.ticker,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        payoutType: t.payoutType,
+        withdrawalToolId: t.withdrawalToolId,
+        interestRate: t.interestRate,
+        isClosed: t.isClosed,
+      ),
       CreditTool t => ToolSummary(
-          id: t.id,
-          name: t.name,
-          quantity: quantity,
-          percentageChange: percentageChange,
-          accountId: t.accountId,
-          type: t.kind,
-          currentValue: currentValue,
-          ticker: t.ticker,
-          interestRate: t.interestRate,
-          loanStartDate: t.loanStartDate,
-          loanTermMonths: t.termMonths,
-          paymentDayOfMonth: t.paymentDayOfMonth,
-          creditPaymentType: t.paymentType,
-          isClosed: t.isClosed,
-        ),
+        id: t.id,
+        name: t.name,
+        quantity: quantity,
+        percentageChange: percentageChange,
+        accountId: t.accountId,
+        type: t.kind,
+        currentValue: currentValue,
+        ticker: t.ticker,
+        interestRate: t.interestRate,
+        loanStartDate: t.loanStartDate,
+        loanTermMonths: t.termMonths,
+        paymentDayOfMonth: t.paymentDayOfMonth,
+        creditPaymentType: t.paymentType,
+        isClosed: t.isClosed,
+      ),
       SecurityTool t => ToolSummary(
-          id: t.id,
-          name: t.name,
-          quantity: quantity,
-          percentageChange: percentageChange,
-          accountId: t.accountId,
-          type: t.kind,
-          currentValue: currentValue,
-          ticker: t.ticker,
-          faceValue: t.faceValue,
-          isClosed: t.isClosed,
-        ),
+        id: t.id,
+        name: t.name,
+        quantity: quantity,
+        percentageChange: percentageChange,
+        accountId: t.accountId,
+        type: t.kind,
+        currentValue: currentValue,
+        ticker: t.ticker,
+        faceValue: t.faceValue,
+        isClosed: t.isClosed,
+      ),
       OtherTool t => ToolSummary(
-          id: t.id,
-          name: t.name,
-          quantity: quantity,
-          percentageChange: percentageChange,
-          accountId: t.accountId,
-          type: t.kind,
-          currentValue: currentValue,
-          ticker: t.ticker,
-          isClosed: t.isClosed,
-        ),
+        id: t.id,
+        name: t.name,
+        quantity: quantity,
+        percentageChange: percentageChange,
+        accountId: t.accountId,
+        type: t.kind,
+        currentValue: currentValue,
+        ticker: t.ticker,
+        isClosed: t.isClosed,
+      ),
       TypedTool t => ToolSummary(
-          id: t.id,
-          name: t.name,
-          quantity: quantity,
-          percentageChange: percentageChange,
-          accountId: t.accountId,
-          type: t.kind,
-          currentValue: currentValue,
-          ticker: t.ticker,
-          isClosed: t.isClosed,
-        ),
+        id: t.id,
+        name: t.name,
+        quantity: quantity,
+        percentageChange: percentageChange,
+        accountId: t.accountId,
+        type: t.kind,
+        currentValue: currentValue,
+        ticker: t.ticker,
+        isClosed: t.isClosed,
+      ),
     };
   }
 }
@@ -304,8 +309,9 @@ class AccountData {
   }
 
   /// Returns an unmodifiable list of all account summaries, including 'total'.
-  Map<String,ToolSummary> get tools =>
-      {for (var item in _tools) item.id : item};
+  Map<String, ToolSummary> get tools => {
+    for (var item in _tools) item.id: item,
+  };
 
   /// Signed value of a tool for account/total aggregation, per kind.
   ///
@@ -400,10 +406,10 @@ class AccountData {
   /// Events from accounts with hideEvents flag set to true are excluded.
   List<Event> get allEvents {
     final List<Event> filteredEvents =
-      _events.values.where((Event event) {
-        final AccountSummary? account = getAccountById(event.accountId);
-        return account != null && !account.hideEvents;
-      }).toList();
+        _events.values.where((Event event) {
+          final AccountSummary? account = getAccountById(event.accountId);
+          return account != null && !account.hideEvents;
+        }).toList();
     final List<Event> sortedEvents = List<Event>.from(filteredEvents)..sort(
       (Event a, Event b) => a.date.compareTo(b.date),
     ); // Changed to oldest first
@@ -412,27 +418,28 @@ class AccountData {
   }
 
   /// Returns tools associated with a specific account, sorted by type and then name.
-List<ToolSummary> getToolsForAccount(String accountId) {
-  final List<ToolSummary> filtered = _tools
-      .where((ToolSummary tool) => tool.accountId == accountId)
-      // Инвестиционные тула с нулевым количеством (полностью проданные)
-      // скрываются из списков, но остаются в базе.
-      .where(
-        (ToolSummary tool) =>
-            tool.type == ToolType.money ||
-            tool.type == ToolType.deposit ||
-            tool.type == ToolType.credit ||
-            tool.quantity > 0,
-      )
-      .toList();
-  filtered.sort((ToolSummary a, ToolSummary b) {
-    final int typeComparison = a.type.index.compareTo(b.type.index);
-    if (typeComparison != 0) return typeComparison;
-    return a.name.compareTo(b.name);
-  });
-  
-  return filtered;
-}
+  List<ToolSummary> getToolsForAccount(String accountId) {
+    final List<ToolSummary> filtered =
+        _tools
+            .where((ToolSummary tool) => tool.accountId == accountId)
+            // Инвестиционные тула с нулевым количеством (полностью проданные)
+            // скрываются из списков, но остаются в базе.
+            .where(
+              (ToolSummary tool) =>
+                  tool.type == ToolType.money ||
+                  tool.type == ToolType.deposit ||
+                  tool.type == ToolType.credit ||
+                  tool.quantity > 0,
+            )
+            .toList();
+    filtered.sort((ToolSummary a, ToolSummary b) {
+      final int typeComparison = a.type.index.compareTo(b.type.index);
+      if (typeComparison != 0) return typeComparison;
+      return a.name.compareTo(b.name);
+    });
+
+    return filtered;
+  }
 
   /// Returns only OPEN money tools associated with a specific account
   /// (closed tools are hidden from all pickers and lists).
@@ -563,21 +570,22 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     String toolId,
     double amount,
     DateTime date, {
+    String? destinationToolId,
     String? depositToolId,
   }) {
-
     final event = Event(
-          eventId: eventId,
-          eventType: eventType,
-          name: name,
-          description: description,
-          category: category,
-          amount: amount,
-          accountId: accountId,
-          toolId: toolId,
-          depositToolId: depositToolId,
-          date: date,
-        );
+      eventId: eventId,
+      eventType: eventType,
+      name: name,
+      description: description,
+      category: category,
+      amount: amount,
+      accountId: accountId,
+      toolId: toolId,
+      destinationToolId: destinationToolId,
+      depositToolId: depositToolId,
+      date: date,
+    );
 
     _events.update(eventId, (oldEvent) => event, ifAbsent: () => event);
   }
@@ -585,7 +593,6 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   void clearEvents() {
     _events.removeWhere((key, value) => true);
   }
-
 
   /// Performs a transfer between two money tools, potentially across different accounts, and updates their balances.
   void makeToolTransfer({
@@ -662,17 +669,19 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     final int fromIndex = _tools.indexOf(fromTool);
     _tools[fromIndex] = fromTool.copyWith(
       currentValue: fromTool.currentValue - (amount + commission),
-      quantity: fromToolUnitPrice > 0
-          ? fromTool.quantity - (amount + commission) / fromToolUnitPrice
-          : fromTool.quantity,
+      quantity:
+          fromToolUnitPrice > 0
+              ? fromTool.quantity - (amount + commission) / fromToolUnitPrice
+              : fromTool.quantity,
     );
 
     final int toIndex = _tools.indexOf(toTool);
     _tools[toIndex] = toTool.copyWith(
       currentValue: toTool.currentValue + amount,
-      quantity: toToolUnitPrice > 0
-          ? toTool.quantity + amount / toToolUnitPrice
-          : toTool.quantity,
+      quantity:
+          toToolUnitPrice > 0
+              ? toTool.quantity + amount / toToolUnitPrice
+              : toTool.quantity,
     );
 
     // Account balances are updated by _updateTotalBalance.
@@ -690,7 +699,7 @@ List<ToolSummary> getToolsForAccount(String accountId) {
       (AccountSummary acc) => acc.id == accountId,
     );
     _accounts.removeWhere((AccountSummary acc) => acc.id == accountId);
-    _events.removeWhere((String key,  event) => event.accountId == accountId);
+    _events.removeWhere((String key, event) => event.accountId == accountId);
     _tools.removeWhere((ToolSummary tool) => tool.accountId == accountId);
 
     if (_activeAccountId == accountId) {
@@ -723,8 +732,8 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   /// Adds a new account.
   void addAccount(AccountSummary newAccount) {
     _accounts.isNotEmpty
-      ? _accounts.removeWhere((item) => item.id == newAccount.id)
-      : null;
+        ? _accounts.removeWhere((item) => item.id == newAccount.id)
+        : null;
     _accounts.add(newAccount);
 
     _updateTotalBalance(); // Recalculates total and notifies listeners
@@ -831,9 +840,10 @@ List<ToolSummary> getToolsForAccount(String accountId) {
           'Insufficient funds in ${withdrawalTool.name} for this exchange.',
         );
       }
-      final double sourceUnitPrice = withdrawalTool.quantity > 0
-          ? (withdrawalTool.currentValue / withdrawalTool.quantity)
-          : 1.0;
+      final double sourceUnitPrice =
+          withdrawalTool.quantity > 0
+              ? (withdrawalTool.currentValue / withdrawalTool.quantity)
+              : 1.0;
       withdrawalTool.currentValue -= rubEquivalent;
       if (sourceUnitPrice > 0) {
         withdrawalTool.quantity -= (rubEquivalent / sourceUnitPrice);
@@ -999,7 +1009,6 @@ List<ToolSummary> getToolsForAccount(String accountId) {
       ),
     );
 
-
     _updateTotalBalance(); // Will update account balance based on new tool values
   }
 
@@ -1134,7 +1143,6 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
 
-
   /// Buys a specified quantity of a stock for an account.
   /// Deducts total cost from the *money tool* of the active account.
   @deprecated
@@ -1179,12 +1187,14 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   }) {
     throw Exception('Метод устарел, использование InvestmentCubit.submit()');
   }
+
   /// Adds total proceeds to the *money tool* of the active account.
   @deprecated
   void sellEtf({
     required String accountId,
     required String ticker,
-    required String etfName, // For event description, not strictly needed for lookup
+    required String
+    etfName, // For event description, not strictly needed for lookup
     required double quantity,
     required double pricePerUnit,
     required double commission,
@@ -1219,7 +1229,8 @@ List<ToolSummary> getToolsForAccount(String accountId) {
     required String bondName,
     required double quantity, // Number of bonds
     required double pricePerUnit, // Market price per bond
-    required double accruedCouponIncome, // Accumulated coupon income to be received
+    required double
+    accruedCouponIncome, // Accumulated coupon income to be received
     required double commission,
     required DateTime date,
   }) {
@@ -1247,7 +1258,8 @@ List<ToolSummary> getToolsForAccount(String accountId) {
   void sellCrypto({
     required String accountId,
     required String ticker,
-    required String cryptoName, // For event description, not strictly needed for lookup
+    required String
+    cryptoName, // For event description, not strictly needed for lookup
     required double quantity,
     required double pricePerUnit,
     required double commission,

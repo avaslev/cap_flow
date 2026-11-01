@@ -9,6 +9,7 @@ import 'package:capflow/feature/event/logic/eventBloc.dart';
 import 'package:capflow/feature/event/logic/eventEvent.dart';
 import 'package:capflow/feature/event/logic/eventCubit.dart';
 import 'package:capflow/feature/event/logic/eventState.dart';
+import 'package:capflow/feature/event/logic/transferWalletOptions.dart';
 
 class FinancialEventForm extends StatelessWidget {
   final String accountId;
@@ -36,7 +37,10 @@ class FinancialEventForm extends StatelessWidget {
           } else if (state.formStatus == FormStatus.failure) {
             Toast.show(context, 'Не удалось сохранить событие', error: true);
           } else if (state.formStatus == FormStatus.validationError) {
-            Toast.show(context, 'Проверьте заполнение полей. ${state.errorMessage ?? ''}');
+            Toast.show(
+              context,
+              'Проверьте заполнение полей. ${state.errorMessage ?? ''}',
+            );
           }
         },
         child: _FinancialEventFormContent(
@@ -75,17 +79,33 @@ class _FinancialEventFormContentState
     // Default wallet for new events — once, instead of a side effect in build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final FinancialEventEditState state = context
-          .read<FinancialEventCubit>()
-          .state;
+      final FinancialEventEditState state =
+          context.read<FinancialEventCubit>().state;
       if (state.event.walletId.isEmpty) {
         final FinancialEventLoaded? blocState =
-            context.read<FinancialEventBloc>().state
-                as FinancialEventLoaded?;
-        if (blocState != null && blocState.wallets.isNotEmpty) {
-          context
-              .read<FinancialEventCubit>()
-              .walletChanged(blocState.wallets.first.id);
+            context.read<FinancialEventBloc>().state as FinancialEventLoaded?;
+        if (blocState != null) {
+          final List<Wallet> sources = transferSourceWallets(
+            wallets: blocState.wallets,
+            accountId: blocState.accountId,
+            type: state.event.type,
+          );
+          if (sources.isNotEmpty) {
+            final FinancialEventCubit cubit =
+                context.read<FinancialEventCubit>();
+            cubit.walletChanged(sources.first.id);
+            if (state.event.type.isTransfer) {
+              final List<Wallet> destinations = transferDestinationWallets(
+                wallets: blocState.wallets,
+                accountId: blocState.accountId,
+                type: state.event.type,
+                sourceId: sources.first.id,
+              );
+              cubit.destinationWalletChanged(
+                destinations.isEmpty ? null : destinations.first.id,
+              );
+            }
+          }
         }
       }
     });
@@ -120,9 +140,8 @@ class _FinancialEventFormContentState
 
   /// Asks the user before discarding unsaved input.
   Future<void> _confirmDiscard() async {
-    final FinancialEventEditState state = context
-        .read<FinancialEventCubit>()
-        .state;
+    final FinancialEventEditState state =
+        context.read<FinancialEventCubit>().state;
     if (!_hasUnsavedChanges(state)) {
       Navigator.of(context).pop();
       return;
@@ -192,6 +211,93 @@ class _FinancialEventFormContentState
     }
   }
 
+  Wallet? _walletById(List<Wallet> wallets, String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final Wallet wallet in wallets) {
+      if (wallet.id == id) return wallet;
+    }
+    return null;
+  }
+
+  String _walletLabel(Wallet wallet, {bool withAccount = false}) {
+    final String name =
+        withAccount && wallet.accountName.isNotEmpty
+            ? '${wallet.accountName} · ${wallet.name}'
+            : wallet.name;
+    return wallet.isMoney ? '$name (${wallet.ticker})' : name;
+  }
+
+  void _onTypeChanged(
+    FinancialEventType newType,
+    FinancialEventLoaded eventsState,
+  ) {
+    final FinancialEventCubit cubit = context.read<FinancialEventCubit>();
+    final FinancialEventEditState current = cubit.state;
+    final List<Wallet> sourceOptions = transferSourceWallets(
+      wallets: eventsState.wallets,
+      accountId: eventsState.accountId,
+      type: newType,
+    );
+
+    String sourceId = current.event.walletId;
+    final bool sourceStillValid = sourceOptions.any(
+      (Wallet wallet) => wallet.id == sourceId,
+    );
+    if (!sourceStillValid && sourceOptions.isNotEmpty) {
+      sourceId = sourceOptions.first.id;
+    }
+
+    cubit.typeChanged(newType);
+    if (sourceId.isNotEmpty && sourceId != current.event.walletId) {
+      cubit.walletChanged(sourceId);
+    }
+
+    if (newType.isTransfer) {
+      final List<Wallet> destinationOptions = transferDestinationWallets(
+        wallets: eventsState.wallets,
+        accountId: eventsState.accountId,
+        type: newType,
+        sourceId: sourceId,
+      );
+      final String? currentDestination = current.event.destinationWalletId;
+      final bool destinationStillValid = destinationOptions.any(
+        (Wallet wallet) => wallet.id == currentDestination,
+      );
+      cubit.destinationWalletChanged(
+        destinationStillValid
+            ? currentDestination
+            : (destinationOptions.isEmpty ? null : destinationOptions.first.id),
+      );
+    } else {
+      cubit.destinationWalletChanged(null);
+    }
+  }
+
+  void _onSourceChanged(String? newSourceId, FinancialEventLoaded eventsState) {
+    if (newSourceId == null) return;
+    final FinancialEventCubit cubit = context.read<FinancialEventCubit>();
+    final FinancialEventEditState current = cubit.state;
+    cubit.walletChanged(newSourceId);
+
+    if (!current.event.type.isTransfer) return;
+
+    final List<Wallet> destinationOptions = transferDestinationWallets(
+      wallets: eventsState.wallets,
+      accountId: eventsState.accountId,
+      type: current.event.type,
+      sourceId: newSourceId,
+    );
+    final String? currentDestination = current.event.destinationWalletId;
+    final bool destinationStillValid = destinationOptions.any(
+      (Wallet wallet) => wallet.id == currentDestination,
+    );
+    if (!destinationStillValid) {
+      cubit.destinationWalletChanged(
+        destinationOptions.isEmpty ? null : destinationOptions.first.id,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -208,44 +314,81 @@ class _FinancialEventFormContentState
         controller: widget.scrollController,
         padding: const EdgeInsets.all(20.0),
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
 
-          Padding(
-            padding: const EdgeInsets.only(bottom: 24.0),
-            child: Text(
-              widget.isEditing
-                  ? 'Редактирование события'
-                  : 'Новое событие',
-              style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: Text(
+                widget.isEditing ? 'Редактирование события' : 'Новое событие',
+                style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
-          ),
 
-          BlocBuilder<FinancialEventCubit, FinancialEventEditState>(
-            builder: (BuildContext context, FinancialEventEditState editState) {
-              return Form(
-                key: _formKey,
-                child: BlocBuilder<FinancialEventCubit, FinancialEventEditState>(
-                  builder: (
-                    BuildContext context,
-                    FinancialEventEditState editState,
-                  ) {
-                    return Column(
+            BlocBuilder<FinancialEventCubit, FinancialEventEditState>(
+              builder: (
+                BuildContext context,
+                FinancialEventEditState editState,
+              ) {
+                return Form(
+                  key: _formKey,
+                  child: BlocBuilder<
+                    FinancialEventCubit,
+                    FinancialEventEditState
+                  >(
+                    builder: (
+                      BuildContext context,
+                      FinancialEventEditState editState,
+                    ) {
+                      final Wallet? amountWallet = _walletById(
+                        eventsState.wallets,
+                        editState.event.walletId,
+                      );
+                      final String amountTicker = amountWallet?.ticker ?? 'RUB';
+                      final List<Wallet> sourceOptions = transferSourceWallets(
+                        wallets: eventsState.wallets,
+                        accountId: eventsState.accountId,
+                        type: editState.event.type,
+                      );
+                      final Wallet? selectedSource =
+                          _walletById(
+                            sourceOptions,
+                            editState.event.walletId,
+                          ) ??
+                          (sourceOptions.isEmpty ? null : sourceOptions.first);
+                      final List<Wallet> destinationOptions =
+                          editState.event.type.isTransfer
+                              ? transferDestinationWallets(
+                                wallets: eventsState.wallets,
+                                accountId: eventsState.accountId,
+                                type: editState.event.type,
+                                sourceId: selectedSource?.id,
+                              )
+                              : const <Wallet>[];
+                      final Wallet? selectedDestination =
+                          _walletById(
+                            destinationOptions,
+                            editState.event.destinationWalletId,
+                          ) ??
+                          (destinationOptions.isEmpty
+                              ? null
+                              : destinationOptions.first);
+                      return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
@@ -272,9 +415,9 @@ class _FinancialEventFormContentState
                                 editState.event.amount > 0
                                     ? editState.event.amount.toString()
                                     : '',
-                            decoration: const InputDecoration(
-                              labelText: 'Сумма (RUB)',
-                              prefixIcon: Icon(Icons.attach_money),
+                            decoration: InputDecoration(
+                              labelText: 'Сумма ($amountTicker)',
+                              prefixIcon: const Icon(Icons.attach_money),
                               errorText: null,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
@@ -299,53 +442,25 @@ class _FinancialEventFormContentState
                             },
                           ),
                           const SizedBox(height: 16.0),
-                          SegmentedButton<FinancialEventType>(
-                            segments:
-                                FinancialEventType.values
-                                    .where(
-                                      (FinancialEventType type) =>
-                                          (eventsState.wallets.length > 1) ||
-                                          type != FinancialEventType.transfer,
-                                    )
-                                    .map(
-                                      (FinancialEventType type) =>
-                                          ButtonSegment<FinancialEventType>(
-                                            value: type,
-                                            icon: Icon(type.icon),
-                                            label: Text(type.displayName),
-                                          ),
-                                    )
-                                    .toList(),
-                            selected: <FinancialEventType>{
-                              editState.event.type,
-                            },
-                            showSelectedIcon: false,
-                            onSelectionChanged: (
-                              Set<FinancialEventType> selection,
-                            ) {
-                              final FinancialEventType newValue =
-                                  selection.first;
-                              setState(() {
-                                context
-                                    .read<FinancialEventCubit>()
-                                    .typeChanged(newValue);
-                                // Reset destination wallet if type is not transfer
-                                if (newValue != FinancialEventType.transfer) {
-                                  context
-                                      .read<FinancialEventCubit>()
-                                      .destinationWalletChanged(null);
-                                } else {
-                                  context
-                                      .read<FinancialEventCubit>()
-                                      .destinationWalletChanged(
-                                        (eventsState.wallets.firstWhere(
-                                          (Wallet w) =>
-                                              w.id != editState.event.walletId,
-                                        )).id,
-                                      );
-                                }
-                              });
-                            },
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children:
+                                FinancialEventType.values.map((
+                                  FinancialEventType type,
+                                ) {
+                                  return ChoiceChip(
+                                    avatar: Icon(type.icon, size: 18),
+                                    label: Text(type.displayName),
+                                    selected: editState.event.type == type,
+                                    onSelected: (bool selected) {
+                                      if (!selected) return;
+                                      setState(() {
+                                        _onTypeChanged(type, eventsState);
+                                      });
+                                    },
+                                  );
+                                }).toList(),
                           ),
                           const SizedBox(height: 16.0),
                           Autocomplete<String>(
@@ -412,117 +527,119 @@ class _FinancialEventFormContentState
                           ),
                           const SizedBox(height: 16.0),
                           DropdownButtonFormField<String>(
-                            initialValue:
-                                editState.event.walletId.isEmpty
-                                    ? eventsState.wallets.first.id
-                                    : editState.event.walletId,
+                            initialValue: selectedSource?.id,
                             decoration: InputDecoration(
                               labelText:
                                   editState.event.type ==
-                                          FinancialEventType.transfer
+                                          FinancialEventType
+                                              .interAccountTransfer
+                                      ? 'Счёт-отправитель'
+                                      : editState.event.type.isTransfer
                                       ? 'Кошелек-отправитель'
                                       : 'Кошелек',
                             ),
                             items:
-                                eventsState.wallets.map<
-                                  DropdownMenuItem<String>
-                                >((Wallet wallet) {
+                                sourceOptions.map<DropdownMenuItem<String>>((
+                                  Wallet wallet,
+                                ) {
                                   return DropdownMenuItem<String>(
                                     value: wallet.id,
                                     child: Row(
                                       children: <Widget>[
                                         Icon(wallet.icon, color: wallet.color),
                                         const SizedBox(width: 10),
-                                        Text(wallet.name),
+                                        Flexible(
+                                          child: Text(
+                                            _walletLabel(wallet),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   );
                                 }).toList(),
                             onChanged:
-                                eventsState.wallets.length > 1
+                                sourceOptions.length > 1
                                     ? (String? newValue) {
                                       if (newValue != null) {
                                         setState(() {
-                                          context
-                                              .read<FinancialEventCubit>()
-                                              .walletChanged(newValue);
-                                          // Reset destination wallet if type is not transfer
-                                          if (editState.event.type ==
-                                                  FinancialEventType.transfer &&
-                                              editState
-                                                      .event
-                                                      .destinationWalletId ==
-                                                  newValue) {
-                                            context
-                                                .read<FinancialEventCubit>()
-                                                .destinationWalletChanged(
-                                                  (eventsState.wallets
-                                                      .firstWhere(
-                                                        (Wallet w) =>
-                                                            w.id !=
-                                                            editState
-                                                                .event
-                                                                .walletId,
-                                                      )).id,
-                                                );
-                                          }
+                                          _onSourceChanged(
+                                            newValue,
+                                            eventsState,
+                                          );
                                         });
                                       }
                                     }
-                                    : null, // Disable if only one wallet
+                                    : null,
                             validator: (String? value) {
                               if (value == null || value.isEmpty) {
                                 return 'Пожалуйста, выберите кошелек';
                               }
                               return null;
                             },
-                            // autovalidateMode: AutovalidateMode.onUserInteraction,
                           ),
-                          if (editState.event.type ==
-                              FinancialEventType.transfer) ...<Widget>[
+                          if (editState.event.type.isTransfer) ...<Widget>[
                             const SizedBox(height: 16.0),
                             DropdownButtonFormField<String>(
-                              initialValue: eventsState.wallets.last.id,
-                              decoration: const InputDecoration(
-                                labelText: 'Кошелек-получатель',
+                              initialValue: selectedDestination?.id,
+                              decoration: InputDecoration(
+                                labelText:
+                                    editState.event.type ==
+                                            FinancialEventType
+                                                .interAccountTransfer
+                                        ? 'Счёт-получатель'
+                                        : 'Кошелек-получатель',
                               ),
                               items:
-                                  eventsState.wallets
-                                      .where(
-                                        (Wallet wallet) =>
-                                            wallet.id !=
-                                            editState.event.walletId,
-                                      ) // Cannot transfer to same wallet
-                                      .map<DropdownMenuItem<String>>((
-                                        Wallet wallet,
-                                      ) {
-                                        return DropdownMenuItem<String>(
-                                          value: wallet.id,
-                                          child: Row(
-                                            children: <Widget>[
-                                              Icon(
-                                                wallet.icon,
-                                                color: wallet.color,
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Text(wallet.name),
-                                            ],
+                                  destinationOptions.map<
+                                    DropdownMenuItem<String>
+                                  >((Wallet wallet) {
+                                    return DropdownMenuItem<String>(
+                                      value: wallet.id,
+                                      child: Row(
+                                        children: <Widget>[
+                                          Icon(
+                                            wallet.icon,
+                                            color: wallet.color,
                                           ),
-                                        );
-                                      })
-                                      .toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    context
-                                        .read<FinancialEventCubit>()
-                                        .destinationWalletChanged(newValue);
-                                  });
-                                }
-                              },
+                                          const SizedBox(width: 10),
+                                          Flexible(
+                                            child: Text(
+                                              _walletLabel(
+                                                wallet,
+                                                withAccount:
+                                                    editState.event.type ==
+                                                    FinancialEventType
+                                                        .interAccountTransfer,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                              onChanged:
+                                  destinationOptions.isEmpty
+                                      ? null
+                                      : (String? newValue) {
+                                        if (newValue != null) {
+                                          setState(() {
+                                            context
+                                                .read<FinancialEventCubit>()
+                                                .destinationWalletChanged(
+                                                  newValue,
+                                                );
+                                          });
+                                        }
+                                      },
                               validator: (String? value) {
                                 if (value == null) {
-                                  return 'Пожалуйста, выберите кошелек-получатель';
+                                  return editState.event.type ==
+                                          FinancialEventType
+                                              .interAccountTransfer
+                                      ? 'Пожалуйста, выберите счёт-получатель'
+                                      : 'Пожалуйста, выберите кошелек-получатель';
                                 }
                                 if (value == editState.event.walletId) {
                                   return 'Кошелек-получатель не может быть тем же, что и кошелек-отправитель';
@@ -530,6 +647,24 @@ class _FinancialEventFormContentState
                                 return null;
                               },
                             ),
+                            if (destinationOptions.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  left: 12,
+                                ),
+                                child: Text(
+                                  editState.event.type ==
+                                          FinancialEventType
+                                              .interAccountTransfer
+                                      ? 'Нет открытого счёта с той же валютой'
+                                      : 'Нет доступного кошелька-получателя',
+                                  style: TextStyle(
+                                    color: colorScheme.error,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
                           ],
                           const SizedBox(height: 16),
                           InkWell(
@@ -548,7 +683,10 @@ class _FinancialEventFormContentState
                                 if (picked.isBefore(DateTime.now()) &&
                                     !widget.isEditing &&
                                     mounted) {
-                                  Toast.show(context, 'Внимание: выбрана прошедшая дата.',);
+                                  Toast.show(
+                                    context,
+                                    'Внимание: выбрана прошедшая дата.',
+                                  );
                                 }
                               }
                             },
@@ -654,12 +792,11 @@ class _FinancialEventFormContentState
                                     preview == null
                                         ? 'Повторение завершено'
                                         : 'Следующее: ${DateFormat('dd.MM.yyyy').format(preview)}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 );
                               },
@@ -746,57 +883,59 @@ class _FinancialEventFormContentState
                                   child: ElevatedButton.icon(
                                     onPressed:
                                         editState.formStatus ==
-                                            FormStatus.loading
-                                        ? null
-                                        : () async {
-                                            final bool? confirmed =
-                                                await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (
-                                                    BuildContext dialogContext,
-                                                  ) {
-                                                    return AlertDialog(
-                                                      title: const Text(
-                                                        'Удаление события',
-                                                      ),
-                                                      content: const Text(
-                                                        'Удалить это событие навсегда?',
-                                                      ),
-                                                      actions: <Widget>[
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                dialogContext,
-                                                              ).pop(false),
-                                                          child: const Text(
-                                                            'Отмена',
-                                                          ),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                dialogContext,
-                                                              ).pop(true),
-                                                          child: const Text(
-                                                            'Удалить',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
-                                                );
-                                            if (confirmed == true &&
-                                                context.mounted) {
-                                              context
-                                                  .read<FinancialEventBloc>()
-                                                  .add(
-                                                    DeleteFinancialEvent(
-                                                      editState.event.id,
+                                                FormStatus.loading
+                                            ? null
+                                            : () async {
+                                              final bool?
+                                              confirmed = await showDialog<
+                                                bool
+                                              >(
+                                                context: context,
+                                                builder: (
+                                                  BuildContext dialogContext,
+                                                ) {
+                                                  return AlertDialog(
+                                                    title: const Text(
+                                                      'Удаление события',
                                                     ),
+                                                    content: const Text(
+                                                      'Удалить это событие навсегда?',
+                                                    ),
+                                                    actions: <Widget>[
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.of(
+                                                              dialogContext,
+                                                            ).pop(false),
+                                                        child: const Text(
+                                                          'Отмена',
+                                                        ),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.of(
+                                                              dialogContext,
+                                                            ).pop(true),
+                                                        child: const Text(
+                                                          'Удалить',
+                                                        ),
+                                                      ),
+                                                    ],
                                                   );
-                                              Navigator.pop(context);
-                                            }
-                                          },
+                                                },
+                                              );
+                                              if (confirmed == true &&
+                                                  context.mounted) {
+                                                context
+                                                    .read<FinancialEventBloc>()
+                                                    .add(
+                                                      DeleteFinancialEvent(
+                                                        editState.event.id,
+                                                      ),
+                                                    );
+                                                Navigator.pop(context);
+                                              }
+                                            },
                                     // Разрушающее действие: error/onError,
                                     // геометрия из темы.
                                     style: ElevatedButton.styleFrom(
@@ -812,34 +951,38 @@ class _FinancialEventFormContentState
                               ],
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  onPressed: _buildSavePressed(context, editState, _formKey),
-                                  icon: editState.formStatus == FormStatus.loading
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
+                                  onPressed: _buildSavePressed(
+                                    context,
+                                    editState,
+                                    _formKey,
+                                  ),
+                                  icon:
+                                      editState.formStatus == FormStatus.loading
+                                          ? SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: colorScheme.onPrimary,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                          : Icon(
+                                            Icons.add_circle_outline,
                                             color: colorScheme.onPrimary,
-                                            strokeWidth: 2,
+                                            size: 20,
                                           ),
-                                        )
-                                      : Icon(
-                                          Icons.add_circle_outline,
-                                          color: colorScheme.onPrimary,
-                                          size: 20,
-                                        ),
                                   label: Text(
                                     editState.formStatus == FormStatus.loading
                                         ? 'Сохранение...'
                                         : widget.isEditing
-                                            ? 'Сохранить'
-                                            : 'Добавить',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge!
-                                        .copyWith(
-                                          color: colorScheme.onPrimary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                        ? 'Сохранить'
+                                        : 'Добавить',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge!.copyWith(
+                                      color: colorScheme.onPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -850,12 +993,12 @@ class _FinancialEventFormContentState
                       );
                     },
                   ),
-              );
-            },
-          ),
-        ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

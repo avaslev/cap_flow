@@ -81,9 +81,9 @@ class _FinancialEventOverviewPageState
               Text(
                 _accountName!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary.withValues(
-                    alpha: 0.85,
-                  ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withValues(alpha: 0.85),
                 ),
               ),
           ],
@@ -109,12 +109,13 @@ class _FinancialEventOverviewPageState
               // Active filter gets a subtle white pill; the icon/text inherit
               // the AppBar's foreground so contrast stays readable. (Using
               // colorScheme.primary here was invisible on the primary AppBar.)
-              decoration: _typeFilter == null
-                  ? null
-                  : BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+              decoration:
+                  _typeFilter == null
+                      ? null
+                      : BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
@@ -137,29 +138,34 @@ class _FinancialEventOverviewPageState
             onSelected: (String value) {
               debugPrint('[FILTER] onSelected value=$value');
               setState(() {
-                _typeFilter = value == 'all'
-                    ? null
-                    : FinancialEventType.values.byName(value);
+                _typeFilter =
+                    value == 'all'
+                        ? null
+                        : FinancialEventType.values.byName(value);
               });
             },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'all',
-                child: Text('Все типы'),
-              ),
-              ...FinancialEventType.values.map(
-                (FinancialEventType type) => PopupMenuItem<String>(
-                  value: type.name,
-                  child: Text(type.displayName),
-                ),
-              ),
-            ],
+            itemBuilder:
+                (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'all',
+                    child: Text('Все типы'),
+                  ),
+                  ...FinancialEventType.values.map(
+                    (FinancialEventType type) => PopupMenuItem<String>(
+                      value: type.name,
+                      child: Text(type.displayName),
+                    ),
+                  ),
+                ],
           ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Добавить событие',
-            onPressed: () =>
-                _FinancialEventOverviewPageState.showActionBottomSheet(context, null),
+            onPressed:
+                () => _FinancialEventOverviewPageState.showActionBottomSheet(
+                  context,
+                  null,
+                ),
           ),
         ],
       ),
@@ -172,12 +178,13 @@ class _FinancialEventOverviewPageState
                 autofocus: true,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(() => _query = ''),
-                        ),
+                  suffixIcon:
+                      _query.isEmpty
+                          ? null
+                          : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => setState(() => _query = ''),
+                          ),
                   hintText: 'Поиск по названию или категории',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
@@ -189,95 +196,99 @@ class _FinancialEventOverviewPageState
             ),
           Expanded(
             child: BlocBuilder<FinancialEventBloc, FinancialEventState>(
-        builder: (BuildContext context, FinancialEventState eventState) {
-          if (eventState is FinancialEventLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (eventState is FinancialEventLoaded) {
-            if (eventState.events.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(
-                        Icons.event_note,
-                        size: 80,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Нет финансовых событий.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+              builder: (BuildContext context, FinancialEventState eventState) {
+                if (eventState is FinancialEventLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (eventState is FinancialEventLoaded) {
+                  if (eventState.events.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Icon(
+                              Icons.event_note,
+                              size: 80,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.3),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Нет финансовых событий.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed:
+                                  () =>
+                                      _FinancialEventOverviewPageState.showActionBottomSheet(
+                                        context,
+                                        null,
+                                      ),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Добавить событие'),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed: () =>
-                            _FinancialEventOverviewPageState.showActionBottomSheet(
-                              context,
-                              null,
-                            ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Добавить событие'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
+                    );
+                  }
 
-            return _EventsList(
-              eventState: eventState,
-              query: _query,
-              typeFilter: _typeFilter,
-            );
-          }
-          if (eventState is FinancialEventError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Icon(
-                      Icons.error_outline,
-                      size: 80,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Произошла ошибка: ${eventState.message}',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
+                  return _EventsList(
+                    eventState: eventState,
+                    query: _query,
+                    typeFilter: _typeFilter,
+                  );
+                }
+                if (eventState is FinancialEventError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(
+                            Icons.error_outline,
+                            size: 80,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Произошла ошибка: ${eventState.message}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed:
+                                () => financialEventBloc.add(
+                                  LoadFinancialEvents(widget.accountId),
+                                ),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Повторить'),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: () => financialEventBloc.add(
-                        LoadFinancialEvents(widget.accountId),
-                      ),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Повторить'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ),
         ],
       ),
@@ -377,18 +388,17 @@ class _EventsList extends StatelessWidget {
     final String normalizedQuery = query.trim().toLowerCase();
 
     // Apply search and type filter.
-    final List<FinancialEvent> visible = eventState.events.where((
-      FinancialEvent event,
-    ) {
-      if (typeFilter != null && event.type != typeFilter) {
-        return false;
-      }
-      if (normalizedQuery.isEmpty) {
-        return true;
-      }
-      return event.name.toLowerCase().contains(normalizedQuery) ||
-          event.category.toLowerCase().contains(normalizedQuery);
-    }).toList();
+    final List<FinancialEvent> visible =
+        eventState.events.where((FinancialEvent event) {
+          if (typeFilter != null && event.type != typeFilter) {
+            return false;
+          }
+          if (normalizedQuery.isEmpty) {
+            return true;
+          }
+          return event.name.toLowerCase().contains(normalizedQuery) ||
+              event.category.toLowerCase().contains(normalizedQuery);
+        }).toList();
 
     // Sorted by next occurrence date.
     final List<FinancialEvent> sorted = List<FinancialEvent>.of(visible)
@@ -462,9 +472,10 @@ class _EventsList extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: title == 'Просрочено'
-                  ? colorScheme.error
-                  : colorScheme.onSurfaceVariant,
+              color:
+                  title == 'Просрочено'
+                      ? colorScheme.error
+                      : colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -504,9 +515,9 @@ class _EventCard extends StatelessWidget {
 
     // Meta chips: type · category · wallet (or transfer route).
     final List<String> chipLabels = <String>[
-      if (event.type == FinancialEventType.transfer &&
-          event.destinationWalletId != null)
-        'Перевод: $sourceWalletName → ${getWalletNameById(event.destinationWalletId!)}'
+      if (event.type.isTransfer && event.destinationWalletId != null)
+        '${event.type.displayName}: $sourceWalletName → '
+            '${getWalletNameById(event.destinationWalletId!)}'
       else ...<String>[
         event.type.displayName,
         if (event.category.isNotEmpty) event.category,
@@ -576,9 +587,9 @@ class _EventCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           formattedDate,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
         ),
         if (validUntilText != null) ...<Widget>[
           const SizedBox(height: 4),
@@ -651,8 +662,7 @@ class _EventCard extends StatelessWidget {
               duration: const Duration(seconds: 5),
               action: SnackBarAction(
                 label: 'Отменить',
-                onPressed: () =>
-                    bloc.add(const UndoDeleteFinancialEvent()),
+                onPressed: () => bloc.add(const UndoDeleteFinancialEvent()),
               ),
             ),
           );
@@ -668,7 +678,10 @@ class _EventCard extends StatelessWidget {
           trailing: ItemValue(type: event.type.name, amount: event.amount),
           isThreeLine: true,
           onTap: () {
-            _FinancialEventOverviewPageState.showActionBottomSheet(context, event);
+            _FinancialEventOverviewPageState.showActionBottomSheet(
+              context,
+              event,
+            );
           },
         ),
       ),

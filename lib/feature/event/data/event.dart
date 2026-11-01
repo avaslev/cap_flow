@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:capflow/data/models/scheduledTransaction.dart';
 
 /// Enum representing the type of a financial event.
-enum FinancialEventType {
-  income,
-  expense,
-  transfer,
-}
+enum FinancialEventType { income, expense, transfer, interAccountTransfer }
 
 /// Extension to provide display names and icons for FinancialEventType.
 extension FinancialEventTypeExtension on FinancialEventType {
@@ -18,6 +14,8 @@ extension FinancialEventTypeExtension on FinancialEventType {
         return 'Расход';
       case FinancialEventType.transfer:
         return 'Перевод';
+      case FinancialEventType.interAccountTransfer:
+        return 'Перевод между счетами';
     }
   }
 
@@ -29,6 +27,8 @@ extension FinancialEventTypeExtension on FinancialEventType {
         return Icons.arrow_downward;
       case FinancialEventType.transfer:
         return Icons.swap_horiz;
+      case FinancialEventType.interAccountTransfer:
+        return Icons.sync_alt;
     }
   }
 
@@ -40,8 +40,14 @@ extension FinancialEventTypeExtension on FinancialEventType {
         return Colors.red;
       case FinancialEventType.transfer:
         return Colors.blueGrey;
+      case FinancialEventType.interAccountTransfer:
+        return Colors.teal;
     }
   }
+
+  bool get isTransfer =>
+      this == FinancialEventType.transfer ||
+      this == FinancialEventType.interAccountTransfer;
 }
 
 /// Enum representing the recurrence type of a financial event.
@@ -86,13 +92,13 @@ class FinancialEvent {
   final FinancialEventType type;
   final String category;
   final DateTime date;
-  final String walletId;                 // source wallet for transfers
-  final String? destinationWalletId;     // destination wallet for transfers
-  final String? comment;                 // optional comment
+  final String walletId; // source wallet for transfers
+  final String? destinationWalletId; // destination wallet for transfers
+  final String? comment; // optional comment
 
   final RecurrenceType recurrenceType;
-  final DateTime? recurrenceEndDate;     // nullable end date for recurrence
-  final int? recurrenceDayOfMonth;       // for monthlyOnDay (e.g. 15 → 15‑е число)
+  final DateTime? recurrenceEndDate; // nullable end date for recurrence
+  final int? recurrenceDayOfMonth; // for monthlyOnDay (e.g. 15 → 15‑е число)
 
   const FinancialEvent({
     required this.id,
@@ -119,6 +125,7 @@ class FinancialEvent {
     DateTime? date,
     String? walletId,
     String? destinationWalletId,
+    bool clearDestinationWalletId = false,
     String? comment,
     RecurrenceType? recurrenceType,
     DateTime? recurrenceEndDate,
@@ -132,12 +139,14 @@ class FinancialEvent {
       category: category ?? this.category,
       date: date ?? this.date,
       walletId: walletId ?? this.walletId,
-      destinationWalletId: destinationWalletId ?? this.destinationWalletId,
+      destinationWalletId:
+          clearDestinationWalletId
+              ? null
+              : (destinationWalletId ?? this.destinationWalletId),
       comment: comment ?? this.comment,
       recurrenceType: recurrenceType ?? this.recurrenceType,
       recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
-      recurrenceDayOfMonth:
-          recurrenceDayOfMonth ?? this.recurrenceDayOfMonth,
+      recurrenceDayOfMonth: recurrenceDayOfMonth ?? this.recurrenceDayOfMonth,
     );
   }
 
@@ -162,13 +171,17 @@ class FinancialEvent {
 
 /// Extension that converts a `FinancialEvent` into a `ScheduledTransaction`.
 extension FinancialEventX on FinancialEvent {
-  ScheduledTransaction toScheduledTransaction(String accountId, int totalExecutions, int executedCount) {
+  ScheduledTransaction toScheduledTransaction(
+    String accountId,
+    int totalExecutions,
+    int executedCount,
+  ) {
     return ScheduledTransaction(
       id: id,
       accountId: accountId,
       name: name,
       amount: amount,
-      type: type.name,                         // enum → string
+      type: type.name, // enum → string
       category: category,
       date: date,
       walletId: walletId,

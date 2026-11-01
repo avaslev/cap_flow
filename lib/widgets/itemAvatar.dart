@@ -1,15 +1,11 @@
-
 import 'package:flutter/material.dart';
 
 class ItemAvatar extends StatelessWidget {
   final String type;
 
-  const ItemAvatar({
-    super.key,
-    required this.type,
-  });
+  const ItemAvatar({super.key, required this.type});
 
-  IconData getIcon (String type) {
+  IconData getIcon(String type) {
     switch (type) {
       case 'income':
         return Icons.arrow_upward;
@@ -17,6 +13,8 @@ class ItemAvatar extends StatelessWidget {
         return Icons.arrow_downward;
       case 'transfer':
         return Icons.swap_horiz;
+      case 'interAccountTransfer':
+        return Icons.sync_alt;
       default:
         return Icons.info;
     }
@@ -28,6 +26,8 @@ class ItemAvatar extends StatelessWidget {
         return Colors.green;
       case 'expense':
         return Colors.red;
+      case 'interAccountTransfer':
+        return Colors.teal;
       default:
         return Colors.blueGrey;
     }

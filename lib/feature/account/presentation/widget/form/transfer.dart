@@ -11,24 +11,27 @@ import '../../../../../core/utils/formatCurrency.dart';
 /// A modal bottom sheet for adding income, now integrated with `bloc/cubit`.
 class TransferForm extends StatelessWidget {
   final AccountData accountData;
+  final Event? event;
 
-  const TransferForm({super.key, required this.accountData});
+  const TransferForm({super.key, required this.accountData, this.event});
 
   @override
   Widget build(BuildContext context) {
     // We need AccountData to initialize the Cubit with initial tools and to
     // perform the actual addIncome operation.
     // Закрытые тула (isClosed) не участвуют в переводах.
-    final List<ToolSummary> initialMoneyTools = accountData.allMoneyTools
-        .where((ToolSummary tool) => !tool.isClosed)
-        .toList();
+    final List<ToolSummary> initialMoneyTools =
+        accountData.allMoneyTools
+            .where((ToolSummary tool) => !tool.isClosed)
+            .toList();
     // Деньги активного счёта; если их нет (активный — total или архивный) —
     // берём первый доступный money-тул, чтобы не падать на `.first`.
     final List<ToolSummary> activeMoneyTools = accountData
         .getMoneyToolsForAccount(accountData.activeAccountId);
-    final ToolSummary? currentTool = activeMoneyTools.isNotEmpty
-        ? activeMoneyTools.first
-        : (initialMoneyTools.isNotEmpty ? initialMoneyTools.first : null);
+    final ToolSummary? currentTool =
+        activeMoneyTools.isNotEmpty
+            ? activeMoneyTools.first
+            : (initialMoneyTools.isNotEmpty ? initialMoneyTools.first : null);
     if (currentTool == null) {
       return const SizedBox.shrink();
     }
@@ -39,6 +42,13 @@ class TransferForm extends StatelessWidget {
             currentTool: currentTool,
             initialMoneyTools: initialMoneyTools,
             accounts: accountData.accounts,
+            fromToolId: event?.toolId,
+            toToolId: event?.destinationToolId,
+            initialDate: event?.date,
+            amount: event?.amount.toString(),
+            comment: event?.description,
+            scheduledEventId: event?.eventId,
+            sameCurrencyOnly: event?.eventType == 'interAccountTransfer',
           ),
       child: BlocListener<TransferCubit, TransferState>(
         listener: (BuildContext context, TransferState state) {
@@ -46,9 +56,16 @@ class TransferForm extends StatelessWidget {
             Toast.show(context, 'Перевод добавлен');
             Navigator.pop(context); // Close the bottom sheet
           } else if (state.formStatus == FormStatus.failure) {
-            Toast.show(context, 'Не удалось добавить перевод: ${state.errorMessage ?? "Ошибка"}', error: true);
+            Toast.show(
+              context,
+              'Не удалось добавить перевод: ${state.errorMessage ?? "Ошибка"}',
+              error: true,
+            );
           } else if (state.formStatus == FormStatus.validationError) {
-            Toast.show(context, state.errorMessage ?? 'Проверьте заполнение полей.');
+            Toast.show(
+              context,
+              state.errorMessage ?? 'Проверьте заполнение полей.',
+            );
           }
         },
         child: _TransferFormContent(),
@@ -72,6 +89,13 @@ class _TransferFormContentState extends State<_TransferFormContent> {
   /// из «Будет списано» подставляется автоматически, ручной ввод
   /// не конфликтует (состояние равно тексту во время набора).
   void _syncCtrls(TransferState state) {
+    if (_amountCtrl.text != state.amount) {
+      final String v = state.amount;
+      _amountCtrl.value = TextEditingValue(
+        text: v,
+        selection: TextSelection.collapsed(offset: v.length),
+      );
+    }
     if (_receivedCtrl.text != state.amountTo) {
       final String v = state.amountTo;
       _receivedCtrl.value = TextEditingValue(
@@ -136,7 +160,7 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
-                      "Перевод",
+                      state.isScheduled ? 'Выполнение перевода' : 'Перевод',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineSmall!.copyWith(
@@ -178,11 +202,14 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                               );
                             })
                             .toList(),
-                    onChanged: (String? newValue) {
-                      context.read<TransferCubit>().moneyFromToolSelected(
-                        newValue,
-                      );
-                    },
+                    onChanged:
+                        state.isScheduled
+                            ? null
+                            : (String? newValue) {
+                              context
+                                  .read<TransferCubit>()
+                                  .moneyFromToolSelected(newValue);
+                            },
                     validator: (String? value) {
                       if (value == null || value.isEmpty) {
                         return 'Please select a money tool';
@@ -227,11 +254,14 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                               );
                             })
                             .toList(),
-                    onChanged: (String? newValue) {
-                      context.read<TransferCubit>().moneyToToolSelected(
-                        newValue,
-                      );
-                    },
+                    onChanged:
+                        state.isScheduled
+                            ? null
+                            : (String? newValue) {
+                              context.read<TransferCubit>().moneyToToolSelected(
+                                newValue,
+                              );
+                            },
                     validator: (String? value) {
                       if (value == null || value.isEmpty) {
                         return 'Please select a money tool';
@@ -258,17 +288,23 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: state.selectedDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2101),
-                      );
-                      if (picked != null && picked != state.selectedDate) {
-                        context.read<TransferCubit>().dateSelected(picked);
-                      }
-                    },
+                    onTap:
+                        state.isScheduled
+                            ? null
+                            : () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: state.selectedDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2101),
+                              );
+                              if (picked != null &&
+                                  picked != state.selectedDate) {
+                                context.read<TransferCubit>().dateSelected(
+                                  picked,
+                                );
+                              }
+                            },
                   ),
                   if (!state.isCrossCurrency) ...<Widget>[
                     const SizedBox(height: 16),
@@ -290,8 +326,9 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                         ),
                       ),
                       onChanged:
-                          (String value) =>
-                              context.read<TransferCubit>().amountChanged(value),
+                          (String value) => context
+                              .read<TransferCubit>()
+                              .amountChanged(value),
                       validator: (String? value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Укажите сумму';
@@ -324,8 +361,9 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                         ),
                       ),
                       onChanged:
-                          (String value) =>
-                              context.read<TransferCubit>().amountChanged(value),
+                          (String value) => context
+                              .read<TransferCubit>()
+                              .amountChanged(value),
                       validator: (String? value) {
                         final double? val = double.tryParse(value ?? '');
                         if (val == null || val <= 0) {
@@ -422,7 +460,11 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                               if (_formKey.currentState!.validate()) {
                                 context.read<TransferCubit>().submitIncome();
                               } else {
-                                Toast.show(context, 'Please correct the highlighted errors.', error: true);
+                                Toast.show(
+                                  context,
+                                  'Please correct the highlighted errors.',
+                                  error: true,
+                                );
                               }
                             },
                     icon:

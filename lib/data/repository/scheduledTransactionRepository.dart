@@ -62,7 +62,9 @@ class ScheduledTransactionRepository {
   ///   • executed_count < total_executions (ещё есть запланированные запуски)
   ///   • если указана recurrence_end_date, то next_execution_date
   ///     также должна быть ≤ recurrence_end_date
-  Future<List<ScheduledTransaction>> getExecutableEvents(DateTime toDate) async {
+  Future<List<ScheduledTransaction>> getExecutableEvents(
+    DateTime toDate,
+  ) async {
     final db = await DatabaseHelper.instance.db;
 
     // Приводим дату к миллисекундам, так как в БД даты хранятся как INTEGER.
@@ -86,11 +88,7 @@ class ScheduledTransactionRepository {
 
   Future<void> delete(String id) async {
     Database db = await DatabaseHelper.instance.db;
-    await db.delete(
-      'scheduled_transactions',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('scheduled_transactions', where: 'id = ?', whereArgs: [id]);
   }
 
   /// Removes planner records linked to a deposit (interest schedules).
@@ -119,6 +117,38 @@ class ScheduledTransactionRepository {
       'scheduled_transactions',
       where: 'account_id = ?',
       whereArgs: [accountId],
+    );
+  }
+
+  /// Id событий, получателем которых выступает один из тулов счёта
+  /// (межсчётные переводы с другого счёта).
+  Future<List<String>> getIdsByDestinationToolIds(List<String> toolIds) async {
+    if (toolIds.isEmpty) return const <String>[];
+    final Database db = await DatabaseHelper.instance.db;
+    final String placeholders = List<String>.filled(
+      toolIds.length,
+      '?',
+    ).join(', ');
+    final List<Map<String, Object?>> rows = await db.query(
+      'scheduled_transactions',
+      columns: ['id'],
+      where: 'destination_wallet_id IN ($placeholders)',
+      whereArgs: toolIds,
+    );
+    return rows.map((Map<String, Object?> e) => e['id'].toString()).toList();
+  }
+
+  Future<void> deleteByDestinationToolIds(List<String> toolIds) async {
+    if (toolIds.isEmpty) return;
+    final Database db = await DatabaseHelper.instance.db;
+    final String placeholders = List<String>.filled(
+      toolIds.length,
+      '?',
+    ).join(', ');
+    await db.delete(
+      'scheduled_transactions',
+      where: 'destination_wallet_id IN ($placeholders)',
+      whereArgs: toolIds,
     );
   }
 }

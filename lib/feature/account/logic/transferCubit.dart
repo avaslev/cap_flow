@@ -1,5 +1,8 @@
+import 'package:capflow/core/utils/calculateNextOccurrence.dart';
 import 'package:capflow/data/models/activity.dart';
+import 'package:capflow/data/models/scheduledTransaction.dart';
 import 'package:capflow/data/models/tool.dart';
+import 'package:capflow/data/repository/scheduledTransactionRepository.dart';
 import 'package:capflow/data/repository/toolRepository.dart';
 import 'package:capflow/data/repository/activityRepository.dart';
 import 'package:capflow/data/repository/currencyRepository.dart';
@@ -14,16 +17,39 @@ import 'package:uuid/uuid.dart';
 class TransferCubit extends Cubit<TransferState> {
   final CurrencyRepository _currencyRepository = CurrencyRepository();
   final ToolRepository _toolRepository = ToolRepository();
+  final ScheduledTransactionRepository _eventRepository =
+      ScheduledTransactionRepository();
   TransferCubit({
     required ToolSummary currentTool,
     required List<ToolSummary> initialMoneyTools,
     required List<AccountSummary> accounts,
-  }) : super(TransferState.initial(currentTool, initialMoneyTools, accounts)) {
+    String? fromToolId,
+    String? toToolId,
+    DateTime? initialDate,
+    String? amount,
+    String? comment,
+    String? scheduledEventId,
+    bool sameCurrencyOnly = false,
+  }) : super(
+         TransferState.initial(
+           currentTool,
+           initialMoneyTools,
+           accounts,
+           fromToolId: fromToolId,
+           toToolId: toToolId,
+           initialDate: initialDate,
+           amount: amount,
+           comment: comment,
+           scheduledEventId: scheduledEventId,
+           sameCurrencyOnly: sameCurrencyOnly,
+         ),
+       ) {
     _preferDefaultCurrencyTool();
   }
 
   /// «Откуда» по умолчанию — тул с дефолтной валютой из настроек.
   Future<void> _preferDefaultCurrencyTool() async {
+    if (state.isScheduled) return;
     final ToolSummary? preferred = await selectDefaultMoneyTool(
       state.availableMoneyTools,
     );
@@ -139,13 +165,16 @@ class TransferCubit extends Cubit<TransferState> {
 
   /// Performs client-side validation for the form.
   bool _validateForm() {
+    if (state.sameCurrencyOnly &&
+        (state.fromTicker == null ||
+            state.toTicker == null ||
+            state.fromTicker != state.toTicker)) {
+      return false;
+    }
     if (state.isCrossCurrency) {
       final double? amount = double.tryParse(state.amount);
       final double? amountTo = double.tryParse(state.amountTo);
-      return amount != null &&
-          amount > 0 &&
-          amountTo != null &&
-          amountTo > 0;
+      return amount != null && amount > 0 && amountTo != null && amountTo > 0;
     }
     final double? amount = double.tryParse(state.amount);
     return amount != null &&
@@ -163,9 +192,10 @@ class TransferCubit extends Cubit<TransferState> {
 
   String _getToolName(String toolId) {
     return state.availableMoneyTools
-        .where((ToolSummary tool) => tool.id == toolId)
-        .map((ToolSummary tool) => tool.name)
-        .firstOrNull ?? toolId;
+            .where((ToolSummary tool) => tool.id == toolId)
+            .map((ToolSummary tool) => tool.name)
+            .firstOrNull ??
+        toolId;
   }
 
   /// Submits the income data.
@@ -199,12 +229,15 @@ class TransferCubit extends Cubit<TransferState> {
           double.tryParse(state.commission?.trim() ?? '') ?? 0;
       // Имя от лица каждой стороны: на странице тула направление читается однозначно.
       final String namePrefix = state.isCrossCurrency ? 'Обмен' : 'Перевод';
-      final String name = '$namePrefix на ${_getToolName(state.selectedToToolId!)}';
+      final String name =
+          '$namePrefix на ${_getToolName(state.selectedToToolId!)}';
       final String targetName =
           '$namePrefix с ${_getToolName(state.selectedFromToolId!)}';
 
       // Валюты тула: цена активити = курс к дефолтной; эквивалент = quantity × price.
-      final Tool fromTool = await _toolRepository.get(state.selectedFromToolId!);
+      final Tool fromTool = await _toolRepository.get(
+        state.selectedFromToolId!,
+      );
       final Tool toTool = await _toolRepository.get(state.selectedToToolId!);
       final String defCurrency = await _currencyRepository.getDefaultCurrency();
       final String ft = fromTool.ticker ?? defCurrency;
@@ -225,9 +258,8 @@ class TransferCubit extends Cubit<TransferState> {
         fromRate = rates.fromRate;
         toRate = rates.toRate;
       } else {
-        fromRate = ft == defCurrency
-            ? 1
-            : await _currencyRepository.getRate(ft);
+        fromRate =
+            ft == defCurrency ? 1 : await _currencyRepository.getRate(ft);
         if (fromRate <= 0 || !fromRate.isFinite) fromRate = 1;
         toRate = fromRate;
       }
@@ -282,6 +314,24 @@ class TransferCubit extends Cubit<TransferState> {
           transferPairId: transferPairId,
         ),
       );
+
+      if (state.scheduledEventId != null) {
+        final ScheduledTransaction st = await _eventRepository.getById(
+          state.scheduledEventId!,
+        );
+        await _eventRepository.update(
+          st.copyWith(
+            executedCount: st.executedCount + 1,
+            nextExecutionDate: calculateNextOccurrence(
+              initialDate: st.date,
+              recurrenceType: st.recurrenceType,
+              recurrenceEndDate: st.recurrenceEndDate,
+              recurrenceDayOfMonth: st.recurrenceDayOfMonth,
+              now: st.nextExecutionDate,
+            ),
+          ),
+        );
+      }
 
       emit(state.copyWith(formStatus: FormStatus.success));
     } catch (e) {

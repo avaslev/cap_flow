@@ -191,16 +191,18 @@ class ReportRepository {
     return List.generate(12, (i) {
       final targetMonth = ((startMonth - 1 + i) % 12) + 1;
       final targetMonthStr = targetMonth.toString().padLeft(2, '0');
-      final targetYear = (targetMonth >= startMonth ? startYear : startYear + 1).toString();
+      final targetYear =
+          (targetMonth >= startMonth ? startYear : startYear + 1).toString();
       final row = monthlyData.firstWhere(
-         (r) =>
-            (r['month_index'] as String?) == targetMonthStr 
-            && (r['year_index'] as String?) == targetYear,
-        orElse: () => {
-          'year_index': targetYear,
-          'month_index': targetMonthStr,
-          'total_value': 0.0
-        },
+        (r) =>
+            (r['month_index'] as String?) == targetMonthStr &&
+            (r['year_index'] as String?) == targetYear,
+        orElse:
+            () => {
+              'year_index': targetYear,
+              'month_index': targetMonthStr,
+              'total_value': 0.0,
+            },
       );
       final monthlyChange = (row['total_value'] as num?)?.toDouble() ?? 0.0;
       runningTotal += monthlyChange;
@@ -260,12 +262,13 @@ class ReportRepository {
     return List.generate(12, (index) {
       final targetMonth = ((startMonth - 1 + index) % 12) + 1;
       final targetMonthStr = targetMonth.toString().padLeft(2, '0');
-      final targetYear = (targetMonth > startMonth ? startYear : startYear + 1).toString();
+      final targetYear =
+          (targetMonth > startMonth ? startYear : startYear + 1).toString();
 
       final row = result.firstWhere(
         (r) =>
-            (r['month_index'] as String?) == targetMonthStr 
-            && (r['year_index'] as String?) == targetYear,
+            (r['month_index'] as String?) == targetMonthStr &&
+            (r['year_index'] as String?) == targetYear,
         orElse:
             () => {
               'income': 0.0,
@@ -307,9 +310,10 @@ class ReportRepository {
         row['id'] as String,
     };
 
-    final String where = accountId == 'total'
-        ? "account_id IN (SELECT id FROM accounts WHERE excludeFromTotal = 'false')"
-        : 'account_id = ?';
+    final String where =
+        accountId == 'total'
+            ? "account_id IN (SELECT id FROM accounts WHERE excludeFromTotal = 'false')"
+            : 'account_id = ?';
     final List<Object?> args = accountId == 'total' ? [] : [accountId];
     final List<Map<String, dynamic>> rows = await _database.query(
       'scheduled_transactions',
@@ -318,8 +322,15 @@ class ReportRepository {
     );
 
     // Бакеты по месяцам окна: [доход, расход, бюджет].
-    final DateTime monthStart = DateTime(windowStart.year, windowStart.month, 1);
-    final List<List<double>> buckets = List.generate(12, (_) => <double>[0, 0, 0]);
+    final DateTime monthStart = DateTime(
+      windowStart.year,
+      windowStart.month,
+      1,
+    );
+    final List<List<double>> buckets = List.generate(
+      12,
+      (_) => <double>[0, 0, 0],
+    );
 
     for (final Map<String, dynamic> row in rows) {
       final ScheduledTransaction st = ScheduledTransaction.fromMap(row);
@@ -332,11 +343,12 @@ class ReportRepository {
       // срочные — остатком total - executed.
       final bool perpetual =
           st.recurrenceType != 'none' && st.recurrenceEndDate == null;
-      final int maxLeft = perpetual
-          ? 400
-          : (st.totalExecutions > 0
-              ? st.totalExecutions - st.executedCount
-              : 1);
+      final int maxLeft =
+          perpetual
+              ? 400
+              : (st.totalExecutions > 0
+                  ? st.totalExecutions - st.executedCount
+                  : 1);
 
       DateTime cursor = st.nextExecutionDate;
       int made = 0;
@@ -349,7 +361,13 @@ class ReportRepository {
         final int monthIndex =
             (day.year - monthStart.year) * 12 + day.month - monthStart.month;
         if (monthIndex >= 0 && monthIndex < 12) {
-          final int idx = st.type == 'income' ? 0 : (st.type == 'transfer' ? 2 : 1);
+          final int idx =
+              st.type == 'income'
+                  ? 0
+                  : ((st.type == 'transfer' ||
+                          st.type == 'interAccountTransfer')
+                      ? 2
+                      : 1);
           buckets[monthIndex][idx] += st.amount;
         }
         made += 1;
@@ -412,7 +430,4 @@ class ReportRepository {
     if (totalLineData[0].value.abs() < 0.001) return 0.0;
     return ((totalLineData[11].value / totalLineData[0].value) - 1) * 100;
   }
-
-
-
 }

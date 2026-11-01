@@ -31,8 +31,18 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       await _refreshActivities();
       final now = DateTime.now();
       accountData.clearEvents();
-      (await _eventRepo.getExecutableEvents(DateTime(now.year, now.month, now.day + 20,
-      now.hour, now.minute, now.second, now.millisecond, now.microsecond))).forEach((ScheduledTransaction transaction) {
+      (await _eventRepo.getExecutableEvents(
+        DateTime(
+          now.year,
+          now.month,
+          now.day + 20,
+          now.hour,
+          now.minute,
+          now.second,
+          now.millisecond,
+          now.microsecond,
+        ),
+      )).forEach((ScheduledTransaction transaction) {
         accountData.addEvent(
           transaction.id,
           transaction.type,
@@ -43,6 +53,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           transaction.walletId,
           transaction.amount,
           transaction.nextExecutionDate,
+          destinationToolId: transaction.destinationWalletId,
           depositToolId: transaction.depositToolId,
         );
       });
@@ -107,11 +118,12 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       );
       await AccountRepository().insert(account);
       // Money-тул — в дефолтной валюте из настроек.
-      final String defaultCurrency = await SettingsRepository()
-          .getDefaultCurrency();
+      final String defaultCurrency =
+          await SettingsRepository().getDefaultCurrency();
       // Имя тула по умолчанию — название валюты («Рубль», «Доллар США»).
-      final String moneyToolName =
-          await CurrencyRepository().getName(defaultCurrency);
+      final String moneyToolName = await CurrencyRepository().getName(
+        defaultCurrency,
+      );
       final Tool tool = Tool(
         id: Uuid().v7(),
         name: moneyToolName,
@@ -183,11 +195,17 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         accountData.deleteAccount(event.accountId);
         await AccountRepository().delete(event.accountId);
 
-        // Плановые события счёта → собрать их id и обнулить ссылки в операциях.
-        final List<String> eventIds = await ScheduledTransactionRepository()
-            .getIdsByAccount(event.accountId);
-        await ScheduledTransactionRepository().deleteByAccount(event.accountId);
-        await ActivityRepository().clearEventIds(eventIds);
+        // Плановые события счёта и события, приходившие на его тулы,
+        // удаляем навсегда и очищаем висячие event_id в операциях.
+        final List<String> toolIds =
+            allTools.map((Tool tool) => tool.id).toList();
+        final Set<String> eventIds = <String>{
+          ...await _eventRepo.getIdsByAccount(event.accountId),
+          ...await _eventRepo.getIdsByDestinationToolIds(toolIds),
+        };
+        await _eventRepo.deleteByAccount(event.accountId);
+        await _eventRepo.deleteByDestinationToolIds(toolIds);
+        await ActivityRepository().clearEventIds(eventIds.toList());
 
         emit(AccountsDataState(accountData));
       } else {
@@ -225,7 +243,20 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
     });
 
     on<ArchiveAccountEvent>((event, emit) async {
+      final List<Tool> tools = await ToolRepository().geListByAccount(
+        event.accountId,
+      );
+      final List<String> toolIds = tools.map((Tool tool) => tool.id).toList();
+      final Set<String> eventIds = <String>{
+        ...await _eventRepo.getIdsByAccount(event.accountId),
+        ...await _eventRepo.getIdsByDestinationToolIds(toolIds),
+      };
+
       await AccountRepository().archive(event.accountId);
+      await _eventRepo.deleteByAccount(event.accountId);
+      await _eventRepo.deleteByDestinationToolIds(toolIds);
+      await ActivityRepository().clearEventIds(eventIds.toList());
+
       accountData.archiveAccount(event.accountId);
       emit(AccountsDataState(accountData));
     });
@@ -284,7 +315,9 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       // Always create tool with zero values - activity replay will set correct values
       final toolSummary = ToolSummary.fromTyped(typedToolFromDb(tool));
       accountData.addTool(toolSummary);
-      debugPrint('[_refreshTools] Tool ${tool.id} (${tool.name}) reset to zero for activity replay');
+      debugPrint(
+        '[_refreshTools] Tool ${tool.id} (${tool.name}) reset to zero for activity replay',
+      );
     }
 
     // Remove tools that are no longer in DB
@@ -295,7 +328,9 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       // accountData.tools is a copy — use the real removal, otherwise the
       // deleted tool stays in the list forever (e.g. after deposit closure).
       accountData.removeTool(id);
-      debugPrint('[_refreshTools] Removed tool ${id} (${tool?.name}) - no longer in DB');
+      debugPrint(
+        '[_refreshTools] Removed tool ${id} (${tool?.name}) - no longer in DB',
+      );
     }
 
     return accountData;
@@ -317,7 +352,9 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       acc.periodExpense = 0;
     }
     final activities = await ActivityRepository().getActivityList();
-    debugPrint('[_refreshActivities] Found ${activities.length} activities to replay');
+    debugPrint(
+      '[_refreshActivities] Found ${activities.length} activities to replay',
+    );
     for (final activity in activities) {
       if (toolMap.containsKey(activity.toolId)) {
         final toolSummary = toolMap[activity.toolId]!;
@@ -351,14 +388,10 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
         // на туле-инструменте (quantity = 0, сумма в price).
         if (!activity.isTransmit && toolSummary.type != ToolType.money) {
           final String? markerName = activity.name;
-          final bool isGain = markerName?.startsWith(
-                Activity.investmentGainName,
-              ) ??
-              false;
-          final bool isLoss = markerName?.startsWith(
-                Activity.investmentLossName,
-              ) ??
-              false;
+          final bool isGain =
+              markerName?.startsWith(Activity.investmentGainName) ?? false;
+          final bool isLoss =
+              markerName?.startsWith(Activity.investmentLossName) ?? false;
           if ((isGain || isLoss) && activity.price > 0) {
             final DateTime at = activity.createAt;
             final bool inPeriod = at.isAfter(periodStart);
@@ -377,12 +410,16 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           }
         }
 
-        debugPrint('[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, ' +
-            'qtyChange=${quantityChange.toStringAsFixed(2)}, valueChange=${valueChange.toStringAsFixed(2)}, ' +
-            'newQty=${toolSummary.quantity.toStringAsFixed(2)}, newValue=${toolSummary.currentValue.toStringAsFixed(2)}');
+        debugPrint(
+          '[_refreshActivities] activity ${activity.id}: toolId=${activity.toolId}, ' +
+              'qtyChange=${quantityChange.toStringAsFixed(2)}, valueChange=${valueChange.toStringAsFixed(2)}, ' +
+              'newQty=${toolSummary.quantity.toStringAsFixed(2)}, newValue=${toolSummary.currentValue.toStringAsFixed(2)}',
+        );
         accountData.addTool(toolSummary);
       } else {
-        debugPrint('[_refreshActivities] SKIPPED activity ${activity.id}: toolId=${activity.toolId} not found in toolMap');
+        debugPrint(
+          '[_refreshActivities] SKIPPED activity ${activity.id}: toolId=${activity.toolId} not found in toolMap',
+        );
       }
     }
 

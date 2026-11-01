@@ -59,11 +59,12 @@ class AccountCard extends StatelessWidget {
 
     // Net turnover for the last 30 days (single signed number).
     final double net = account.periodIncome + account.periodExpense;
-    final Color netColor = net > 0
-        ? colorScheme.primary
-        : net < 0
-        ? colorScheme.error
-        : subtleTextColor;
+    final Color netColor =
+        net > 0
+            ? colorScheme.primary
+            : net < 0
+            ? colorScheme.error
+            : subtleTextColor;
 
     return GestureDetector(
       onTap: () {
@@ -130,9 +131,7 @@ class AccountCard extends StatelessWidget {
                         formatCurrency(account.balance),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleLarge!.copyWith(
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
                           fontWeight: FontWeight.w800,
                           color: textColor,
                         ),
@@ -142,9 +141,10 @@ class AccountCard extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       icon: Icon(Icons.show_chart, color: textColor, size: 20),
                       tooltip: 'Отчёт',
-                      onPressed: () => GoRouter.of(
-                        context,
-                      ).go('/accounts/${account.id}/report'),
+                      onPressed:
+                          () => GoRouter.of(
+                            context,
+                          ).go('/accounts/${account.id}/report'),
                     ),
                   ],
                 ),
@@ -202,15 +202,11 @@ class AccountCard extends StatelessWidget {
                           const SizedBox(width: 2),
                           Text(
                             '×${entry.value}',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall!.copyWith(
-                              color: subtleTextColor,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall!
+                                .copyWith(color: subtleTextColor),
                           ),
                         ],
                       ),
-    
                   ],
                 ),
               ],
@@ -253,23 +249,25 @@ class AccountCard extends StatelessWidget {
                       context,
                       icon: Icons.chevron_left,
                       tooltip: 'Переместить ближе к началу',
-                      color: canMoveUp
-                          ? textColor
-                          : textColor.withValues(alpha: 0.3),
-                      onPressed: (canMoveUp && onMoveUp != null)
-                          ? onMoveUp
-                          : null,
+                      color:
+                          canMoveUp
+                              ? textColor
+                              : textColor.withValues(alpha: 0.3),
+                      onPressed:
+                          (canMoveUp && onMoveUp != null) ? onMoveUp : null,
                     ),
                     _editIcon(
                       context,
                       icon: Icons.chevron_right,
                       tooltip: 'Переместить дальше',
-                      color: canMoveDown
-                          ? textColor
-                          : textColor.withValues(alpha: 0.3),
-                      onPressed: (canMoveDown && onMoveDown != null)
-                          ? onMoveDown
-                          : null,
+                      color:
+                          canMoveDown
+                              ? textColor
+                              : textColor.withValues(alpha: 0.3),
+                      onPressed:
+                          (canMoveDown && onMoveDown != null)
+                              ? onMoveDown
+                              : null,
                     ),
                   ],
                 ),
@@ -350,8 +348,10 @@ class _ManageAccountSheet extends StatefulWidget {
 class _ManageAccountSheetState extends State<_ManageAccountSheet> {
   /// Сколько нажатий нужно ещё для безвозвратного удаления.
   static const int _requiredTaps = 3;
+
   /// Окно, за которое счётчик сбрасывается (сек).
   static const int _confirmWindowSeconds = 5;
+
   /// Высота нижней шторки — тост показывается над ней.
   static const double _sheetHeight = 330;
 
@@ -403,9 +403,9 @@ class _ManageAccountSheetState extends State<_ManageAccountSheet> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
             child: Text(
               'Счёт «${widget.account.name}»',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           const Padding(
@@ -413,14 +413,18 @@ class _ManageAccountSheetState extends State<_ManageAccountSheet> {
             child: Text(
               'Выберите действие. Полное удаление необратимо и стирает '
               'операции из истории и статистики по всем месяцам. '
-              'Архивация сохраняет данные — счёт можно вернуть.',
+              'Архивация сохраняет операции — счёт можно вернуть, но '
+              'связанные события планировщика удаляются навсегда.',
               style: TextStyle(fontSize: 13),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.inventory_2_outlined),
             title: const Text('Положить в архив'),
-            subtitle: const Text('Скрыть из списка и баланса, данные сохранить'),
+            subtitle: const Text(
+              'Скрыть из списка и баланса. Операции сохранятся, '
+              'события планировщика будут удалены',
+            ),
             onTap: () => Navigator.pop(context, _ManageAction.archive),
           ),
           ListTile(
@@ -432,14 +436,12 @@ class _ManageAccountSheetState extends State<_ManageAccountSheet> {
             subtitle: Text(
               _tapsLeft == _requiredTaps
                   ? 'Убрать счёт, тулы, операции и парные переводы. '
-                        'Восстановить можно только из резервной копии. '
-                        'Требуется $_requiredTaps нажатия'
+                      'Восстановить можно только из резервной копии. '
+                      'Требуется $_requiredTaps нажатия'
                   : 'Нажмите ещё $_tapsLeft ${_plural(_tapsLeft)}, '
-                        'чтобы удалить безвозвратно',
+                      'чтобы удалить безвозвратно',
               style: TextStyle(
-                color: _tapsLeft == _requiredTaps
-                    ? null
-                    : colorScheme.error,
+                color: _tapsLeft == _requiredTaps ? null : colorScheme.error,
               ),
             ),
             onTap: _onDeleteTap,

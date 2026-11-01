@@ -54,7 +54,8 @@ class EventTile extends StatelessWidget {
   final Event event;
   final AccountData accountData;
 
-  const EventTile({Key? key, required this.event, required this.accountData}) : super(key: key);
+  const EventTile({Key? key, required this.event, required this.accountData})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +79,7 @@ class EventTile extends StatelessWidget {
 
   void _showActionBottomSheet(BuildContext context, Event financialEvent) {
     final AccountsBloc accountsBloc = context.read<AccountsBloc>();
-    
+
     showModalBottomSheet<void>(
       context: context,
       builder: (BuildContext context) {
@@ -90,25 +91,29 @@ class EventTile extends StatelessWidget {
           ],
           child: switch (event.eventType) {
             'income' => ActivityForm(
-                accountData: accountData,
-                activityStateType: ActivityStateType.add,
-                event: event,
-              ),
+              accountData: accountData,
+              activityStateType: ActivityStateType.add,
+              event: event,
+            ),
             'expense' => ActivityForm(
-                accountData: accountData,
-                activityStateType: ActivityStateType.substract,
-                event: event,
-              ),
+              accountData: accountData,
+              activityStateType: ActivityStateType.substract,
+              event: event,
+            ),
             // Кредитный платёж: списание с money-тула; сплит тела долга
             // выполняет ActivityCubit по связи depositToolId.
             'transfer' when event.depositToolId != null => ActivityForm(
-                accountData: accountData,
-                activityStateType: ActivityStateType.substract,
-                event: event,
-              ),
-            'transfer' => TransferForm(accountData: accountData),
+              accountData: accountData,
+              activityStateType: ActivityStateType.substract,
+              event: event,
+            ),
+            'transfer' => TransferForm(accountData: accountData, event: event),
+            'interAccountTransfer' => TransferForm(
+              accountData: accountData,
+              event: event,
+            ),
             String() => throw UnimplementedError(),
-          }
+          },
         );
       },
       shape: const RoundedRectangleBorder(
