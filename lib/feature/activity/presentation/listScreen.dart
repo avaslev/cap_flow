@@ -318,17 +318,21 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     }
 
     // Итоги за выбранный месяц: только реальные доходы/расходы
-    // (переводы между своими счетами не влияют).
+    // (переводы между своими счетами не влияют). Маркер прибыль/убыток
+    // (quantity = 0) несёт сумму в price.
     double income = 0;
     double expense = 0;
     for (final MapEntry<DateTime, List<ActivityRow>> g in groups) {
       for (final ActivityRow row in g.value) {
         for (final Activity a in row.activities) {
           if (a.isTransmit) continue;
+          final double v = a.quantity == 0
+              ? a.price
+              : a.price * a.quantity;
           if (a.type == ActivityType.add) {
-            income += a.price * a.quantity;
+            income += v;
           } else {
-            expense -= a.price * a.quantity;
+            expense -= v;
           }
         }
       }
@@ -415,12 +419,15 @@ class _DayGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final String formattedDate = DateFormat('d MMMM yyyy', 'ru').format(date);
     // Переводы между своими счетами не влияют на доход/расход дня.
+    // Маркер прибыль/убыток (quantity = 0) несёт сумму в price.
     double dayIncome = 0;
     double dayExpense = 0;
     for (final ActivityRow row in rows) {
       for (final Activity a in row.activities) {
         if (a.isTransmit) continue;
-        final double v = a.price * a.quantity;
+        final double v = a.quantity == 0
+            ? a.price
+            : a.price * a.quantity;
         if (a.type == ActivityType.add) {
           dayIncome += v;
         } else {

@@ -348,6 +348,9 @@ class ToolDetailRepository {
 
     final DateTime now = date ?? DateTime.now();
     final String closeName = 'Продажа актива «$toolName»';
+    // Общий id пары «деньги зачислены / актив списан» — половины показываются
+    // в «Активности» одной строкой (маркер прибыли в пару не входит).
+    final String transferPairId = const Uuid().v7();
 
     // Деньги зачисляются на money-тул (по цене продажи).
     await _activityRepo.insert(
@@ -361,6 +364,7 @@ class ToolDetailRepository {
         currency: Currency.RUB,
         isTransmit: true, // внутреннее перемещение, не доход
         name: closeName,
+        transferPairId: transferPairId,
       ),
     );
     // Актив обнуляется (списание по себестоимости).
@@ -375,6 +379,7 @@ class ToolDetailRepository {
         currency: Currency.RUB,
         isTransmit: true, // внутреннее перемещение, не расход
         name: closeName,
+        transferPairId: transferPairId,
       ),
     );
 

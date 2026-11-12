@@ -74,6 +74,11 @@ class _ActivityEditSheetState extends State<ActivityEditSheet> {
   bool get _isLockedSale =>
       _isPair && _isInvestmentPair && _kind == TransferKind.sale;
 
+  /// Маркер реализованной прибыли/убытка (quantity = 0, сумма в price).
+  /// Сумму менять нельзя — она производная от продажи; дату/имя/комментарий
+  /// править можно, сохранение не трогает quantity/price.
+  bool get _isMarker => widget.activity.quantity == 0;
+
   /// Комиссия перевода хранится в валюте источника и её можно править.
   bool get _isCommissionEditable =>
       _isMoneyPair && widget.commission != null;
@@ -88,8 +93,9 @@ class _ActivityEditSheetState extends State<ActivityEditSheet> {
     _nameController = TextEditingController(text: a.name ?? '');
     _commentController = TextEditingController(text: a.comment ?? '');
     _amountController = TextEditingController(
-      text: a.price * a.quantity == 0
-          ? ''
+      // Маркер прибыль/убыток (quantity = 0) несёт сумму в price.
+      text: a.quantity == 0
+          ? a.price.toStringAsFixed(2)
           : (a.price * a.quantity).toStringAsFixed(2),
     );
     if (_isPair) {
@@ -201,16 +207,28 @@ class _ActivityEditSheetState extends State<ActivityEditSheet> {
 
       if (!_isPair) {
         final Activity a = widget.activity;
-        final double amount = _parseAmount(_amountController.text);
-        await ActivityRepository().update(
-          a.copyWith(
-            createAt: date,
-            quantity: 1,
-            price: amount,
-            name: _nameController.text.trim(),
-            comment: comment,
-          ),
-        );
+        if (_isMarker) {
+          // Маркер: только дата/имя/комментарий — quantity/price не меняем,
+          // иначе маркер превратится в обычную операцию на закрытом туле.
+          await ActivityRepository().update(
+            a.copyWith(
+              createAt: date,
+              name: _nameController.text.trim(),
+              comment: comment,
+            ),
+          );
+        } else {
+          final double amount = _parseAmount(_amountController.text);
+          await ActivityRepository().update(
+            a.copyWith(
+              createAt: date,
+              quantity: 1,
+              price: amount,
+              name: _nameController.text.trim(),
+              comment: comment,
+            ),
+          );
+        }
       } else if (_isInvestmentPair) {
         // Покупка/продажа: обе стороны в своих единицах. Для покупки цена
         // за единицу пересчитывается из оплаченной суммы и количества.
@@ -462,7 +480,12 @@ class _ActivityEditSheetState extends State<ActivityEditSheet> {
                         : null,
                   ),
                   const SizedBox(height: 12),
-                  _amountField(_amountController, 'Сумма (RUB)'),
+                  // У маркера сумма производная — только для просмотра.
+                  _amountField(
+                    _amountController,
+                    'Сумма (RUB)',
+                    enabled: !_isMarker,
+                  ),
                 ] else if (!_toolsLoaded)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),

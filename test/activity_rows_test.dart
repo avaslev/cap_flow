@@ -231,6 +231,58 @@ void main() {
       expect((rows[0] as TransferActivityRow).commission?.id, 'c');
       expect((rows[1] as SingleActivityRow).activity.id, 'extra');
     });
+
+    test('закрытие прочего актива: пара + отдельный маркер прибыли', () {
+      final DateTime at = DateTime(2026, 11, 3, 15);
+      final Activity moneyIn = _act(
+        id: 'in',
+        toolId: 'money',
+        type: ActivityType.add,
+        isTransmit: true,
+        pairId: 'pair',
+        quantity: 1200,
+        price: 1,
+        name: 'Продажа актива «Машина»',
+        at: at,
+      );
+      final Activity assetOut = _act(
+        id: 'out',
+        toolId: 'other',
+        type: ActivityType.substract,
+        isTransmit: true,
+        pairId: 'pair',
+        quantity: 1,
+        price: 1000,
+        name: 'Продажа актива «Машина»',
+        at: at,
+      );
+      final Activity gain = _act(
+        id: 'gain',
+        toolId: 'other',
+        type: ActivityType.add,
+        isTransmit: false,
+        quantity: 0,
+        price: 200,
+        name: 'Доход от продажи Машина',
+        at: at,
+      );
+
+      final List<ActivityRow> rows = buildActivityRows(<Activity>[
+        moneyIn,
+        assetOut,
+        gain,
+      ]);
+
+      expect(rows, hasLength(2));
+      final TransferActivityRow pair = rows[0] as TransferActivityRow;
+      expect(pair.from.id, 'out');
+      expect(pair.to.id, 'in');
+      expect(pair.commission, isNull);
+      final SingleActivityRow marker = rows[1] as SingleActivityRow;
+      expect(marker.activity.id, 'gain');
+      expect(marker.activity.quantity, 0);
+      expect(marker.activity.price, 200);
+    });
   });
 
   group('TransferKind и сумма строки', () {
@@ -315,6 +367,32 @@ void main() {
       );
       expect(row.kind, TransferKind.sale);
       expect(row.rubAmount, 12000);
+    });
+
+    test('закрытие прочего актива: Продажа актива «…», сумма — выручка', () {
+      final TransferActivityRow row = _row(
+        _act(
+          id: 'f',
+          toolId: 'other',
+          type: ActivityType.substract,
+          isTransmit: true,
+          pairId: 'p',
+          quantity: 1,
+          price: 1000,
+          name: 'Продажа актива «Машина»',
+        ),
+        _act(
+          id: 't',
+          toolId: 'money',
+          type: ActivityType.add,
+          isTransmit: true,
+          pairId: 'p',
+          quantity: 1200,
+          name: 'Продажа актива «Машина»',
+        ),
+      );
+      expect(row.kind, TransferKind.sale);
+      expect(row.rubAmount, 1200);
     });
 
     test('обычный перевод', () {

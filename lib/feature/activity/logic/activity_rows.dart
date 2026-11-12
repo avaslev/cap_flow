@@ -36,7 +36,8 @@ TransferKind transferKindOf(Activity from, Activity to) {
       (toName?.startsWith('Актив «') ?? false)) {
     return TransferKind.purchase;
   }
-  if (fromName?.startsWith('Sell ') ?? false) {
+  if ((fromName?.startsWith('Sell ') ?? false) ||
+      (fromName?.startsWith('Продажа актива «') ?? false)) {
     return TransferKind.sale;
   }
   return TransferKind.transfer;

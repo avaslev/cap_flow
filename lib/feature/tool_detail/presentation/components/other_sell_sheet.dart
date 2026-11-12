@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:capflow/core/utils/formatCurrency.dart';
 import 'package:capflow/core/utils/toast.dart';
 import 'package:capflow/feature/tool_detail/data/tool_detail_repository.dart';
+import 'package:intl/intl.dart';
 
 /// Форма продажи актива «прочее». Пользователь указывает цену продажи,
 /// из неё считается реализованная прибыль/убыток (цена − себестоимость),
@@ -50,6 +51,8 @@ class _OtherSellSheet extends StatefulWidget {
 class _OtherSellSheetState extends State<_OtherSellSheet> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _priceController;
+  // Дата закрытия: дефолт — сегодня, её же получает sellOtherTool.
+  DateTime _date = DateTime.now();
   bool _saving = false;
 
   @override
@@ -66,6 +69,18 @@ class _OtherSellSheetState extends State<_OtherSellSheet> {
     super.dispose();
   }
 
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      setState(() => _date = picked);
+    }
+  }
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final double price = double.parse(
@@ -78,6 +93,7 @@ class _OtherSellSheetState extends State<_OtherSellSheet> {
         toolName: widget.toolName,
         accountId: widget.accountId,
         salePrice: price,
+        date: _date,
       );
       if (!mounted) return;
       Navigator.pop(context, realized);
@@ -153,6 +169,23 @@ class _OtherSellSheetState extends State<_OtherSellSheet> {
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: _pickDate,
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Дата закрытия',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.calendar_today,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    child: Text(DateFormat('dd.MM.yyyy').format(_date)),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(

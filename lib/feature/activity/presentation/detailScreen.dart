@@ -207,7 +207,14 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             }
             final Activity a = state.data;
             final bool isAdd = a.type == ActivityType.add;
-            final double value = a.price * a.quantity;
+            // Маркер прибыль/убыток (quantity = 0) несёт сумму в price.
+            final double value = a.quantity == 0
+                ? a.price
+                : a.price * a.quantity;
+            // Метка маркера — «Доход/Убыток», обычной записи — движение.
+            final String kindLabel = a.quantity == 0
+                ? (isAdd ? 'Доход' : 'Убыток')
+                : (isAdd ? 'Пополнение' : 'Списание');
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -231,7 +238,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          isAdd ? 'Пополнение' : 'Списание',
+                          kindLabel,
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium
