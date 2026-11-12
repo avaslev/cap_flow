@@ -26,12 +26,7 @@ Wallet _wallet({
 void main() {
   final List<Wallet> wallets = <Wallet>[
     _wallet(id: 'source', accountId: 'a', ticker: 'RUB'),
-    _wallet(
-      id: 'stock',
-      accountId: 'a',
-      ticker: 'RUB',
-      type: ToolType.stocks,
-    ),
+    _wallet(id: 'stock', accountId: 'a', ticker: 'RUB', type: ToolType.stocks),
     _wallet(id: 'other-rub', accountId: 'b', ticker: 'RUB'),
     _wallet(id: 'other-usd', accountId: 'b', ticker: 'USD'),
     _wallet(
@@ -114,6 +109,33 @@ void main() {
         event().copyWith(clearDestinationWalletId: true).destinationWalletId,
         isNull,
       );
+    });
+  });
+
+  group('FinancialEvent.depositToolId', () {
+    FinancialEvent creditEvent({String? depositToolId}) => FinancialEvent(
+      id: 'e2',
+      name: 'Платёж по кредиту',
+      amount: 100,
+      type: FinancialEventType.transfer,
+      category: '',
+      date: DateTime(2026, 1, 1),
+      walletId: 'money',
+      destinationWalletId: 'credit',
+      depositToolId: depositToolId,
+    );
+
+    test('copyWith сохраняет и очищает depositToolId', () {
+      final FinancialEvent event = creditEvent(depositToolId: 'credit');
+      expect(event.copyWith(amount: 200).depositToolId, 'credit');
+      expect(event.copyWith(clearDepositToolId: true).depositToolId, isNull);
+    });
+
+    test('toScheduledTransaction сохраняет depositToolId', () {
+      final tx = creditEvent(
+        depositToolId: 'credit',
+      ).toScheduledTransaction('account', 12, 3);
+      expect(tx.depositToolId, 'credit');
     });
   });
 

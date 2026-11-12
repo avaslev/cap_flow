@@ -94,6 +94,7 @@ class FinancialEvent {
   final DateTime date;
   final String walletId; // source wallet for transfers
   final String? destinationWalletId; // destination wallet for transfers
+  final String? depositToolId; // credit/deposit tool linked to this event
   final String? comment; // optional comment
 
   final RecurrenceType recurrenceType;
@@ -109,6 +110,7 @@ class FinancialEvent {
     required this.date,
     required this.walletId,
     this.destinationWalletId,
+    this.depositToolId,
     this.comment,
     this.recurrenceType = RecurrenceType.none,
     this.recurrenceEndDate,
@@ -126,6 +128,8 @@ class FinancialEvent {
     String? walletId,
     String? destinationWalletId,
     bool clearDestinationWalletId = false,
+    String? depositToolId,
+    bool clearDepositToolId = false,
     String? comment,
     RecurrenceType? recurrenceType,
     DateTime? recurrenceEndDate,
@@ -143,6 +147,8 @@ class FinancialEvent {
           clearDestinationWalletId
               ? null
               : (destinationWalletId ?? this.destinationWalletId),
+      depositToolId:
+          clearDepositToolId ? null : (depositToolId ?? this.depositToolId),
       comment: comment ?? this.comment,
       recurrenceType: recurrenceType ?? this.recurrenceType,
       recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
@@ -161,6 +167,7 @@ class FinancialEvent {
         'date: $date, '
         'walletId: $walletId, '
         'destinationWalletId: $destinationWalletId, '
+        'depositToolId: $depositToolId, '
         'comment: $comment, '
         'recurrenceType: ${recurrenceType.displayName}, '
         'recurrenceEndDate: $recurrenceEndDate, '
@@ -186,6 +193,7 @@ extension FinancialEventX on FinancialEvent {
       date: date,
       walletId: walletId,
       destinationWalletId: destinationWalletId,
+      depositToolId: depositToolId,
       comment: comment,
       recurrenceType: recurrenceType.name,
       recurrenceEndDate: recurrenceEndDate,

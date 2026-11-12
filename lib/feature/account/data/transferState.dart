@@ -28,6 +28,9 @@ class TransferState {
   final String? scheduledEventId;
   final bool sameCurrencyOnly;
 
+  /// Последнее действие — пропуск планового перевода (для тоста).
+  final bool skipped;
+
   bool get isCrossCurrency =>
       fromTicker != null && toTicker != null && fromTicker != toTicker;
 
@@ -50,6 +53,7 @@ class TransferState {
     this.errorMessage,
     this.scheduledEventId,
     this.sameCurrencyOnly = false,
+    this.skipped = false,
   });
 
   /// Factory constructor to create an initial state for the form.
@@ -73,15 +77,24 @@ class TransferState {
       return null;
     }
 
-    final String selectedFromToolId = fromToolId ?? currentTool.id;
+    bool isKnownMoneyTool(String? id) =>
+        id != null &&
+        initialMoneyTools.any((ToolSummary tool) => tool.id == id);
+
+    // Не подставляем закрытые/не-money тулы из события: dropdown должен
+    // содержать только доступные money-тулы.
+    final String selectedFromToolId =
+        isKnownMoneyTool(fromToolId) ? fromToolId! : currentTool.id;
+    final String? selectedToToolId =
+        isKnownMoneyTool(toToolId) ? toToolId : null;
     return TransferState(
       amount: amount ?? '',
       comment: comment ?? '',
       selectedDate: initialDate ?? DateTime.now(),
       selectedFromToolId: selectedFromToolId,
-      selectedToToolId: toToolId,
+      selectedToToolId: selectedToToolId,
       fromTicker: tickerOf(selectedFromToolId),
-      toTicker: tickerOf(toToolId),
+      toTicker: tickerOf(selectedToToolId),
       availableMoneyTools: initialMoneyTools,
       accounts: accounts,
       rate: '',
@@ -108,6 +121,7 @@ class TransferState {
     String? errorMessage,
     String? scheduledEventId,
     bool? sameCurrencyOnly,
+    bool? skipped,
   }) {
     return TransferState(
       amount: amount ?? this.amount,
@@ -126,6 +140,7 @@ class TransferState {
       errorMessage: errorMessage, // Allow explicit nulling out of error message
       scheduledEventId: scheduledEventId ?? this.scheduledEventId,
       sameCurrencyOnly: sameCurrencyOnly ?? this.sameCurrencyOnly,
+      skipped: skipped ?? this.skipped,
     );
   }
 }

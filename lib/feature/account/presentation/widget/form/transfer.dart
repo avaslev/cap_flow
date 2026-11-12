@@ -53,7 +53,10 @@ class TransferForm extends StatelessWidget {
       child: BlocListener<TransferCubit, TransferState>(
         listener: (BuildContext context, TransferState state) {
           if (state.formStatus == FormStatus.success) {
-            Toast.show(context, 'Перевод добавлен');
+            Toast.show(
+              context,
+              state.skipped ? 'Перевод пропущен' : 'Перевод добавлен',
+            );
             Navigator.pop(context); // Close the bottom sheet
           } else if (state.formStatus == FormStatus.failure) {
             Toast.show(
@@ -451,52 +454,96 @@ class _TransferFormContentState extends State<_TransferFormContent> {
                     maxLines: 2,
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed:
-                        state.formStatus == FormStatus.loading
-                            ? null // Disable button while loading
-                            : () {
-                              // Trigger local form validation first
-                              if (_formKey.currentState!.validate()) {
-                                context.read<TransferCubit>().submitIncome();
-                              } else {
-                                Toast.show(
-                                  context,
-                                  'Please correct the highlighted errors.',
-                                  error: true,
-                                );
-                              }
-                            },
-                    icon:
-                        state.formStatus == FormStatus.loading
-                            ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: colorScheme.onPrimary,
-                                strokeWidth: 2,
-                              ),
-                            )
-                            : Icon(
-                              Icons.add_circle_outline,
-                              color: colorScheme.onPrimary,
-                              size: 20,
+                  if (state.isScheduled)
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed:
+                                state.formStatus == FormStatus.loading
+                                    ? null
+                                    : () => context
+                                          .read<TransferCubit>()
+                                          .skipScheduled(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.secondaryContainer,
+                              foregroundColor: colorScheme.onSecondaryContainer,
                             ),
-                    label: Text(
-                      state.formStatus == FormStatus.loading
-                          ? "Добавление..."
-                          : "Добавить перевод",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: colorScheme.onPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                            child: Text(
+                              'Пропустить',
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(
+                                    color: colorScheme.onSecondaryContainer,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSubmitButton(
+                            context,
+                            state,
+                            colorScheme,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    _buildSubmitButton(context, state, colorScheme),
                   const SizedBox(height: 8),
                 ],
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(
+    BuildContext context,
+    TransferState state,
+    ColorScheme colorScheme,
+  ) {
+    return ElevatedButton.icon(
+      onPressed:
+          state.formStatus == FormStatus.loading
+              ? null // Disable button while loading
+              : () {
+                // Trigger local form validation first
+                if (_formKey.currentState!.validate()) {
+                  context.read<TransferCubit>().submitIncome();
+                } else {
+                  Toast.show(
+                    context,
+                    'Please correct the highlighted errors.',
+                    error: true,
+                  );
+                }
+              },
+      icon:
+          state.formStatus == FormStatus.loading
+              ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: colorScheme.onPrimary,
+                  strokeWidth: 2,
+                ),
+              )
+              : Icon(
+                Icons.add_circle_outline,
+                color: colorScheme.onPrimary,
+                size: 20,
+              ),
+      label: Text(
+        state.formStatus == FormStatus.loading
+            ? "Добавление..."
+            : "Добавить перевод",
+        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+          color: colorScheme.onPrimary,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

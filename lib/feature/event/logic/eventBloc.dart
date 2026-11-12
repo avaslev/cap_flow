@@ -23,6 +23,7 @@ class FinancialEventBloc
   String _accountId = '';
   List<Wallet> _wallets = [];
   List<String> _categories = [];
+  Map<String, ToolType> _toolTypeById = <String, ToolType>{};
   ScheduledTransaction? _lastDeleted;
 
   FinancialEventBloc()
@@ -54,14 +55,20 @@ class FinancialEventBloc
       emit(const FinancialEventLoading());
     }
     _accountId = event.accountId;
-    final list =
-        (await _repo.getByAccount(
-          _accountId,
-        )).map((item) => _mapToEvent(item)).toList();
+    final List<ScheduledTransaction> transactions = await _repo.getByAccount(
+      _accountId,
+    );
 
     // Все открытые тулы всех счетов: нужны и для отображения имён, и для
     // выбора получателя межсчётного перевода.
     final List<Tool> allTools = await _toolsRepo.geList();
+    _toolTypeById = <String, ToolType>{
+      for (final Tool tool in allTools)
+        tool.id: ToolType.values.firstWhere(
+          (ToolType type) => type.name == tool.type,
+          orElse: () => ToolType.other,
+        ),
+    };
     final Map<String, String> accountNames = <String, String>{
       for (final account in await AccountRepository().geList())
         account.id: account.name,
@@ -85,6 +92,7 @@ class FinancialEventBloc
             type: toolType,
           );
         }).toList();
+    final List<FinancialEvent> list = transactions.map(_mapToEvent).toList();
     _categories =
         _categories.length > 0
             ? _categories
@@ -130,6 +138,10 @@ class FinancialEventBloc
       date: tx.nextExecutionDate,
       walletId: tx.walletId,
       destinationWalletId: tx.destinationWalletId,
+      // Старые кредитные события могли потерять связь с кредитом при
+      // сохранении в планировщике. Восстанавливаем её в памяти по типу
+      // получателя; при следующем сохранении она запишется в БД.
+      depositToolId: tx.depositToolId ?? _inferredCreditToolId(tx),
       comment: tx.comment,
       recurrenceType: RecurrenceType.values.firstWhere(
         (e) => e.name == tx.recurrenceType,
@@ -137,5 +149,14 @@ class FinancialEventBloc
       recurrenceEndDate: tx.recurrenceEndDate,
       recurrenceDayOfMonth: tx.recurrenceDayOfMonth,
     );
+  }
+
+  String? _inferredCreditToolId(ScheduledTransaction tx) {
+    if (tx.type != 'transfer') return null;
+    final String? destinationId = tx.destinationWalletId;
+    if (destinationId == null) return null;
+    return _toolTypeById[destinationId] == ToolType.credit
+        ? destinationId
+        : null;
   }
 }

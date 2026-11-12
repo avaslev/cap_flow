@@ -121,8 +121,11 @@ class ActivityCubit extends Cubit<ActivityState> {
         try {
           final ScheduledTransaction st =
               await _eventRepo.getById(state.eventId!);
-          if (st.depositToolId != null && st.type == 'transfer') {
-            final Tool linkedTool = await _toolRepo.get(st.depositToolId!);
+          // Старые события могли потерять depositToolId — тогда кредит
+          // определяется по получателю перевода.
+          final String? linkedId = st.depositToolId ?? st.destinationWalletId;
+          if (linkedId != null && st.type == 'transfer') {
+            final Tool linkedTool = await _toolRepo.get(linkedId);
             if (linkedTool.type == ToolType.credit.name) {
               linkedCreditToolId = linkedTool.id;
               linkedCreditToolName = linkedTool.name;

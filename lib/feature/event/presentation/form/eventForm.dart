@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:capflow/core/utils/toast.dart';
+import 'package:capflow/data/models/tools/tool_kind.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:capflow/core/utils/calculateNextOccurrence.dart';
@@ -227,6 +228,18 @@ class _FinancialEventFormContentState
     return wallet.isMoney ? '$name (${wallet.ticker})' : name;
   }
 
+  /// Событие создано кредитом: тип и получатель менять нельзя.
+  bool _isCreditLinked(FinancialEvent event, List<Wallet> wallets) {
+    final String? linkedId = event.depositToolId;
+    if (linkedId != null) {
+      final Wallet? linked = _walletById(wallets, linkedId);
+      if (linked != null) return linked.type == ToolType.credit;
+    }
+    if (!event.type.isTransfer) return false;
+    return _walletById(wallets, event.destinationWalletId)?.type ==
+        ToolType.credit;
+  }
+
   void _onTypeChanged(
     FinancialEventType newType,
     FinancialEventLoaded eventsState,
@@ -360,11 +373,21 @@ class _FinancialEventFormContentState
                         editState.event.walletId,
                       );
                       final String amountTicker = amountWallet?.ticker ?? 'RUB';
-                      final List<Wallet> sourceOptions = transferSourceWallets(
-                        wallets: eventsState.wallets,
-                        accountId: eventsState.accountId,
-                        type: editState.event.type,
-                      );
+                      final bool creditLinked =
+                          widget.isEditing &&
+                          _isCreditLinked(
+                            editState.event,
+                            eventsState.wallets,
+                          );
+                      final List<Wallet> sourceOptions =
+                          transferSourceWallets(
+                            wallets: eventsState.wallets,
+                            accountId: eventsState.accountId,
+                            type: editState.event.type,
+                          ).where((Wallet wallet) {
+                            // Для кредитного события источник — только money-тул.
+                            return !creditLinked || wallet.isMoney;
+                          }).toList();
                       final Wallet? selectedSource =
                           _walletById(
                             sourceOptions,
@@ -442,6 +465,31 @@ class _FinancialEventFormContentState
                             },
                           ),
                           const SizedBox(height: 16.0),
+                          if (creditLinked)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Row(
+                                children: <Widget>[
+                                  Icon(
+                                    Icons.lock_outline,
+                                    size: 18,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Событие создано кредитом: тип и '
+                                      'получатель заблокированы',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -453,12 +501,18 @@ class _FinancialEventFormContentState
                                     avatar: Icon(type.icon, size: 18),
                                     label: Text(type.displayName),
                                     selected: editState.event.type == type,
-                                    onSelected: (bool selected) {
-                                      if (!selected) return;
-                                      setState(() {
-                                        _onTypeChanged(type, eventsState);
-                                      });
-                                    },
+                                    onSelected:
+                                        creditLinked
+                                            ? null
+                                            : (bool selected) {
+                                              if (!selected) return;
+                                              setState(() {
+                                                _onTypeChanged(
+                                                  type,
+                                                  eventsState,
+                                                );
+                                              });
+                                            },
                                   );
                                 }).toList(),
                           ),
@@ -620,7 +674,7 @@ class _FinancialEventFormContentState
                                     );
                                   }).toList(),
                               onChanged:
-                                  destinationOptions.isEmpty
+                                  creditLinked || destinationOptions.isEmpty
                                       ? null
                                       : (String? newValue) {
                                         if (newValue != null) {

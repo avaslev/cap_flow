@@ -210,7 +210,13 @@ class TransferCubit extends Cubit<TransferState> {
       return;
     }
 
-    emit(state.copyWith(formStatus: FormStatus.loading, errorMessage: null));
+    emit(
+      state.copyWith(
+        formStatus: FormStatus.loading,
+        errorMessage: null,
+        skipped: false,
+      ),
+    );
 
     try {
       // Списание из источника (валюта FROM) и зачисление (валюта TO).
@@ -334,6 +340,42 @@ class TransferCubit extends Cubit<TransferState> {
       }
 
       emit(state.copyWith(formStatus: FormStatus.success));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          formStatus: FormStatus.failure,
+          errorMessage: e.toString(),
+        ),
+      );
+    }
+  }
+
+  /// Пропускает текущее выполнение планового перевода без создания операций.
+  Future<void> skipScheduled() async {
+    final String? eventId = state.scheduledEventId;
+    if (eventId == null) return;
+    emit(
+      state.copyWith(
+        formStatus: FormStatus.loading,
+        errorMessage: null,
+        skipped: true,
+      ),
+    );
+    try {
+      final ScheduledTransaction st = await _eventRepository.getById(eventId);
+      await _eventRepository.update(
+        st.copyWith(
+          executedCount: st.executedCount + 1,
+          nextExecutionDate: calculateNextOccurrence(
+            initialDate: st.date,
+            recurrenceType: st.recurrenceType,
+            recurrenceEndDate: st.recurrenceEndDate,
+            recurrenceDayOfMonth: st.recurrenceDayOfMonth,
+            now: st.nextExecutionDate,
+          ),
+        ),
+      );
+      emit(state.copyWith(formStatus: FormStatus.success, skipped: true));
     } catch (e) {
       emit(
         state.copyWith(

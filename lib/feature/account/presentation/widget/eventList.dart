@@ -101,12 +101,17 @@ class EventTile extends StatelessWidget {
               event: event,
             ),
             // Кредитный платёж: списание с money-тула; сплит тела долга
-            // выполняет ActivityCubit по связи depositToolId.
-            'transfer' when event.depositToolId != null => ActivityForm(
-              accountData: accountData,
-              activityStateType: ActivityStateType.substract,
-              event: event,
-            ),
+            // выполняет ActivityCubit по связи depositToolId. Старые события
+            // могли потерять эту связь — определяем кредит по типу получателя.
+            'transfer'
+                when event.depositToolId != null ||
+                    accountData.tools[event.destinationToolId]?.type ==
+                        ToolType.credit =>
+              ActivityForm(
+                accountData: accountData,
+                activityStateType: ActivityStateType.substract,
+                event: event,
+              ),
             'transfer' => TransferForm(accountData: accountData, event: event),
             'interAccountTransfer' => TransferForm(
               accountData: accountData,
